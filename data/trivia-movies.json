@@ -5,13 +5,15 @@
     "movie": "Rudolph the Red-Nosed Reindeer (1964)",
     "difficulty": "easy",
     "topic": "characters",
-    "question": "Hermey the elf hates making toys. What does he want to be instead?",
-    "answer": "A dentist",
+    "question": "What's the name of the misfit elf who runs away from Santa's workshop with Rudolph?",
+    "answer": "Hermey",
     "accept": [
-      "Dentist",
-      "An elf dentist"
+      "Hermey the elf",
+      "Hermie",
+      "Herbie",
+      "Hermy"
     ],
-    "hint": "His dream job involves checkups and fillings.",
+    "hint": "His name rhymes with “germy.”",
     "funFact": "Hermey was voiced by Paul Soles, who went on to voice Peter Parker in the 1967 Spider-Man cartoon."
   },
   {
@@ -20,14 +22,14 @@
     "movie": "Rudolph the Red-Nosed Reindeer (1964)",
     "difficulty": "easy",
     "topic": "characters",
-    "question": "What's the name of the bushy-bearded prospector who's always searching for silver and gold?",
+    "question": "What's the name of the loud, bushy-bearded prospector who joins Rudolph on his journey?",
     "answer": "Yukon Cornelius",
     "accept": [
       "Yukon",
       "Cornelius"
     ],
     "hint": "His first name is a territory in northern Canada.",
-    "funFact": "At the end, he licks his pickaxe and strikes it rich at last: “I've got me a peppermint mine!”"
+    "funFact": "His voice actor, Larry D. Mann, was one of the many Canadians in the cast, which recorded its lines in Toronto."
   },
   {
     "id": "mv-e-003",
@@ -53,11 +55,10 @@
     "movie": "Rudolph the Red-Nosed Reindeer (1964)",
     "difficulty": "easy",
     "topic": "characters",
-    "question": "What's the name of the friendly snowman who narrates the special and sings “A Holly Jolly Christmas”?",
+    "question": "What's the name of the friendly snowman who narrates the special?",
     "answer": "Sam the Snowman",
     "accept": [
-      "Sam",
-      "Sam the Snowman"
+      "Sam"
     ],
     "hint": "He introduces himself with a three-letter first name.",
     "funFact": "He's voiced by folk singer Burl Ives, who was hired to please NBC and its sponsor, General Electric."
@@ -67,17 +68,15 @@
     "category": "movies",
     "movie": "Rudolph the Red-Nosed Reindeer (1964)",
     "difficulty": "easy",
-    "topic": "plot",
-    "question": "Where do Rudolph and Hermey meet a spotted elephant and a bird that swims instead of flies?",
-    "answer": "The Island of Misfit Toys",
+    "topic": "quote",
+    "question": "Finish Santa's big request on Christmas Eve: “Rudolph, with your nose so bright…”",
+    "answer": "Won't you guide my sleigh tonight?",
     "accept": [
-      "Island of Misfit Toys",
-      "Misfit Toys island",
-      "Misfit Island",
-      "Isle of Misfit Toys"
+      "Guide my sleigh tonight",
+      "Will you guide my sleigh tonight"
     ],
-    "hint": "Every toy there was unwanted.",
-    "funFact": "The doll's flaw is never explained. Producer Arthur Rankin Jr. later said she'd been cast off by her owner and was clinically depressed."
+    "hint": "He needs a navigator through the storm.",
+    "funFact": "Rudolph's answer: “It will be an honor, sir.”"
   },
   {
     "id": "mv-e-006",
@@ -100,177 +99,12 @@
     "question": "Who said it? “Whoever heard of a skinny Santa?”",
     "answer": "Mrs. Claus",
     "accept": [
-      "Mrs. Claus",
       "Mrs. Santa",
       "Santa's wife",
       "Mama Claus"
     ],
     "hint": "She's always fussing over Santa's dinner plate.",
     "funFact": "The often-quoted combo, “Eat, Papa, eat. Nobody likes a skinny Santa,” is a misquote: that exact line is never said."
-  },
-  {
-    "id": "mv-m-001",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "medium",
-    "topic": "trivia",
-    "question": "Why does Charlie-in-the-Box think no child will ever want him?",
-    "answer": "His name is Charlie instead of Jack",
-    "accept": [
-      "He's named Charlie, not Jack",
-      "He's not a Jack-in-the-Box",
-      "Wrong name"
-    ],
-    "hint": "Think about what that kind of toy is normally called.",
-    "funFact": "He proudly calls himself the island's “official sentry.”"
-  },
-  {
-    "id": "mv-m-002",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "medium",
-    "topic": "trivia",
-    "question": "What does the misfit water pistol shoot?",
-    "answer": "Jelly",
-    "accept": [
-      "Jelly instead of water"
-    ],
-    "hint": "Something you'd spread on toast.",
-    "funFact": "Its neighbors include a choo-choo train with square wheels, a cowboy who rides an ostrich and a boat that can't stay afloat."
-  },
-  {
-    "id": "mv-m-003",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "medium",
-    "topic": "plot",
-    "question": "How does Hermey make the Abominable Snow Monster harmless?",
-    "answer": "He pulls out all its teeth",
-    "accept": [
-      "Pulls its teeth",
-      "Pulls out his teeth",
-      "Extracts its teeth",
-      "Takes out his teeth"
-    ],
-    "hint": "Think about the elf's dream job.",
-    "funFact": "Once he's reformed, the Bumble earns a job at Santa's place by putting the star on top of the Christmas tree, no stepladder needed."
-  },
-  {
-    "id": "mv-m-004",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "medium",
-    "topic": "characters",
-    "question": "Which of Santa's reindeer is Rudolph's father?",
-    "answer": "Donner",
-    "accept": [],
-    "hint": "His name is German for “thunder.”",
-    "funFact": "Rudolph himself was voiced by a woman, Billie Mae Richards, who was credited as “Billy Richards.”"
-  },
-  {
-    "id": "mv-m-005",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "medium",
-    "topic": "quote",
-    "question": "Rudolph's prospector pal survives going over a cliff with the Abominable Snow Monster. Finish his explanation: “Didn't I ever tell you about Bumbles? Bumbles…”",
-    "answer": "Bounce!",
-    "accept": [
-      "Bounce",
-      "Bumbles bounce"
-    ],
-    "hint": "It's what a rubber ball does.",
-    "funFact": "Larry D. Mann, who voices the prospector, originally voiced the snowman narrator too, before Burl Ives took over the role."
-  },
-  {
-    "id": "mv-m-006",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "medium",
-    "topic": "quote",
-    "question": "The elves proudly perform their new song for Santa. Finish his grumpy review: “Hmm. Well, it…”",
-    "answer": "Needs work",
-    "accept": [
-      "It needs work",
-      "Needs work"
-    ],
-    "hint": "Not quite ready for the big show.",
-    "funFact": "The song they'd rehearsed so hard is “We Are Santa's Elves.”"
-  },
-  {
-    "id": "mv-m-007",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "medium",
-    "topic": "music",
-    "question": "Rudolph and Hermey, two runaway outcasts, sing a duet together. What's the song called?",
-    "answer": "We're a Couple of Misfits",
-    "accept": [
-      "A Couple of Misfits",
-      "Couple of Misfits",
-      "We're a Couple of Misfits"
-    ],
-    "hint": "They sing about being a pair of oddballs.",
-    "funFact": "From 1965 it was swapped out for a song called “Fame and Fortune,” and the original wasn't restored until 1998."
-  },
-  {
-    "id": "mv-h-001",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "hard",
-    "topic": "behind-the-scenes",
-    "question": "The special's stop-motion puppet animation, nicknamed “Animagic,” was filmed in which country?",
-    "answer": "Japan",
-    "accept": [
-      "Tokyo",
-      "Tokyo, Japan"
-    ],
-    "hint": "Land of the Rising Sun.",
-    "funFact": "Animator Tadahito Mochinaga supervised the puppet work at a studio in Tokyo."
-  },
-  {
-    "id": "mv-h-002",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "hard",
-    "topic": "behind-the-scenes",
-    "question": "After the 1964 premiere, viewers wrote in about a loose end. What scene was added in 1965 to fix it?",
-    "answer": "Santa picking up the Misfit Toys",
-    "accept": [
-      "Santa delivering the Misfit Toys",
-      "Santa stopping at the Island of Misfit Toys",
-      "Santa going back for the Misfit Toys"
-    ],
-    "hint": "Think about a promise Rudolph made on his journey.",
-    "funFact": "The original Rudolph and Santa puppets sold at auction in 2020 for $368,000."
-  },
-  {
-    "id": "mv-h-003",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "hard",
-    "topic": "characters",
-    "question": "What's the name of the young buck who befriends Rudolph at the Reindeer Games, until he sees Rudolph's glowing nose?",
-    "answer": "Fireball",
-    "accept": [],
-    "hint": "His name is also a spicy cinnamon candy.",
-    "funFact": "After the nose comes off, Coach Comet bans Rudolph from the Reindeer Games."
-  },
-  {
-    "id": "mv-h-004",
-    "category": "movies",
-    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
-    "difficulty": "hard",
-    "topic": "characters",
-    "question": "What kind of creature is King Moonracer, who rescues unloved toys?",
-    "answer": "A winged lion",
-    "accept": [
-      "Lion",
-      "A lion with wings",
-      "Flying lion"
-    ],
-    "hint": "He's the king of the jungle, with an upgrade.",
-    "funFact": "He gathers unloved toys from around the world and keeps them on his island until they find children who will love them."
   },
   {
     "id": "mv-e-008",
@@ -303,55 +137,6 @@
     "funFact": "Kris later marries the schoolteacher Jessica, who becomes Mrs. Claus."
   },
   {
-    "id": "mv-m-008",
-    "category": "movies",
-    "movie": "Santa Claus Is Comin' to Town (1970)",
-    "difficulty": "medium",
-    "topic": "plot",
-    "question": "What simple toy does Kris give the scary Winter Warlock, melting his icy heart?",
-    "answer": "A toy train",
-    "accept": [
-      "Train",
-      "Choo-choo train",
-      "Toy choo-choo"
-    ],
-    "hint": "It runs on tracks.",
-    "funFact": "Kris then helps him change his ways with the song “Put One Foot in Front of the Other.”"
-  },
-  {
-    "id": "mv-m-009",
-    "category": "movies",
-    "movie": "Santa Claus Is Comin' to Town (1970)",
-    "difficulty": "medium",
-    "topic": "plot",
-    "question": "Why does Sombertown's grumpy mayor ban all toys?",
-    "answer": "He trips over a toy duck",
-    "accept": [
-      "He tripped on a toy",
-      "He slipped on a toy duck",
-      "A toy duck tripped him"
-    ],
-    "hint": "It all started with a painful fall.",
-    "funFact": "Kris gets around the ban by sneaking down chimneys and leaving toys in the children's stockings."
-  },
-  {
-    "id": "mv-h-005",
-    "category": "movies",
-    "movie": "Santa Claus Is Comin' to Town (1970)",
-    "difficulty": "hard",
-    "topic": "plot",
-    "question": "How do Kris's reindeer learn to fly?",
-    "answer": "They eat the Winter Warlock's magic feed corn",
-    "accept": [
-      "Magic corn",
-      "Magic feed corn",
-      "Enchanted corn",
-      "Enchanted feed corn"
-    ],
-    "hint": "A magical snack from a reformed villain.",
-    "funFact": "The flying reindeer help Kris and his friends escape from jail."
-  },
-  {
     "id": "mv-e-010",
     "category": "movies",
     "movie": "A Charlie Brown Christmas (1965)",
@@ -376,9 +161,7 @@
     "question": "What does Snoopy decorate to win the neighborhood lights and display contest?",
     "answer": "His doghouse",
     "accept": [
-      "Doghouse",
-      "Dog house",
-      "His dog house"
+      "Doghouse"
     ],
     "hint": "It's where he sleeps, up on the roof.",
     "funFact": "Charlie Brown is dismayed that even his own dog has gone commercial."
@@ -400,65 +183,6 @@
     ],
     "hint": "It droops when he hangs a single ornament on it.",
     "funFact": "Lucy's actual order: “Get the biggest aluminum tree you can find, Charlie Brown, maybe painted pink.”"
-  },
-  {
-    "id": "mv-m-010",
-    "category": "movies",
-    "movie": "A Charlie Brown Christmas (1965)",
-    "difficulty": "medium",
-    "topic": "quote",
-    "question": "Finish Sally's letter to Santa: “Just send money. How about…”",
-    "answer": "Tens and twenties",
-    "accept": [
-      "Tens and twenties?"
-    ],
-    "hint": "Two kinds of paper bills.",
-    "funFact": "Sally also explains that all she wants is her fair share."
-  },
-  {
-    "id": "mv-m-011",
-    "category": "movies",
-    "movie": "A Charlie Brown Christmas (1965)",
-    "difficulty": "medium",
-    "topic": "music",
-    "question": "Which jazz pianist composed the music, including “Christmas Time Is Here”?",
-    "answer": "Vince Guaraldi",
-    "accept": [
-      "Guaraldi",
-      "The Vince Guaraldi Trio"
-    ],
-    "hint": "His trio also recorded the bouncy “Linus and Lucy” theme.",
-    "funFact": "Children from a church choir in San Rafael, California, sang “Christmas Time Is Here.”"
-  },
-  {
-    "id": "mv-h-006",
-    "category": "movies",
-    "movie": "A Charlie Brown Christmas (1965)",
-    "difficulty": "hard",
-    "topic": "quote",
-    "question": "Finish Lucy's complaint: “Christmas is a big commercial racket. It's run by a big…”",
-    "answer": "Eastern syndicate",
-    "accept": [
-      "Eastern syndicate, you know"
-    ],
-    "hint": "A shadowy organization from back East.",
-    "funFact": "The child actors found phrases like “Eastern syndicate” hard to pronounce, and Sally's voice actress was too young to read, so she was fed her lines one at a time."
-  },
-  {
-    "id": "mv-h-007",
-    "category": "movies",
-    "movie": "A Charlie Brown Christmas (1965)",
-    "difficulty": "hard",
-    "topic": "behind-the-scenes",
-    "question": "Charles Schulz flatly refused to add something almost every TV cartoon comedy had in 1965. What was it?",
-    "answer": "A laugh track",
-    "accept": [
-      "Laugh track",
-      "Canned laughter",
-      "Recorded laughter"
-    ],
-    "hint": "Audience reactions that weren't really live.",
-    "funFact": "CBS executives also disliked its slow pace, yet it drew about 45% of the TV audience on premiere night."
   },
   {
     "id": "mv-e-013",
@@ -486,40 +210,7 @@
       "Roast beast"
     ],
     "hint": "Its name rhymes with “feast.”",
-    "funFact": "Cindy Lou Who gives Max the very first slice."
-  },
-  {
-    "id": "mv-m-012",
-    "category": "movies",
-    "movie": "How the Grinch Stole Christmas! (1966)",
-    "difficulty": "medium",
-    "topic": "quote",
-    "question": "Little Cindy Lou Who catches the Grinch stuffing her family's tree up the chimney. What does he say he's doing with it?",
-    "answer": "Taking it to his workshop to fix a light that won't light on one side",
-    "accept": [
-      "Fixing a light",
-      "A light won't light",
-      "A light won't light on one side",
-      "Taking it to his workshop to fix it",
-      "Taking it to be fixed",
-      "Fixing it"
-    ],
-    "hint": "He claims it's just a repair job.",
-    "funFact": "Boris Karloff, famous as Frankenstein's monster, voices both the Grinch and the narrator."
-  },
-  {
-    "id": "mv-h-008",
-    "category": "movies",
-    "movie": "How the Grinch Stole Christmas! (1966)",
-    "difficulty": "hard",
-    "topic": "behind-the-scenes",
-    "question": "Which legendary Looney Tunes animator, a co-creator of Wile E. Coyote and the Road Runner, directed the 1966 special?",
-    "answer": "Chuck Jones",
-    "accept": [
-      "Jones"
-    ],
-    "hint": "His first name rhymes with “duck.”",
-    "funFact": "He and Dr. Seuss had teamed up years earlier on the World War II Army cartoons starring Private Snafu."
+    "funFact": "The Grinch hands the very first slice to his faithful dog, Max."
   },
   {
     "id": "mv-e-015",
@@ -534,34 +225,6 @@
     ],
     "hint": "He also starred in The Mask and Ace Ventura.",
     "funFact": "His makeup took up to two and a half hours a day, so producers hired a former Navy SEAL to teach him how to endure torture."
-  },
-  {
-    "id": "mv-h-009",
-    "category": "movies",
-    "movie": "How the Grinch Stole Christmas (2000)",
-    "difficulty": "hard",
-    "topic": "quote",
-    "question": "Finish the Grinch's schedule: “4:00, wallow in self-pity. 4:30, stare into the abyss. 5:00, solve world hunger…”",
-    "answer": "Tell no one",
-    "accept": [
-      "Tell no one!"
-    ],
-    "hint": "He wants zero credit for it.",
-    "funFact": "Anthony Hopkins narrates the film, and he recorded all of his narration in a single day."
-  },
-  {
-    "id": "mv-m-013",
-    "category": "movies",
-    "movie": "The Grinch (2018)",
-    "difficulty": "medium",
-    "topic": "cast",
-    "question": "Which Sherlock and Doctor Strange star voices the Grinch in Illumination's 2018 movie?",
-    "answer": "Benedict Cumberbatch",
-    "accept": [
-      "Cumberbatch"
-    ],
-    "hint": "His first name is also a famous eggs dish.",
-    "funFact": "Pharrell Williams narrates the 2018 film."
   },
   {
     "id": "mv-e-016",
@@ -585,56 +248,9 @@
     "topic": "music",
     "question": "Finish the opening line of the song “What's This?”: “What's this? What's this? There's color…”",
     "answer": "Everywhere",
-    "accept": [
-      "Everywhere!"
-    ],
+    "accept": [],
     "hint": "All over the place.",
     "funFact": "The film earned an Oscar nomination for Best Visual Effects, a first for an animated film."
-  },
-  {
-    "id": "mv-m-014",
-    "category": "movies",
-    "movie": "The Nightmare Before Christmas (1993)",
-    "difficulty": "medium",
-    "topic": "characters",
-    "question": "Lock, Shock and Barrel deliver the kidnapped Santa to which bug-filled, burlap-sack villain?",
-    "answer": "Oogie Boogie",
-    "accept": [
-      "Oogie",
-      "Oogie Boogie Man",
-      "The Oogie Boogie Man"
-    ],
-    "hint": "He sings a jazzy number while rolling dice.",
-    "funFact": "He's voiced by Ken Page, who originated Old Deuteronomy in Cats on Broadway."
-  },
-  {
-    "id": "mv-m-015",
-    "category": "movies",
-    "movie": "The Nightmare Before Christmas (1993)",
-    "difficulty": "medium",
-    "topic": "plot",
-    "question": "Sally tries to ground the Pumpkin King's Christmas Eve sleigh ride by pouring out a magic potion. What weather does it create?",
-    "answer": "Fog",
-    "accept": [
-      "Thick fog",
-      "Mist"
-    ],
-    "hint": "It's the weather that made Santa need Rudolph in the famous song.",
-    "funFact": "It nearly works, until Zero's glowing nose lights the way and he's sent “to the head of the team.”"
-  },
-  {
-    "id": "mv-h-010",
-    "category": "movies",
-    "movie": "The Nightmare Before Christmas (1993)",
-    "difficulty": "hard",
-    "topic": "plot",
-    "question": "Dr. Finkelstein grumbles that Sally has twice this month slipped which poison into his tea so she could run off?",
-    "answer": "Deadly nightshade",
-    "accept": [
-      "Nightshade"
-    ],
-    "hint": "A poisonous plant whose name sounds like an evening shadow.",
-    "funFact": "Later she spikes his soup, but he grumbles, “Nothing's more suspicious than frog's breath,” and won't swallow a spoonful until she tastes it."
   },
   {
     "id": "mv-e-018",
@@ -659,61 +275,16 @@
     "category": "movies",
     "movie": "The Polar Express (2004)",
     "difficulty": "easy",
-    "topic": "music",
-    "question": "During the big musical number on the train, what drink do the dancing waiters serve?",
-    "answer": "Hot chocolate",
+    "topic": "plot",
+    "question": "On the way north, a gigantic herd of animals blocks the train's tracks. What kind of animals are they?",
+    "answer": "Caribou",
     "accept": [
-      "Hot cocoa",
-      "Cocoa"
+      "Reindeer",
+      "A caribou herd",
+      "Caribou herd"
     ],
-    "hint": "It's served steaming in mugs.",
-    "funFact": "The song shares the drink's name: “Hot Chocolate.”"
-  },
-  {
-    "id": "mv-m-016",
-    "category": "movies",
-    "movie": "The Polar Express (2004)",
-    "difficulty": "medium",
-    "topic": "trivia",
-    "question": "What word does the conductor punch into the boy's ticket at the end?",
-    "answer": "Believe",
-    "accept": [
-      "BELIEVE"
-    ],
-    "hint": "It's the theme of the whole movie.",
-    "funFact": "The girl's ticket says LEAD, and the know-it-all's says LEARN."
-  },
-  {
-    "id": "mv-m-017",
-    "category": "movies",
-    "movie": "The Polar Express (2004)",
-    "difficulty": "medium",
-    "topic": "characters",
-    "question": "Who is the ghostly figure who helps the boy across the roof of the moving train?",
-    "answer": "The Hobo",
-    "accept": [
-      "Hobo",
-      "The ghost hobo"
-    ],
-    "hint": "A wandering vagabond who rides the rails.",
-    "funFact": "A deleted scene on the home release reveals he's the ghost of a hobo who once rode on the train's roof."
-  },
-  {
-    "id": "mv-h-011",
-    "category": "movies",
-    "movie": "The Polar Express (2004)",
-    "difficulty": "hard",
-    "topic": "behind-the-scenes",
-    "question": "Guinness World Records calls this the first film made entirely with which moviemaking technique?",
-    "answer": "Performance capture",
-    "accept": [
-      "Motion capture",
-      "Mo-cap",
-      "Digital capture",
-      "Performance capture"
-    ],
-    "hint": "Actors wore suits dotted with tiny markers so computers could record their every move.",
-    "funFact": "Its budget, about $165 million, was the highest ever for an animated feature at the time."
+    "hint": "Wild cousins of Santa's team.",
+    "funFact": "To clear them, the Conductor yanks engineer Smokey's beard, and Smokey's yelp gets the herd moving."
   },
   {
     "id": "mv-e-020",
@@ -764,6 +335,653 @@
     "funFact": "His crisis began when Uncle Billy misplaced $8,000 of the Building and Loan's money."
   },
   {
+    "id": "mv-e-023",
+    "category": "movies",
+    "movie": "Miracle on 34th Street (1947)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "What does little Susan ask Kris to get her for Christmas?",
+    "answer": "A house",
+    "accept": [
+      "A real house",
+      "Her dream house",
+      "A house with a backyard",
+      "A home"
+    ],
+    "hint": "She tore its picture out of a magazine.",
+    "funFact": "In the final scene, Fred and Doris find a cane just like Kris's inside that very house."
+  },
+  {
+    "id": "mv-e-024",
+    "category": "movies",
+    "movie": "Miracle on 34th Street (1947)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "How does lawyer Fred Gailey finally prove in court that Kris is Santa Claus?",
+    "answer": "The Post Office delivers Santa's letters to Kris",
+    "accept": [
+      "Mail to Santa delivered to him",
+      "Bags of letters to Santa",
+      "The U.S. Post Office",
+      "The Post Office"
+    ],
+    "hint": "A federal agency gets involved.",
+    "funFact": "The studio released this Christmas classic in June 1947, believing more people go to the movies in warm weather."
+  },
+  {
+    "id": "mv-e-025",
+    "category": "movies",
+    "movie": "Home Alone (1990)",
+    "difficulty": "easy",
+    "topic": "quote",
+    "question": "In Home Alone, finish the gangster's line from the old movie Kevin watches: “Keep the change…”",
+    "answer": "Ya filthy animal",
+    "accept": [
+      "You filthy animal",
+      "Filthy animal"
+    ],
+    "hint": "He's insulting the person he's talking to.",
+    "funFact": "Kevin plays the scene on his VCR to scare off the Little Nero's pizza delivery guy."
+  },
+  {
+    "id": "mv-e-026",
+    "category": "movies",
+    "movie": "Home Alone (1990)",
+    "difficulty": "easy",
+    "topic": "characters",
+    "question": "In Home Alone, what kind of creepy pet does Kevin's big brother Buzz keep in his room?",
+    "answer": "A tarantula",
+    "accept": [
+      "Tarantula",
+      "A spider",
+      "Spider"
+    ],
+    "hint": "It has eight hairy legs.",
+    "funFact": "Yes, that's a real, live tarantula Kevin plops onto Marv's face."
+  },
+  {
+    "id": "mv-e-027",
+    "category": "movies",
+    "movie": "Home Alone (1990)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Home Alone's most famous scene, Kevin slaps something on his cheeks and screams. What is it?",
+    "answer": "Aftershave",
+    "accept": [
+      "Dad's aftershave",
+      "Cologne"
+    ],
+    "hint": "It's a grooming product from his dad's bathroom.",
+    "funFact": "Macaulay Culkin was told to pull his hands away before screaming, but he kept them on his cheeks, and that take became iconic."
+  },
+  {
+    "id": "mv-e-028",
+    "category": "movies",
+    "movie": "Home Alone 2: Lost in New York (1992)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Home Alone 2, Kevin ends up in New York. Where is the rest of the McCallister family spending Christmas?",
+    "answer": "Miami, Florida",
+    "accept": [
+      "Miami",
+      "Florida"
+    ],
+    "hint": "Think sunshine, palm trees and beaches.",
+    "funFact": "This time Kevin isn't left at home: he boards the wrong plane at the airport."
+  },
+  {
+    "id": "mv-e-029",
+    "category": "movies",
+    "movie": "Home Alone 2: Lost in New York (1992)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Home Alone 2, which famous New York hotel does Kevin check into using his dad's credit card?",
+    "answer": "The Plaza Hotel",
+    "accept": [
+      "The Plaza",
+      "Plaza",
+      "Plaza Hotel"
+    ],
+    "hint": "It overlooks Central Park on Fifth Avenue.",
+    "funFact": "The Plaza's suspicious concierge is played by Tim Curry, the frantic butler from the comedy Clue."
+  },
+  {
+    "id": "mv-e-030",
+    "category": "movies",
+    "movie": "Elf (2003)",
+    "difficulty": "easy",
+    "topic": "quote",
+    "question": "In Elf, finish Buddy's advice to Jovie: “The best way to spread Christmas cheer is…”",
+    "answer": "Singing loud for all to hear",
+    "accept": [
+      "Singing loudly for all to hear",
+      "Singing loud"
+    ],
+    "hint": "It rhymes with “cheer.”",
+    "funFact": "At the end, Jovie leads a crowd singing “Santa Claus Is Comin' to Town” to power Santa's sleigh."
+  },
+  {
+    "id": "mv-e-031",
+    "category": "movies",
+    "movie": "Elf (2003)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Elf, Buddy bursts into a little New York diner to congratulate them on having the world's best… what?",
+    "answer": "Cup of coffee",
+    "accept": [
+      "Coffee",
+      "World's best cup of coffee"
+    ],
+    "hint": "It's a hot drink.",
+    "funFact": "Peter Billingsley, Ralphie from A Christmas Story, pops up in Elf as Ming Ming, an elf at the North Pole."
+  },
+  {
+    "id": "mv-e-032",
+    "category": "movies",
+    "movie": "Elf (2003)",
+    "difficulty": "easy",
+    "topic": "quote",
+    "question": "In Elf, a snowball smacks Buddy in the face. Finish his yelp: “Ow! Son of a…”",
+    "answer": "Nutcracker",
+    "accept": [
+      "Son of a nutcracker"
+    ],
+    "hint": "It's a wooden Christmas figure with a big jaw.",
+    "funFact": "Buddy then single-handedly wins the snowball fight for his half brother, Michael."
+  },
+  {
+    "id": "mv-e-033",
+    "category": "movies",
+    "movie": "National Lampoon's Christmas Vacation (1989)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Christmas Vacation, the Griswolds find the perfect tree out in the country. What has Clark forgotten to bring?",
+    "answer": "A saw",
+    "accept": [
+      "Saw",
+      "Something to cut it down with"
+    ],
+    "hint": "It's a tool with a jagged blade.",
+    "funFact": "The film skips the digging: next thing you see, the tree is strapped to the car, roots and all."
+  },
+  {
+    "id": "mv-e-034",
+    "category": "movies",
+    "movie": "National Lampoon's Christmas Vacation (1989)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Christmas Vacation, what animal leaps out of the Griswolds' Christmas tree and causes chaos?",
+    "answer": "A squirrel",
+    "accept": [
+      "Squirrel"
+    ],
+    "hint": "It's a bushy-tailed critter that loves acorns.",
+    "funFact": "Christmas Vacation was written by John Hughes, who wrote Home Alone a year later."
+  },
+  {
+    "id": "mv-e-035",
+    "category": "movies",
+    "movie": "National Lampoon's Christmas Vacation (1989)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Christmas Vacation, Aunt Bethany is asked to say grace. What does she recite instead?",
+    "answer": "The Pledge of Allegiance",
+    "accept": [
+      "Pledge of Allegiance",
+      "The Pledge"
+    ],
+    "hint": "Schoolkids say it facing the flag.",
+    "funFact": "Aunt Bethany was played by Mae Questel, the longtime voice of Betty Boop and Olive Oyl."
+  },
+  {
+    "id": "mv-e-036",
+    "category": "movies",
+    "movie": "A Christmas Story (1983)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In A Christmas Story, Flick takes a dare at school. What does he get stuck to the frozen flagpole?",
+    "answer": "His tongue",
+    "accept": [
+      "Tongue"
+    ],
+    "hint": "Open your mouth and stick it out.",
+    "funFact": "The real flagpole was sheathed in plastic, and a hidden suction device held Scott Schwartz's tongue to it, so nothing actually froze."
+  },
+  {
+    "id": "mv-e-037",
+    "category": "movies",
+    "movie": "A Christmas Story (1983)",
+    "difficulty": "easy",
+    "topic": "quote",
+    "question": "In A Christmas Story, the Old Man reads FRAGILE on a crate as “Fra-gee-lay.” What does he decide it must be?",
+    "answer": "Italian",
+    "accept": [
+      "It must be Italian"
+    ],
+    "hint": "Think pizza, pasta and Rome.",
+    "funFact": "Inside the crate is the infamous leg lamp, the Old Man's “major award.”"
+  },
+  {
+    "id": "mv-e-038",
+    "category": "movies",
+    "movie": "A Christmas Story (1983)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In A Christmas Story, what embarrassing gift does Aunt Clara send Ralphie?",
+    "answer": "A pink bunny suit",
+    "accept": [
+      "Bunny suit",
+      "Pink bunny pajamas",
+      "Bunny pajamas",
+      "Rabbit suit",
+      "Bunny costume"
+    ],
+    "hint": "It has long floppy ears and a fluffy tail.",
+    "funFact": "The Old Man says Ralphie looks like “a deranged Easter Bunny.”"
+  },
+  {
+    "id": "mv-e-039",
+    "category": "movies",
+    "movie": "Die Hard (1988)",
+    "difficulty": "easy",
+    "topic": "quote",
+    "question": "In Die Hard, McClane hides by crawling through what part of the building, joking, “Now I know what a TV dinner feels like”?",
+    "answer": "The air vents",
+    "accept": [
+      "Air vent",
+      "Vents",
+      "Air duct",
+      "Air ducts",
+      "The ducts",
+      "Ventilation shaft",
+      "Air-conditioning duct"
+    ],
+    "hint": "It's a cramped metal tunnel behind the ceiling grilles.",
+    "funFact": "Die Hard opened in theaters in July 1988, which fuels the yearly “is it a Christmas movie?” debate."
+  },
+  {
+    "id": "mv-e-040",
+    "category": "movies",
+    "movie": "The Santa Clause (1994)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In The Santa Clause, Scott Calvin startles Santa on Christmas Eve. What does Santa fall off of?",
+    "answer": "The roof",
+    "accept": [
+      "Roof",
+      "Scott's roof",
+      "The house"
+    ],
+    "hint": "It's where a sleigh would land.",
+    "funFact": "Scott's hair turns white, and he grows a beard he can't shave off."
+  },
+  {
+    "id": "mv-e-041",
+    "category": "movies",
+    "movie": "The Santa Clause (1994)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In The Santa Clause, after Scott burns the turkey, where do he and Charlie end up eating Christmas Eve dinner?",
+    "answer": "Denny's",
+    "accept": [],
+    "hint": "It's a diner chain famous for its Grand Slam breakfast.",
+    "funFact": "Scott's sales pitch to a skeptical Charlie: “Everybody likes Denny's. It's an American institution.”"
+  },
+  {
+    "id": "mv-e-042",
+    "category": "movies",
+    "movie": "Jingle All the Way (1996)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Jingle All the Way, a dad races around on Christmas Eve hunting for which sold-out action figure?",
+    "answer": "Turbo-Man",
+    "accept": [],
+    "hint": "He's a TV superhero with a jetpack.",
+    "funFact": "The hero's catchphrase is “It's Turbo time!”"
+  },
+  {
+    "id": "mv-e-043",
+    "category": "movies",
+    "movie": "Jingle All the Way (1996)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Jingle All the Way, Howard misses his son Jamie's graduation from what kind of class?",
+    "answer": "Karate",
+    "accept": [
+      "Karate class",
+      "Martial arts",
+      "Karate lessons"
+    ],
+    "hint": "Think belts, kicks and a dojo.",
+    "funFact": "Jamie is played by Jake Lloyd, later young Anakin Skywalker in Star Wars: Episode I."
+  },
+  {
+    "id": "mv-e-044",
+    "category": "movies",
+    "movie": "Scrooged (1988)",
+    "difficulty": "easy",
+    "topic": "characters",
+    "question": "In Scrooged, Bill Murray's Frank Cross is the youngest president in the history of what kind of company?",
+    "answer": "A TV network",
+    "accept": [
+      "TV network",
+      "Television network",
+      "A television network",
+      "IBC",
+      "TV station",
+      "Network",
+      "Television"
+    ],
+    "hint": "His company decides what's on your screen every evening.",
+    "funFact": "Bill Murray's real-life brothers Brian Doyle-Murray, John Murray and Joel Murray all appear in the film."
+  },
+  {
+    "id": "mv-e-045",
+    "category": "movies",
+    "movie": "Scrooged (1988)",
+    "difficulty": "easy",
+    "topic": "characters",
+    "question": "In Scrooged, what does the Ghost of Christmas Past drive?",
+    "answer": "A taxi",
+    "accept": [
+      "Taxi",
+      "Taxi cab",
+      "Cab",
+      "A New York cab"
+    ],
+    "hint": "It's yellow and has a meter.",
+    "funFact": "The cab-driving ghost is played by David Johansen, singer of the New York Dolls."
+  },
+  {
+    "id": "mv-e-046",
+    "category": "movies",
+    "movie": "Christmas with the Kranks (2004)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Christmas with the Kranks, Luther and Nora plan to sit out the holidays and take what kind of trip instead?",
+    "answer": "On a Caribbean cruise",
+    "accept": [
+      "Caribbean cruise",
+      "A cruise",
+      "Cruise",
+      "The Caribbean"
+    ],
+    "hint": "They'd be sailing to sunny islands.",
+    "funFact": "Tim Allen and Jamie Lee Curtis play Luther and Nora Krank."
+  },
+  {
+    "id": "mv-e-047",
+    "category": "movies",
+    "movie": "Jack Frost (1998)",
+    "difficulty": "easy",
+    "topic": "plot",
+    "question": "In Jack Frost (1998), Michael Keaton plays a musician dad who comes back to life as what?",
+    "answer": "A snowman",
+    "accept": [
+      "Snowman"
+    ],
+    "hint": "He needs cold weather to survive.",
+    "funFact": "Michael Keaton also voices Jack in his snowy new form."
+  },
+  {
+    "id": "mv-m-001",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "medium",
+    "topic": "trivia",
+    "question": "Why does Charlie-in-the-Box think no child will ever want him?",
+    "answer": "His name is Charlie instead of Jack",
+    "accept": [
+      "He's named Charlie, not Jack",
+      "He's not a Jack-in-the-Box",
+      "Wrong name"
+    ],
+    "hint": "Think about what that kind of toy is normally called.",
+    "funFact": "He proudly calls himself the island's “official sentry.”"
+  },
+  {
+    "id": "mv-m-002",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "medium",
+    "topic": "plot",
+    "question": "Once the Abominable Snow Monster is tamed, what job does he do on Santa's Christmas tree?",
+    "answer": "Puts the star on top",
+    "accept": [
+      "Places the star on top",
+      "Puts the star on the tree",
+      "The star",
+      "Tops the tree",
+      "Trims the tree",
+      "Decorates the tree",
+      "Star on top"
+    ],
+    "hint": "He's tall enough to skip the stepladder.",
+    "funFact": "Rudolph's prospector pal is the one who brings him back, reformed and ready to help."
+  },
+  {
+    "id": "mv-m-003",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "medium",
+    "topic": "plot",
+    "question": "How does Rudolph's elf pal make the Abominable Snow Monster harmless?",
+    "answer": "He pulls out all its teeth",
+    "accept": [
+      "Pulls its teeth",
+      "Pulls out his teeth",
+      "Extracts its teeth",
+      "Takes out his teeth"
+    ],
+    "hint": "Think about the elf's dream job.",
+    "funFact": "The elf's big announcement to his boss, early on: “Well, sir, someday I'd like to be a dentist.”"
+  },
+  {
+    "id": "mv-m-004",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "medium",
+    "topic": "characters",
+    "question": "Which of Santa's reindeer is Rudolph's father?",
+    "answer": "Donner",
+    "accept": [],
+    "hint": "His name is German for “thunder.”",
+    "funFact": "Rudolph himself was voiced by a woman, Billie Mae Richards, who was credited as “Billy Richards.”"
+  },
+  {
+    "id": "mv-m-005",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "medium",
+    "topic": "quote",
+    "question": "Rudolph's prospector pal survives going over a cliff with the Abominable Snow Monster. Finish his explanation: “Didn't I ever tell you about Bumbles? Bumbles…”",
+    "answer": "Bounce!",
+    "accept": [
+      "Bumbles bounce"
+    ],
+    "hint": "It's what a rubber ball does.",
+    "funFact": "Larry D. Mann, who voices the prospector, originally voiced the snowman narrator too, before Burl Ives took over the role."
+  },
+  {
+    "id": "mv-m-006",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "medium",
+    "topic": "quote",
+    "question": "The elves proudly perform their new song for Santa. Finish his grumpy review: “Hmm. Well, it…”",
+    "answer": "Needs work",
+    "accept": [
+      "It needs work"
+    ],
+    "hint": "Not quite ready for the big show.",
+    "funFact": "The song they'd rehearsed so hard is “We Are Santa's Elves.”"
+  },
+  {
+    "id": "mv-m-007",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "medium",
+    "topic": "music",
+    "question": "Rudolph and his elf pal, two runaway outcasts, sing a duet together. What's the song called?",
+    "answer": "We're a Couple of Misfits",
+    "accept": [
+      "A Couple of Misfits",
+      "Couple of Misfits"
+    ],
+    "hint": "They sing about being a pair of oddballs.",
+    "funFact": "From 1965 it was swapped out for a song called “Fame and Fortune,” and the original wasn't restored until 1998."
+  },
+  {
+    "id": "mv-m-008",
+    "category": "movies",
+    "movie": "Santa Claus Is Comin' to Town (1970)",
+    "difficulty": "medium",
+    "topic": "plot",
+    "question": "What simple toy does Kris give the scary Winter Warlock, melting his icy heart?",
+    "answer": "A toy train",
+    "accept": [
+      "Train",
+      "Choo-choo train",
+      "Toy choo-choo"
+    ],
+    "hint": "It runs on tracks.",
+    "funFact": "Kris then helps him change his ways with the song “Put One Foot in Front of the Other.”"
+  },
+  {
+    "id": "mv-m-009",
+    "category": "movies",
+    "movie": "Santa Claus Is Comin' to Town (1970)",
+    "difficulty": "medium",
+    "topic": "plot",
+    "question": "Why does Sombertown's grumpy mayor ban all toys?",
+    "answer": "He trips over a toy duck",
+    "accept": [
+      "He tripped on a toy",
+      "He slipped on a toy duck",
+      "A toy duck tripped him"
+    ],
+    "hint": "It all started with a painful fall.",
+    "funFact": "Kris gets around the ban by sneaking down chimneys and leaving toys in the children's stockings."
+  },
+  {
+    "id": "mv-m-010",
+    "category": "movies",
+    "movie": "A Charlie Brown Christmas (1965)",
+    "difficulty": "medium",
+    "topic": "quote",
+    "question": "Finish Sally's letter to Santa: “Just send money. How about…”",
+    "answer": "Tens and twenties",
+    "accept": [],
+    "hint": "Two kinds of paper bills.",
+    "funFact": "Sally also explains that all she wants is her fair share."
+  },
+  {
+    "id": "mv-m-011",
+    "category": "movies",
+    "movie": "A Charlie Brown Christmas (1965)",
+    "difficulty": "medium",
+    "topic": "quote",
+    "question": "Finish Linus's line about Charlie Brown's tree: “It's not bad at all, really. Maybe it just needs a little…”",
+    "answer": "Love",
+    "accept": [
+      "A little love",
+      "Little love"
+    ],
+    "hint": "All you need, according to the Beatles.",
+    "funFact": "As he says it, Linus wraps his security blanket around the base of the tree like a tree skirt."
+  },
+  {
+    "id": "mv-m-012",
+    "category": "movies",
+    "movie": "How the Grinch Stole Christmas! (1966)",
+    "difficulty": "medium",
+    "topic": "quote",
+    "question": "Little Cindy Lou Who catches the Grinch stuffing her family's tree up the chimney. What does he say he's doing with it?",
+    "answer": "Taking it to his workshop to fix a light that won't light on one side",
+    "accept": [
+      "Fixing a light",
+      "A light won't light",
+      "A light won't light on one side",
+      "Taking it to his workshop to fix it",
+      "Taking it to be fixed",
+      "Fixing it"
+    ],
+    "hint": "He claims it's just a repair job.",
+    "funFact": "Boris Karloff, famous as Frankenstein's monster, voices both the Grinch and the narrator."
+  },
+  {
+    "id": "mv-m-013",
+    "category": "movies",
+    "movie": "The Grinch (2018)",
+    "difficulty": "medium",
+    "topic": "cast",
+    "question": "Which Sherlock and Doctor Strange star voices the Grinch in Illumination's 2018 movie?",
+    "answer": "Benedict Cumberbatch",
+    "accept": [
+      "Cumberbatch"
+    ],
+    "hint": "His first name is also a famous eggs dish.",
+    "funFact": "Pharrell Williams narrates the 2018 film."
+  },
+  {
+    "id": "mv-m-014",
+    "category": "movies",
+    "movie": "The Nightmare Before Christmas (1993)",
+    "difficulty": "medium",
+    "topic": "characters",
+    "question": "Lock, Shock and Barrel deliver the kidnapped Santa to which bug-filled, burlap-sack villain?",
+    "answer": "Oogie Boogie",
+    "accept": [
+      "Oogie",
+      "Oogie Boogie Man",
+      "The Oogie Boogie Man"
+    ],
+    "hint": "He sings a jazzy number while rolling dice.",
+    "funFact": "He's voiced by Ken Page, who originated Old Deuteronomy in Cats on Broadway."
+  },
+  {
+    "id": "mv-m-015",
+    "category": "movies",
+    "movie": "The Nightmare Before Christmas (1993)",
+    "difficulty": "medium",
+    "topic": "plot",
+    "question": "Sally tries to ground the Pumpkin King's Christmas Eve sleigh ride by pouring out a magic potion. What weather does it create?",
+    "answer": "Fog",
+    "accept": [
+      "Thick fog",
+      "Mist"
+    ],
+    "hint": "It's the weather that made Santa need Rudolph in the famous song.",
+    "funFact": "It nearly works, until Zero's glowing nose lights the way and he's sent “to the head of the team.”"
+  },
+  {
+    "id": "mv-m-016",
+    "category": "movies",
+    "movie": "The Polar Express (2004)",
+    "difficulty": "medium",
+    "topic": "trivia",
+    "question": "What word does the conductor punch into the boy's ticket at the end?",
+    "answer": "Believe",
+    "accept": [],
+    "hint": "It's the theme of the whole movie.",
+    "funFact": "The girl's ticket says LEAD, and the know-it-all's says LEARN."
+  },
+  {
+    "id": "mv-m-017",
+    "category": "movies",
+    "movie": "The Polar Express (2004)",
+    "difficulty": "medium",
+    "topic": "characters",
+    "question": "Who is the ghostly figure who helps the boy across the roof of the moving train?",
+    "answer": "The Hobo",
+    "accept": [
+      "Hobo",
+      "The ghost hobo"
+    ],
+    "hint": "A wandering vagabond who rides the rails.",
+    "funFact": "A deleted scene on the home release reveals he's the ghost of a hobo who once rode on the train's roof."
+  },
+  {
     "id": "mv-m-018",
     "category": "movies",
     "movie": "It's a Wonderful Life (1946)",
@@ -809,20 +1027,6 @@
     "funFact": "Sesame Street writer Jerry Juhl confirmed that, according to producer Jon Stone, the shared names were just a coincidence."
   },
   {
-    "id": "mv-h-012",
-    "category": "movies",
-    "movie": "It's a Wonderful Life (1946)",
-    "difficulty": "hard",
-    "topic": "trivia",
-    "question": "Clarence, Angel Second Class, carries a copy of which Mark Twain book?",
-    "answer": "The Adventures of Tom Sawyer",
-    "accept": [
-      "Tom Sawyer"
-    ],
-    "hint": "Its hero tricks his friends into whitewashing a fence.",
-    "funFact": "He leaves it for George inscribed: “Remember, no man is a failure who has friends.”"
-  },
-  {
     "id": "mv-m-021",
     "category": "movies",
     "movie": "Miracle on 34th Street (1947)",
@@ -831,45 +1035,10 @@
     "question": "Kris tells a Macy's shopper, “Our skates are very good, but not quite good enough.” Which rival store does he send her to?",
     "answer": "Gimbels",
     "accept": [
-      "Gimbel's",
       "Gimbel Brothers"
     ],
     "hint": "A famous New York store whose name starts with G.",
     "funFact": "He also sends a mother to Schoenfeld's on Lexington Avenue for an $8.50 fire engine."
-  },
-  {
-    "id": "mv-e-023",
-    "category": "movies",
-    "movie": "Miracle on 34th Street (1947)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "What does little Susan ask Kris to get her for Christmas?",
-    "answer": "A house",
-    "accept": [
-      "A real house",
-      "Her dream house",
-      "A house with a backyard",
-      "A home"
-    ],
-    "hint": "She tore its picture out of a magazine.",
-    "funFact": "In the final scene, Fred and Doris find a cane just like Kris's inside that very house."
-  },
-  {
-    "id": "mv-e-024",
-    "category": "movies",
-    "movie": "Miracle on 34th Street (1947)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "How does lawyer Fred Gailey finally prove in court that Kris is Santa Claus?",
-    "answer": "The Post Office delivers Santa's letters to Kris",
-    "accept": [
-      "Mail to Santa delivered to him",
-      "Bags of letters to Santa",
-      "The U.S. Post Office",
-      "The Post Office"
-    ],
-    "hint": "A federal agency gets involved.",
-    "funFact": "The studio released this Christmas classic in June 1947, believing more people go to the movies in warm weather."
   },
   {
     "id": "mv-m-022",
@@ -889,97 +1058,31 @@
     "funFact": "She circled “In God We Trust”: if the government can trust without proof, so can New York."
   },
   {
-    "id": "mv-h-013",
-    "category": "movies",
-    "movie": "Miracle on 34th Street (1994)",
-    "difficulty": "hard",
-    "topic": "trivia",
-    "question": "Macy's wouldn't take part in the 1994 remake. What's the name of the fictional store that hires Kris instead?",
-    "answer": "Cole's",
-    "accept": [
-      "Coles",
-      "Cole's Department Store"
-    ],
-    "hint": "Sounds like what a naughty child finds in their stocking.",
-    "funFact": "Richard Attenborough, Jurassic Park's John Hammond, plays Kris."
-  },
-  {
-    "id": "mv-e-101",
-    "category": "movies",
-    "movie": "Home Alone (1990)",
-    "difficulty": "easy",
-    "topic": "quote",
-    "question": "In Home Alone, finish the gangster's line from the old movie Kevin watches: “Keep the change…”",
-    "answer": "Ya filthy animal",
-    "accept": [
-      "You filthy animal",
-      "Filthy animal"
-    ],
-    "hint": "He's insulting the person he's talking to.",
-    "funFact": "Kevin plays the scene on his VCR to scare off the Little Nero's pizza delivery guy."
-  },
-  {
-    "id": "mv-e-102",
-    "category": "movies",
-    "movie": "Home Alone (1990)",
-    "difficulty": "easy",
-    "topic": "characters",
-    "question": "In Home Alone, what kind of creepy pet does Kevin's big brother Buzz keep in his room?",
-    "answer": "A tarantula",
-    "accept": [
-      "Tarantula",
-      "A spider",
-      "Spider"
-    ],
-    "hint": "It has eight hairy legs.",
-    "funFact": "Yes, that's a real, live tarantula Kevin plops onto Marv's face."
-  },
-  {
-    "id": "mv-e-103",
-    "category": "movies",
-    "movie": "Home Alone (1990)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Home Alone's most famous scene, Kevin slaps something on his cheeks and screams. What is it?",
-    "answer": "Aftershave",
-    "accept": [
-      "After-shave",
-      "Dad's aftershave",
-      "Cologne"
-    ],
-    "hint": "It's a grooming product from his dad's bathroom.",
-    "funFact": "Macaulay Culkin was told to pull his hands away before screaming, but he kept them on his cheeks, and that take became iconic."
-  },
-  {
-    "id": "mv-m-101",
+    "id": "mv-m-023",
     "category": "movies",
     "movie": "Home Alone (1990)",
     "difficulty": "medium",
     "topic": "cast",
     "question": "In Home Alone, which actress plays Kevin's mom, Kate, who famously screams “KEVIN!” on the plane?",
     "answer": "Catherine O'Hara",
-    "accept": [
-      "Catherine OHara"
-    ],
+    "accept": [],
     "hint": "She later played Moira Rose on Schitt's Creek.",
     "funFact": "Catherine O'Hara also voiced Sally, the rag doll, in The Nightmare Before Christmas."
   },
   {
-    "id": "mv-m-102",
+    "id": "mv-m-024",
     "category": "movies",
     "movie": "Home Alone (1990)",
     "difficulty": "medium",
     "topic": "trivia",
     "question": "What's the title of the black-and-white gangster movie Kevin watches in Home Alone?",
     "answer": "Angels with Filthy Souls",
-    "accept": [
-      "Angels With Filthy Souls"
-    ],
+    "accept": [],
     "hint": "The first word is a kind of heavenly being.",
     "funFact": "It isn't a real old movie: it was shot just for Home Alone, as a nod to the 1938 James Cagney film Angels with Dirty Faces."
   },
   {
-    "id": "mv-m-103",
+    "id": "mv-m-025",
     "category": "movies",
     "movie": "Home Alone (1990)",
     "difficulty": "medium",
@@ -995,64 +1098,7 @@
     "funFact": "Marley turns out to be a kind, lonely old man who rescues Kevin from the burglars."
   },
   {
-    "id": "mv-h-101",
-    "category": "movies",
-    "movie": "Home Alone (1990)",
-    "difficulty": "hard",
-    "topic": "characters",
-    "question": "In Home Alone, Kate hitches a ride home with Gus Polinski, the “Polka King of the Midwest.” What's his band called?",
-    "answer": "The Kenosha Kickers",
-    "accept": [
-      "Kenosha Kickers"
-    ],
-    "hint": "It's named after a city in Wisconsin.",
-    "funFact": "John Candy shot all his scenes in about one day and improvised much of his dialogue."
-  },
-  {
-    "id": "mv-h-102",
-    "category": "movies",
-    "movie": "Home Alone (1990)",
-    "difficulty": "hard",
-    "topic": "music",
-    "question": "Which composer earned two Oscar nominations for Home Alone's music?",
-    "answer": "John Williams",
-    "accept": [],
-    "hint": "He also scored Star Wars, Jaws and the first Harry Potter films.",
-    "funFact": "One nomination was for the carol “Somewhere in My Memory,” with lyrics by Leslie Bricusse."
-  },
-  {
-    "id": "mv-e-104",
-    "category": "movies",
-    "movie": "Home Alone 2: Lost in New York (1992)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Home Alone 2, Kevin ends up in New York. Where is the rest of the McCallister family spending Christmas?",
-    "answer": "Miami, Florida",
-    "accept": [
-      "Miami",
-      "Florida"
-    ],
-    "hint": "Think sunshine, palm trees and beaches.",
-    "funFact": "This time Kevin isn't left at home: he boards the wrong plane at the airport."
-  },
-  {
-    "id": "mv-e-105",
-    "category": "movies",
-    "movie": "Home Alone 2: Lost in New York (1992)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Home Alone 2, which famous New York hotel does Kevin check into using his dad's credit card?",
-    "answer": "The Plaza Hotel",
-    "accept": [
-      "The Plaza",
-      "Plaza",
-      "Plaza Hotel"
-    ],
-    "hint": "It overlooks Central Park on Fifth Avenue.",
-    "funFact": "The Plaza's suspicious concierge is played by Tim Curry, the frantic butler from the comedy Clue."
-  },
-  {
-    "id": "mv-m-104",
+    "id": "mv-m-026",
     "category": "movies",
     "movie": "Home Alone 2: Lost in New York (1992)",
     "difficulty": "medium",
@@ -1060,14 +1106,13 @@
     "question": "In Home Alone 2, what's the name of the handheld tape recorder Kevin uses to disguise his voice and prank people?",
     "answer": "Talkboy",
     "accept": [
-      "The Talkboy",
-      "Talk Boy"
+      "The Talkboy"
     ],
     "hint": "Kevin uses its slow-down feature to sound like a grown-up.",
     "funFact": "Tiger Electronics built it as a movie prop, and the real toy became a must-have for Christmas 1993."
   },
   {
-    "id": "mv-m-105",
+    "id": "mv-m-027",
     "category": "movies",
     "movie": "Home Alone 2: Lost in New York (1992)",
     "difficulty": "medium",
@@ -1076,89 +1121,25 @@
     "answer": "Duncan's Toy Chest",
     "accept": [
       "Duncan's",
-      "Duncans Toy Chest",
       "Duncan's Toys"
     ],
     "hint": "It's named after its kind, elderly owner.",
     "funFact": "Its kind owner, Mr. Duncan, was donating the store's Christmas proceeds to a children's hospital."
   },
   {
-    "id": "mv-h-103",
-    "category": "movies",
-    "movie": "Home Alone 2: Lost in New York (1992)",
-    "difficulty": "hard",
-    "topic": "plot",
-    "question": "In Home Alone 2, what gift does Kevin give the Pigeon Lady in Central Park as a sign of friendship?",
-    "answer": "A turtle dove ornament",
-    "accept": [
-      "Turtle dove",
-      "A turtle dove",
-      "Turtledove",
-      "One of the turtle doves"
-    ],
-    "hint": "It's a bird ornament from the toy store's Christmas tree.",
-    "funFact": "The Pigeon Lady is played by Brenda Fricker, an Oscar winner for My Left Foot."
-  },
-  {
-    "id": "mv-e-106",
-    "category": "movies",
-    "movie": "Elf (2003)",
-    "difficulty": "easy",
-    "topic": "quote",
-    "question": "In Elf, finish Buddy's advice to Jovie: “The best way to spread Christmas cheer is…”",
-    "answer": "Singing loud for all to hear",
-    "accept": [
-      "Singing loudly for all to hear",
-      "Singing loud"
-    ],
-    "hint": "It rhymes with “cheer.”",
-    "funFact": "At the end, Jovie leads a crowd singing “Santa Claus Is Comin' to Town” to power Santa's sleigh."
-  },
-  {
-    "id": "mv-e-107",
-    "category": "movies",
-    "movie": "Elf (2003)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Elf, Buddy bursts into a little New York diner to congratulate them on having the world's best… what?",
-    "answer": "Cup of coffee",
-    "accept": [
-      "Coffee",
-      "World's best cup of coffee"
-    ],
-    "hint": "It's a hot drink.",
-    "funFact": "Peter Billingsley, Ralphie from A Christmas Story, pops up in Elf as Ming Ming, an elf at the North Pole."
-  },
-  {
-    "id": "mv-e-108",
-    "category": "movies",
-    "movie": "Elf (2003)",
-    "difficulty": "easy",
-    "topic": "quote",
-    "question": "In Elf, a snowball smacks Buddy in the face. Finish his yelp: “Ow! Son of a…”",
-    "answer": "Nutcracker",
-    "accept": [
-      "Son of a nutcracker"
-    ],
-    "hint": "It's a wooden Christmas figure with a big jaw.",
-    "funFact": "Buddy then single-handedly wins the snowball fight for his half brother, Michael."
-  },
-  {
-    "id": "mv-m-106",
+    "id": "mv-m-028",
     "category": "movies",
     "movie": "Elf (2003)",
     "difficulty": "medium",
     "topic": "music",
     "question": "In Elf, which Christmas-season duet does Buddy hear Jovie singing in the store's locker-room shower?",
     "answer": "Baby, It's Cold Outside",
-    "accept": [
-      "Baby Its Cold Outside"
-    ],
+    "accept": [],
     "hint": "It's a flirty duet about a guest who wants to leave on a snowy night.",
     "funFact": "Zooey Deschanel, who plays Jovie, is a real singer and later formed the duo She & Him."
   },
   {
-    "id": "mv-m-107",
+    "id": "mv-m-029",
     "category": "movies",
     "movie": "Elf (2003)",
     "difficulty": "medium",
@@ -1170,7 +1151,7 @@
     "funFact": "At the start of the film, Walter is on Santa's naughty list."
   },
   {
-    "id": "mv-m-108",
+    "id": "mv-m-030",
     "category": "movies",
     "movie": "Elf (2003)",
     "difficulty": "medium",
@@ -1182,93 +1163,26 @@
     "funFact": "Miles warns, “Call me elf one more time!” Buddy's very next line: “He's an angry elf.”"
   },
   {
-    "id": "mv-h-104",
-    "category": "movies",
-    "movie": "Elf (2003)",
-    "difficulty": "hard",
-    "topic": "trivia",
-    "question": "In Elf, during his all-night makeover of the store's Santaland, Buddy recreates what famous painting on an Etch A Sketch?",
-    "answer": "The Mona Lisa",
-    "accept": [
-      "Mona Lisa"
-    ],
-    "hint": "It hangs in the Louvre in Paris.",
-    "funFact": "At the North Pole, Buddy's job was building Etch A Sketches, and he finished only 85 in a day, way short of his quota."
-  },
-  {
-    "id": "mv-h-105",
-    "category": "movies",
-    "movie": "Elf (2003)",
-    "difficulty": "hard",
-    "topic": "behind-the-scenes",
-    "question": "Elf's director also plays the Hobbs family's doctor, who confirms Buddy is Walter's son. Who is he?",
-    "answer": "Jon Favreau",
-    "accept": [
-      "John Favreau"
-    ],
-    "hint": "He went on to direct Iron Man.",
-    "funFact": "He also voiced the arctic puffin and Mr. Narwhal, uncredited."
-  },
-  {
-    "id": "mv-e-109",
-    "category": "movies",
-    "movie": "National Lampoon's Christmas Vacation (1989)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Christmas Vacation, the Griswolds find the perfect tree out in the country. What has Clark forgotten to bring?",
-    "answer": "A saw",
-    "accept": [
-      "Saw",
-      "Something to cut it down with"
-    ],
-    "hint": "It's a tool with a jagged blade.",
-    "funFact": "The film skips the digging: next thing you see, the tree is strapped to the car, roots and all."
-  },
-  {
-    "id": "mv-e-110",
-    "category": "movies",
-    "movie": "National Lampoon's Christmas Vacation (1989)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Christmas Vacation, what animal leaps out of the Griswolds' Christmas tree and causes chaos?",
-    "answer": "A squirrel",
-    "accept": [
-      "Squirrel"
-    ],
-    "hint": "It's a bushy-tailed critter that loves acorns.",
-    "funFact": "Christmas Vacation was written by John Hughes, who wrote Home Alone a year later."
-  },
-  {
-    "id": "mv-e-111",
-    "category": "movies",
-    "movie": "National Lampoon's Christmas Vacation (1989)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Christmas Vacation, Aunt Bethany is asked to say grace. What does she recite instead?",
-    "answer": "The Pledge of Allegiance",
-    "accept": [
-      "Pledge of Allegiance",
-      "The Pledge"
-    ],
-    "hint": "Schoolkids say it facing the flag.",
-    "funFact": "Aunt Bethany was played by Mae Questel, the longtime voice of Betty Boop and Olive Oyl."
-  },
-  {
-    "id": "mv-m-109",
+    "id": "mv-m-031",
     "category": "movies",
     "movie": "National Lampoon's Christmas Vacation (1989)",
     "difficulty": "medium",
-    "topic": "characters",
-    "question": "In Christmas Vacation, what's the name of Cousin Eddie's big dog?",
-    "answer": "Snots",
+    "topic": "plot",
+    "question": "In Christmas Vacation, an uninvited houseguest shows up with a very unwilling “present” for Clark, wearing a big bow. Who is the “present”?",
+    "answer": "Clark's boss, Frank Shirley",
     "accept": [
-      "Snot"
+      "Clark's boss",
+      "His boss",
+      "The boss",
+      "Frank Shirley",
+      "Mr. Shirley",
+      "Frank"
     ],
-    "hint": "It's a gross word for what comes out of your nose.",
-    "funFact": "Eddie promises Clark that if he gives Snots a belly rub, the dog will “love you till the day you die.”"
+    "hint": "He's the man who cut Clark's Christmas bonus.",
+    "funFact": "Clark had ranted that he wanted the man brought to him with a big ribbon on his head, and his RV-driving in-law took him literally."
   },
   {
-    "id": "mv-m-110",
+    "id": "mv-m-032",
     "category": "movies",
     "movie": "National Lampoon's Christmas Vacation (1989)",
     "difficulty": "medium",
@@ -1283,7 +1197,7 @@
     "funFact": "Their last name is Chester."
   },
   {
-    "id": "mv-m-111",
+    "id": "mv-m-033",
     "category": "movies",
     "movie": "National Lampoon's Christmas Vacation (1989)",
     "difficulty": "medium",
@@ -1297,7 +1211,409 @@
     "funFact": "Randy Quaid first played Cousin Eddie in National Lampoon's Vacation (1983)."
   },
   {
-    "id": "mv-h-106",
+    "id": "mv-m-034",
+    "category": "movies",
+    "movie": "A Christmas Story (1983)",
+    "difficulty": "medium",
+    "topic": "quote",
+    "question": "In A Christmas Story, Ralphie finally decodes Little Orphan Annie's secret message. What does it say?",
+    "answer": "Be sure to drink your Ovaltine",
+    "accept": [
+      "Drink your Ovaltine",
+      "Drink Ovaltine"
+    ],
+    "hint": "It's a plug for the radio show's sponsor, a malted milk drink.",
+    "funFact": "Ralphie's disgusted verdict: “A crummy commercial?!”"
+  },
+  {
+    "id": "mv-m-035",
+    "category": "movies",
+    "movie": "A Christmas Story (1983)",
+    "difficulty": "medium",
+    "topic": "plot",
+    "question": "In A Christmas Story, after the Bumpus hounds devour the turkey, where do the Parkers eat Christmas dinner?",
+    "answer": "A Chinese restaurant",
+    "accept": [
+      "Chinese restaurant",
+      "At a Chinese restaurant"
+    ],
+    "hint": "They're served a whole roast duck.",
+    "funFact": "Ralphie remembers it as the Christmas they were introduced to “Chinese turkey.”"
+  },
+  {
+    "id": "mv-m-036",
+    "category": "movies",
+    "movie": "Die Hard (1988)",
+    "difficulty": "medium",
+    "topic": "cast",
+    "question": "In Die Hard, which actor plays the suave villain Hans Gruber, in his first film role?",
+    "answer": "Alan Rickman",
+    "accept": [],
+    "hint": "He later played Professor Snape in the Harry Potter films.",
+    "funFact": "McClane's wife, Holly, goes by her maiden name, Gennero, at work."
+  },
+  {
+    "id": "mv-m-037",
+    "category": "movies",
+    "movie": "Die Hard (1988)",
+    "difficulty": "medium",
+    "topic": "quote",
+    "question": "In Die Hard, a fellow plane passenger tells McClane to beat jet lag by taking off his shoes and socks and doing what?",
+    "answer": "Making fists with his toes",
+    "accept": [
+      "Make fists with your toes",
+      "Make fists with his toes",
+      "Walk barefoot and make fists with his toes"
+    ],
+    "hint": "It's done on the rug, with your feet.",
+    "funFact": "Taking that advice is why McClane spends the whole adventure barefoot."
+  },
+  {
+    "id": "mv-m-038",
+    "category": "movies",
+    "movie": "The Santa Clause (1994)",
+    "difficulty": "medium",
+    "topic": "characters",
+    "question": "In The Santa Clause, what's the first name of Charlie's stepdad, the psychiatrist married to Scott's ex-wife?",
+    "answer": "Neil",
+    "accept": [
+      "Neal",
+      "Neil Miller",
+      "Dr. Neil Miller",
+      "Dr. Miller"
+    ],
+    "hint": "He's played by Judge Reinhold.",
+    "funFact": "The sarcastic head elf, Bernard, is played by David Krumholtz, later the star of TV's Numb3rs."
+  },
+  {
+    "id": "mv-m-039",
+    "category": "movies",
+    "movie": "The Santa Clause (1994)",
+    "difficulty": "medium",
+    "topic": "quote",
+    "question": "In The Santa Clause, finish the card Santa leaves behind: “If something should happen to me, put on my suit…”",
+    "answer": "The reindeer will know what to do",
+    "accept": [
+      "Reindeer will know what to do"
+    ],
+    "hint": "Santa's flying team will take it from there.",
+    "funFact": "The fine print is the “Santa Clause”: whoever puts on the suit becomes the new Santa."
+  },
+  {
+    "id": "mv-m-040",
+    "category": "movies",
+    "movie": "Jingle All the Way (1996)",
+    "difficulty": "medium",
+    "topic": "cast",
+    "question": "In Jingle All the Way, which comedian plays Myron, the frazzled mailman chasing the same toy?",
+    "answer": "Sinbad",
+    "accept": [],
+    "hint": "He's a one-name stand-up comic who shares his name with a legendary sailor.",
+    "funFact": "Myron later dresses as the superhero's archenemy, Dementor, at the big parade."
+  },
+  {
+    "id": "mv-m-041",
+    "category": "movies",
+    "movie": "Scrooged (1988)",
+    "difficulty": "medium",
+    "topic": "characters",
+    "question": "In Scrooged, the sweet-looking Ghost of Christmas Present bashes Frank with which kitchen appliance?",
+    "answer": "A toaster",
+    "accept": [
+      "Toaster"
+    ],
+    "hint": "It makes your breakfast bread crispy.",
+    "funFact": "Bill Murray insisted Carol Kane hit him for real, and in one scene she yanked his lip so hard it tore."
+  },
+  {
+    "id": "mv-m-042",
+    "category": "movies",
+    "movie": "Christmas with the Kranks (2004)",
+    "difficulty": "medium",
+    "topic": "behind-the-scenes",
+    "question": "Christmas with the Kranks is based on which John Grisham novel?",
+    "answer": "Skipping Christmas",
+    "accept": [],
+    "hint": "The title is exactly what the Kranks plan to do.",
+    "funFact": "The screenplay was written by Chris Columbus, director of the first two Home Alone movies."
+  },
+  {
+    "id": "mv-m-043",
+    "category": "movies",
+    "movie": "Jack Frost (1998)",
+    "difficulty": "medium",
+    "topic": "plot",
+    "question": "In Jack Frost (1998), what magic musical instrument helps bring Jack back to his son, Charlie?",
+    "answer": "A harmonica",
+    "accept": [
+      "Harmonica",
+      "Mouth organ"
+    ],
+    "hint": "It fits in your pocket, and you blow into it.",
+    "funFact": "Jack was the singer and harmonica player of the Jack Frost Band."
+  },
+  {
+    "id": "mv-h-001",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "hard",
+    "topic": "behind-the-scenes",
+    "question": "The special's stop-motion puppet animation, nicknamed “Animagic,” was filmed in which country?",
+    "answer": "Japan",
+    "accept": [
+      "Tokyo",
+      "Tokyo, Japan"
+    ],
+    "hint": "Land of the Rising Sun.",
+    "funFact": "Animator Tadahito Mochinaga supervised the puppet work at a studio in Tokyo."
+  },
+  {
+    "id": "mv-h-002",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "hard",
+    "topic": "behind-the-scenes",
+    "question": "After the 1964 premiere, viewers wrote in about a loose end. What scene was added in 1965 to fix it?",
+    "answer": "Santa picking up the Misfit Toys",
+    "accept": [
+      "Santa delivering the Misfit Toys",
+      "Santa stopping at the Island of Misfit Toys",
+      "Santa going back for the Misfit Toys"
+    ],
+    "hint": "Think about a promise Rudolph made on his journey.",
+    "funFact": "The original Rudolph and Santa puppets sold at auction in 2020 for $368,000."
+  },
+  {
+    "id": "mv-h-003",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "hard",
+    "topic": "characters",
+    "question": "What's the name of the young buck who befriends Rudolph at the Reindeer Games, until he sees Rudolph's glowing nose?",
+    "answer": "Fireball",
+    "accept": [],
+    "hint": "His name is also a spicy cinnamon candy.",
+    "funFact": "Fireball is voiced by Alfie Scopp, who also voices Charlie-in-the-Box."
+  },
+  {
+    "id": "mv-h-004",
+    "category": "movies",
+    "movie": "Rudolph the Red-Nosed Reindeer (1964)",
+    "difficulty": "hard",
+    "topic": "plot",
+    "question": "At the very end, the prospector licks his pickaxe and finally strikes it rich. What has he found?",
+    "answer": "A peppermint mine",
+    "accept": [
+      "Peppermint mine",
+      "Peppermint",
+      "A mine full of peppermint"
+    ],
+    "hint": "Think candy canes.",
+    "funFact": "His cry: “Peppermint! What I've been searching for all my life!” The scene was cut from TV airings for decades, so plenty of fans have never seen it."
+  },
+  {
+    "id": "mv-h-005",
+    "category": "movies",
+    "movie": "Santa Claus Is Comin' to Town (1970)",
+    "difficulty": "hard",
+    "topic": "plot",
+    "question": "How do Kris's reindeer learn to fly?",
+    "answer": "They eat the Winter Warlock's magic feed corn",
+    "accept": [
+      "Magic corn",
+      "Magic feed corn",
+      "Enchanted corn",
+      "Enchanted feed corn"
+    ],
+    "hint": "A magical snack from a reformed villain.",
+    "funFact": "The flying reindeer help Kris and his friends escape from jail."
+  },
+  {
+    "id": "mv-h-006",
+    "category": "movies",
+    "movie": "A Charlie Brown Christmas (1965)",
+    "difficulty": "hard",
+    "topic": "quote",
+    "question": "Finish Lucy's complaint: “Christmas is a big commercial racket. It's run by a big…”",
+    "answer": "Eastern syndicate",
+    "accept": [
+      "Eastern syndicate, you know"
+    ],
+    "hint": "A shadowy organization from back East.",
+    "funFact": "The child actors found phrases like “Eastern syndicate” hard to pronounce, and Sally's voice actress was too young to read, so she was fed her lines one at a time."
+  },
+  {
+    "id": "mv-h-007",
+    "category": "movies",
+    "movie": "A Charlie Brown Christmas (1965)",
+    "difficulty": "hard",
+    "topic": "behind-the-scenes",
+    "question": "Charles Schulz flatly refused to add something almost every TV cartoon comedy had in 1965. What was it?",
+    "answer": "A laugh track",
+    "accept": [
+      "Laugh track",
+      "Canned laughter",
+      "Recorded laughter"
+    ],
+    "hint": "Audience reactions that weren't really live.",
+    "funFact": "CBS executives also disliked its slow pace, yet it drew about 45% of the TV audience on premiere night."
+  },
+  {
+    "id": "mv-h-008",
+    "category": "movies",
+    "movie": "How the Grinch Stole Christmas! (1966)",
+    "difficulty": "hard",
+    "topic": "behind-the-scenes",
+    "question": "Which legendary Looney Tunes animator, a co-creator of Wile E. Coyote and the Road Runner, directed the 1966 special?",
+    "answer": "Chuck Jones",
+    "accept": [
+      "Jones"
+    ],
+    "hint": "His first name rhymes with “duck.”",
+    "funFact": "He and Dr. Seuss had teamed up years earlier on the World War II Army cartoons starring Private Snafu."
+  },
+  {
+    "id": "mv-h-009",
+    "category": "movies",
+    "movie": "How the Grinch Stole Christmas (2000)",
+    "difficulty": "hard",
+    "topic": "quote",
+    "question": "Finish the Grinch's schedule: “4:00, wallow in self-pity. 4:30, stare into the abyss. 5:00, solve world hunger…”",
+    "answer": "Tell no one",
+    "accept": [],
+    "hint": "He wants zero credit for it.",
+    "funFact": "Anthony Hopkins narrates the film, and he recorded all of his narration in a single day."
+  },
+  {
+    "id": "mv-h-010",
+    "category": "movies",
+    "movie": "The Nightmare Before Christmas (1993)",
+    "difficulty": "hard",
+    "topic": "plot",
+    "question": "Dr. Finkelstein grumbles that Sally has twice this month slipped which poison into his tea so she could run off?",
+    "answer": "Deadly nightshade",
+    "accept": [
+      "Nightshade"
+    ],
+    "hint": "A poisonous plant whose name sounds like an evening shadow.",
+    "funFact": "Later she spikes his soup, but he grumbles, “Nothing's more suspicious than frog's breath,” and won't swallow a spoonful until she tastes it."
+  },
+  {
+    "id": "mv-h-011",
+    "category": "movies",
+    "movie": "The Polar Express (2004)",
+    "difficulty": "hard",
+    "topic": "behind-the-scenes",
+    "question": "Guinness World Records calls this the first film made entirely with which moviemaking technique?",
+    "answer": "Performance capture",
+    "accept": [
+      "Motion capture",
+      "Mo-cap",
+      "Digital capture"
+    ],
+    "hint": "Actors wore suits dotted with tiny markers so computers could record their every move.",
+    "funFact": "Its budget, about $165 million, was the highest ever for an animated feature at the time."
+  },
+  {
+    "id": "mv-h-012",
+    "category": "movies",
+    "movie": "It's a Wonderful Life (1946)",
+    "difficulty": "hard",
+    "topic": "trivia",
+    "question": "Clarence, Angel Second Class, carries a copy of which Mark Twain book?",
+    "answer": "The Adventures of Tom Sawyer",
+    "accept": [
+      "Tom Sawyer"
+    ],
+    "hint": "Its hero tricks his friends into whitewashing a fence.",
+    "funFact": "He leaves it for George inscribed: “Remember, no man is a failure who has friends.”"
+  },
+  {
+    "id": "mv-h-013",
+    "category": "movies",
+    "movie": "Miracle on 34th Street (1994)",
+    "difficulty": "hard",
+    "topic": "trivia",
+    "question": "Macy's wouldn't take part in the 1994 remake. What's the name of the fictional store that hires Kris instead?",
+    "answer": "Cole's",
+    "accept": [
+      "Cole's Department Store"
+    ],
+    "hint": "Sounds like what a naughty child finds in their stocking.",
+    "funFact": "Richard Attenborough, Jurassic Park's John Hammond, plays Kris."
+  },
+  {
+    "id": "mv-h-014",
+    "category": "movies",
+    "movie": "Home Alone (1990)",
+    "difficulty": "hard",
+    "topic": "characters",
+    "question": "In Home Alone, Kate hitches a ride home with Gus Polinski, the “Polka King of the Midwest.” What's his band called?",
+    "answer": "The Kenosha Kickers",
+    "accept": [
+      "Kenosha Kickers"
+    ],
+    "hint": "It's named after a city in Wisconsin.",
+    "funFact": "John Candy shot all his scenes in about one day and improvised much of his dialogue."
+  },
+  {
+    "id": "mv-h-015",
+    "category": "movies",
+    "movie": "Home Alone (1990)",
+    "difficulty": "hard",
+    "topic": "music",
+    "question": "Which composer earned two Oscar nominations for Home Alone's music?",
+    "answer": "John Williams",
+    "accept": [],
+    "hint": "He also scored Star Wars, Jaws and the first Harry Potter films.",
+    "funFact": "One nomination was for the carol “Somewhere in My Memory,” with lyrics by Leslie Bricusse."
+  },
+  {
+    "id": "mv-h-016",
+    "category": "movies",
+    "movie": "Home Alone 2: Lost in New York (1992)",
+    "difficulty": "hard",
+    "topic": "plot",
+    "question": "In Home Alone 2, what gift does Kevin give the Pigeon Lady in Central Park as a sign of friendship?",
+    "answer": "A turtle dove ornament",
+    "accept": [
+      "Turtle dove",
+      "A turtle dove",
+      "One of the turtle doves"
+    ],
+    "hint": "It's a bird ornament from the toy store's Christmas tree.",
+    "funFact": "The Pigeon Lady is played by Brenda Fricker, an Oscar winner for My Left Foot."
+  },
+  {
+    "id": "mv-h-017",
+    "category": "movies",
+    "movie": "Elf (2003)",
+    "difficulty": "hard",
+    "topic": "trivia",
+    "question": "In Elf, during his all-night makeover of the store's Santaland, Buddy recreates what famous painting on an Etch A Sketch?",
+    "answer": "The Mona Lisa",
+    "accept": [
+      "Mona Lisa"
+    ],
+    "hint": "It hangs in the Louvre in Paris.",
+    "funFact": "At the North Pole, Buddy's job was building Etch A Sketches, and he finished only 85 in a day, way short of his quota."
+  },
+  {
+    "id": "mv-h-018",
+    "category": "movies",
+    "movie": "Elf (2003)",
+    "difficulty": "hard",
+    "topic": "behind-the-scenes",
+    "question": "Elf's director also plays the Hobbs family's doctor, who confirms Buddy is Walter's son. Who is he?",
+    "answer": "Jon Favreau",
+    "accept": [
+      "John Favreau"
+    ],
+    "hint": "He went on to direct Iron Man.",
+    "funFact": "He also voiced the arctic puffin and Mr. Narwhal, uncredited."
+  },
+  {
+    "id": "mv-h-019",
     "category": "movies",
     "movie": "National Lampoon's Christmas Vacation (1989)",
     "difficulty": "hard",
@@ -1309,7 +1625,7 @@
     "funFact": "Juliette Lewis plays Rusty's sister, Audrey."
   },
   {
-    "id": "mv-h-107",
+    "id": "mv-h-020",
     "category": "movies",
     "movie": "National Lampoon's Christmas Vacation (1989)",
     "difficulty": "hard",
@@ -1327,83 +1643,7 @@
     "funFact": "Clark is going for a new “amateur recreational saucer-sled land-speed record.”"
   },
   {
-    "id": "mv-e-112",
-    "category": "movies",
-    "movie": "A Christmas Story (1983)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In A Christmas Story, Flick takes a dare at school. What does he get stuck to the frozen flagpole?",
-    "answer": "His tongue",
-    "accept": [
-      "Tongue"
-    ],
-    "hint": "Open your mouth and stick it out.",
-    "funFact": "The real flagpole was sheathed in plastic, and a hidden suction device held Scott Schwartz's tongue to it, so nothing actually froze."
-  },
-  {
-    "id": "mv-e-113",
-    "category": "movies",
-    "movie": "A Christmas Story (1983)",
-    "difficulty": "easy",
-    "topic": "quote",
-    "question": "In A Christmas Story, the Old Man reads FRAGILE on a crate as “Fra-gee-lay.” What does he decide it must be?",
-    "answer": "Italian",
-    "accept": [
-      "It must be Italian"
-    ],
-    "hint": "Think pizza, pasta and Rome.",
-    "funFact": "Inside the crate is the infamous leg lamp, the Old Man's “major award.”"
-  },
-  {
-    "id": "mv-e-114",
-    "category": "movies",
-    "movie": "A Christmas Story (1983)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In A Christmas Story, what embarrassing gift does Aunt Clara send Ralphie?",
-    "answer": "A pink bunny suit",
-    "accept": [
-      "Bunny suit",
-      "Pink bunny pajamas",
-      "Bunny pajamas",
-      "Rabbit suit",
-      "Bunny costume"
-    ],
-    "hint": "It has long floppy ears and a fluffy tail.",
-    "funFact": "The Old Man says Ralphie looks like “a deranged Easter Bunny.”"
-  },
-  {
-    "id": "mv-m-112",
-    "category": "movies",
-    "movie": "A Christmas Story (1983)",
-    "difficulty": "medium",
-    "topic": "quote",
-    "question": "In A Christmas Story, Ralphie finally decodes Little Orphan Annie's secret message. What does it say?",
-    "answer": "Be sure to drink your Ovaltine",
-    "accept": [
-      "Drink your Ovaltine",
-      "Drink Ovaltine"
-    ],
-    "hint": "It's a plug for the radio show's sponsor, a malted milk drink.",
-    "funFact": "Ralphie's disgusted verdict: “A crummy commercial?!”"
-  },
-  {
-    "id": "mv-m-113",
-    "category": "movies",
-    "movie": "A Christmas Story (1983)",
-    "difficulty": "medium",
-    "topic": "plot",
-    "question": "In A Christmas Story, after the Bumpus hounds devour the turkey, where do the Parkers eat Christmas dinner?",
-    "answer": "A Chinese restaurant",
-    "accept": [
-      "Chinese restaurant",
-      "At a Chinese restaurant"
-    ],
-    "hint": "They're served a whole roast duck.",
-    "funFact": "Ralphie remembers it as the Christmas they were introduced to “Chinese turkey.”"
-  },
-  {
-    "id": "mv-h-108",
+    "id": "mv-h-021",
     "category": "movies",
     "movie": "A Christmas Story (1983)",
     "difficulty": "hard",
@@ -1417,7 +1657,7 @@
     "funFact": "Flick stays stuck to the pole until the fire department arrives to free him."
   },
   {
-    "id": "mv-h-109",
+    "id": "mv-h-022",
     "category": "movies",
     "movie": "A Christmas Story (1983)",
     "difficulty": "hard",
@@ -1432,182 +1672,31 @@
     "funFact": "The film is set in fictional Hohman, Indiana, based on Jean Shepherd's hometown of Hammond."
   },
   {
-    "id": "mv-e-115",
-    "category": "movies",
-    "movie": "Die Hard (1988)",
-    "difficulty": "easy",
-    "topic": "quote",
-    "question": "In Die Hard, McClane hides by crawling through what part of the building, joking, “Now I know what a TV dinner feels like”?",
-    "answer": "The air vents",
-    "accept": [
-      "Air vent",
-      "Vents",
-      "Air duct",
-      "Air ducts",
-      "The ducts",
-      "Ventilation shaft",
-      "Air-conditioning duct"
-    ],
-    "hint": "It's a cramped metal tunnel behind the ceiling grilles.",
-    "funFact": "Die Hard opened in theaters in July 1988, which fuels the yearly “is it a Christmas movie?” debate."
-  },
-  {
-    "id": "mv-m-114",
-    "category": "movies",
-    "movie": "Die Hard (1988)",
-    "difficulty": "medium",
-    "topic": "cast",
-    "question": "In Die Hard, which actor plays the suave villain Hans Gruber, in his first film role?",
-    "answer": "Alan Rickman",
-    "accept": [],
-    "hint": "He later played Professor Snape in the Harry Potter films.",
-    "funFact": "McClane's wife, Holly, goes by her maiden name, Gennero, at work."
-  },
-  {
-    "id": "mv-m-115",
-    "category": "movies",
-    "movie": "Die Hard (1988)",
-    "difficulty": "medium",
-    "topic": "quote",
-    "question": "In Die Hard, a fellow plane passenger tells McClane to beat jet lag by taking off his shoes and socks and doing what?",
-    "answer": "Making fists with his toes",
-    "accept": [
-      "Make fists with your toes",
-      "Make fists with his toes",
-      "Walk barefoot and make fists with his toes"
-    ],
-    "hint": "It's done on the rug, with your feet.",
-    "funFact": "Taking that advice is why McClane spends the whole adventure barefoot."
-  },
-  {
-    "id": "mv-h-110",
+    "id": "mv-h-023",
     "category": "movies",
     "movie": "Die Hard (1988)",
     "difficulty": "hard",
     "topic": "music",
     "question": "In Die Hard, Argyle the limo driver plays “Christmas in Hollis.” Which hip-hop group recorded it?",
     "answer": "Run-DMC",
-    "accept": [
-      "Run DMC",
-      "Run-D.M.C."
-    ],
+    "accept": [],
     "hint": "They also had a hit with Aerosmith on “Walk This Way.”",
     "funFact": "When McClane grumbles, Argyle insists it is Christmas music."
   },
   {
-    "id": "mv-e-116",
-    "category": "movies",
-    "movie": "The Santa Clause (1994)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In The Santa Clause, Scott Calvin startles Santa on Christmas Eve. What does Santa fall off of?",
-    "answer": "The roof",
-    "accept": [
-      "Roof",
-      "Scott's roof",
-      "The house"
-    ],
-    "hint": "It's where a sleigh would land.",
-    "funFact": "Scott's hair turns white, and he grows a beard he can't shave off."
-  },
-  {
-    "id": "mv-e-117",
-    "category": "movies",
-    "movie": "The Santa Clause (1994)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In The Santa Clause, after Scott burns the turkey, where do he and Charlie end up eating Christmas Eve dinner?",
-    "answer": "Denny's",
-    "accept": [
-      "Dennys"
-    ],
-    "hint": "It's a diner chain famous for its Grand Slam breakfast.",
-    "funFact": "Scott's sales pitch to a skeptical Charlie: “Everybody likes Denny's. It's an American institution.”"
-  },
-  {
-    "id": "mv-m-116",
-    "category": "movies",
-    "movie": "The Santa Clause (1994)",
-    "difficulty": "medium",
-    "topic": "characters",
-    "question": "In The Santa Clause, what's the name of the sarcastic head elf who tells Scott he's now Santa?",
-    "answer": "Bernard",
-    "accept": [],
-    "hint": "He shares his name with a big rescue dog: the St. ___.",
-    "funFact": "Bernard is played by David Krumholtz, later the star of TV's Numb3rs."
-  },
-  {
-    "id": "mv-m-117",
-    "category": "movies",
-    "movie": "The Santa Clause (1994)",
-    "difficulty": "medium",
-    "topic": "quote",
-    "question": "In The Santa Clause, finish the card Santa leaves behind: “If something should happen to me, put on my suit…”",
-    "answer": "The reindeer will know what to do",
-    "accept": [
-      "Reindeer will know what to do"
-    ],
-    "hint": "Santa's flying team will take it from there.",
-    "funFact": "The fine print is the “Santa Clause”: whoever puts on the suit becomes the new Santa."
-  },
-  {
-    "id": "mv-h-111",
+    "id": "mv-h-024",
     "category": "movies",
     "movie": "The Santa Clause (1994)",
     "difficulty": "hard",
     "topic": "quote",
     "question": "In The Santa Clause, Judy the elf's hot cocoa recipe is “Not too hot, extra chocolate…” and what else?",
     "answer": "Shaken, not stirred",
-    "accept": [
-      "Shaken not stirred"
-    ],
+    "accept": [],
     "hint": "It's how James Bond takes his martini.",
     "funFact": "Judy's boast: “My own recipe. Took me 1,200 years to get it right.”"
   },
   {
-    "id": "mv-e-118",
-    "category": "movies",
-    "movie": "Jingle All the Way (1996)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Jingle All the Way, a dad races around on Christmas Eve hunting for which sold-out action figure?",
-    "answer": "Turbo-Man",
-    "accept": [
-      "Turbo Man",
-      "Turboman"
-    ],
-    "hint": "He's a TV superhero with a jetpack.",
-    "funFact": "The hero's catchphrase is “It's Turbo time!”"
-  },
-  {
-    "id": "mv-e-119",
-    "category": "movies",
-    "movie": "Jingle All the Way (1996)",
-    "difficulty": "easy",
-    "topic": "cast",
-    "question": "Which action-movie star plays Howard Langston, the toy-hunting dad in Jingle All the Way?",
-    "answer": "Arnold Schwarzenegger",
-    "accept": [
-      "Schwarzenegger",
-      "Arnold"
-    ],
-    "hint": "He played the Terminator.",
-    "funFact": "Howard's son, Jamie, is played by Jake Lloyd, later young Anakin Skywalker in Star Wars: Episode I."
-  },
-  {
-    "id": "mv-m-118",
-    "category": "movies",
-    "movie": "Jingle All the Way (1996)",
-    "difficulty": "medium",
-    "topic": "cast",
-    "question": "In Jingle All the Way, which comedian plays Myron, the frazzled mailman chasing the same toy?",
-    "answer": "Sinbad",
-    "accept": [],
-    "hint": "He's a one-name stand-up comic who shares his name with a legendary sailor.",
-    "funFact": "Myron later dresses as the superhero's archenemy, Dementor, at the big parade."
-  },
-  {
-    "id": "mv-h-112",
+    "id": "mv-h-025",
     "category": "movies",
     "movie": "Jingle All the Way (1996)",
     "difficulty": "hard",
@@ -1619,134 +1708,31 @@
     "funFact": "Curtis Armstrong, Booger from Revenge of the Nerds, has a cameo as a chain-smoking Booster performer at the parade."
   },
   {
-    "id": "mv-e-120",
-    "category": "movies",
-    "movie": "Scrooged (1988)",
-    "difficulty": "easy",
-    "topic": "cast",
-    "question": "Which Ghostbusters star plays the cold-hearted TV boss Frank Cross in Scrooged?",
-    "answer": "Bill Murray",
-    "accept": [],
-    "hint": "He also starred in Groundhog Day.",
-    "funFact": "His real-life brothers Brian Doyle-Murray, John Murray and Joel Murray all appear in the film."
-  },
-  {
-    "id": "mv-e-121",
-    "category": "movies",
-    "movie": "Scrooged (1988)",
-    "difficulty": "easy",
-    "topic": "characters",
-    "question": "In Scrooged, what does the Ghost of Christmas Past drive?",
-    "answer": "A taxi",
-    "accept": [
-      "Taxi",
-      "Taxi cab",
-      "Cab",
-      "A New York cab"
-    ],
-    "hint": "It's yellow and has a meter.",
-    "funFact": "The cab-driving ghost is played by David Johansen, singer of the New York Dolls."
-  },
-  {
-    "id": "mv-m-119",
-    "category": "movies",
-    "movie": "Scrooged (1988)",
-    "difficulty": "medium",
-    "topic": "characters",
-    "question": "In Scrooged, the sweet-looking Ghost of Christmas Present bashes Frank with which kitchen appliance?",
-    "answer": "A toaster",
-    "accept": [
-      "Toaster"
-    ],
-    "hint": "It makes your breakfast bread crispy.",
-    "funFact": "Bill Murray insisted Carol Kane hit him for real, and in one scene she yanked his lip so hard it tore."
-  },
-  {
-    "id": "mv-h-113",
+    "id": "mv-h-026",
     "category": "movies",
     "movie": "Scrooged (1988)",
     "difficulty": "hard",
     "topic": "trivia",
-    "question": "In Scrooged, which Olympic gymnast plays Tiny Tim in Frank's live TV version of A Christmas Carol?",
+    "question": "In Scrooged, which Olympic gymnast plays Tiny Tim in Frank's big live production of A Christmas Carol?",
     "answer": "Mary Lou Retton",
     "accept": [],
     "hint": "She won all-around gold at the 1984 Los Angeles Olympics.",
-    "funFact": "Frank's network, IBC, also casts comedian Buddy Hackett as Scrooge."
+    "funFact": "Comedian Buddy Hackett plays Scrooge in the same production."
   },
   {
-    "id": "mv-e-122",
-    "category": "movies",
-    "movie": "Christmas with the Kranks (2004)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Christmas with the Kranks, Luther and Nora plan to sit out the holidays and take what kind of trip instead?",
-    "answer": "On a Caribbean cruise",
-    "accept": [
-      "Caribbean cruise",
-      "A cruise",
-      "Cruise",
-      "The Caribbean"
-    ],
-    "hint": "They'd be sailing to sunny islands.",
-    "funFact": "Tim Allen and Jamie Lee Curtis play Luther and Nora Krank."
-  },
-  {
-    "id": "mv-m-120",
-    "category": "movies",
-    "movie": "Christmas with the Kranks (2004)",
-    "difficulty": "medium",
-    "topic": "behind-the-scenes",
-    "question": "Christmas with the Kranks is based on which John Grisham novel?",
-    "answer": "Skipping Christmas",
-    "accept": [],
-    "hint": "The title is exactly what the Kranks plan to do.",
-    "funFact": "The screenplay was written by Chris Columbus, director of the first two Home Alone movies."
-  },
-  {
-    "id": "mv-h-114",
+    "id": "mv-h-027",
     "category": "movies",
     "movie": "Christmas with the Kranks (2004)",
     "difficulty": "hard",
     "topic": "plot",
     "question": "In Christmas with the Kranks, the couple won't put their giant snowman up on the roof. What two-word protest do the neighborhood kids chant?",
     "answer": "Free Frosty!",
-    "accept": [
-      "Free Frosty"
-    ],
+    "accept": [],
     "hint": "It names the famous snowman from the song.",
     "funFact": "Their daughter Blair's surprise visit home from Peru sends the Kranks scrambling to throw Christmas together after all."
   },
   {
-    "id": "mv-e-123",
-    "category": "movies",
-    "movie": "Jack Frost (1998)",
-    "difficulty": "easy",
-    "topic": "plot",
-    "question": "In Jack Frost (1998), Michael Keaton plays a musician dad who comes back to life as what?",
-    "answer": "A snowman",
-    "accept": [
-      "Snowman"
-    ],
-    "hint": "He needs cold weather to survive.",
-    "funFact": "Michael Keaton also voices Jack in his snowy new form."
-  },
-  {
-    "id": "mv-m-121",
-    "category": "movies",
-    "movie": "Jack Frost (1998)",
-    "difficulty": "medium",
-    "topic": "plot",
-    "question": "In Jack Frost (1998), what magic musical instrument helps bring Jack back to his son, Charlie?",
-    "answer": "A harmonica",
-    "accept": [
-      "Harmonica",
-      "Mouth organ"
-    ],
-    "hint": "It fits in your pocket, and you blow into it.",
-    "funFact": "Jack was the singer and harmonica player of the Jack Frost Band."
-  },
-  {
-    "id": "mv-h-115",
+    "id": "mv-h-028",
     "category": "movies",
     "movie": "Jack Frost (1998)",
     "difficulty": "hard",
