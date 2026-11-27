@@ -20,10 +20,10 @@ if ($Port -le 0) {
 $ruleName = "Christmas Chaos (TCP $Port)"
 
 function Test-IsAdmin {
-  # Works in PowerShell Constrained Language Mode (managed/work PCs): no .NET calls.
-  # 'whoami /groups' lists the High Mandatory Level SID only in an elevated (admin) session.
-  $groups = & whoami /groups 2>$null
-  return [bool]($groups | Select-String -SimpleMatch 'S-1-16-12288')
+  # Works in PowerShell Constrained Language Mode and where whoami.exe is blocked (managed/work PCs):
+  # 'net session' only succeeds in an elevated (admin) session. No .NET calls.
+  try { $null = & net session 2>&1 } catch { return $false }
+  return ($LASTEXITCODE -eq 0)
 }
 
 if (-not (Test-IsAdmin)) {
