@@ -13,12 +13,12 @@ const { createGame, SEGMENTS, recommendedRounds, PTS, MASCOTS, OTHER_ANSWER } = 
 const { loadContent, validateItem, drawFrom, isQuickQuestion, FILES } = require('../src/content');
 const { createScheduler, createFakeClock } = require('../src/scheduler');
 const { publicView, hostView, playerView } = require('../src/views');
-const { isMatch, normalize, containsAnswer } = require('../src/match');
+const { isMatch, matchKind, normalize, containsAnswer } = require('../src/match');
 const { pickLanAddress } = require('../src/net');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const CONTENT = loadContent(DATA_DIR);
-const SEG = { christmas: 0, dare: 1, pop: 2, hotseat: 3, christmas2: 4, sound: 5, grinch: 6, showdown: 7, dare2: 8, list: 9, allplay: 10, doubledown: 11 };
+const SEG = { christmas: 0, dare: 1, pop: 2, hotseat: 3, movies: 4, christmas2: 4, sound: 5, grinch: 6, showdown: 7, dare2: 8, list: 9, allplay: 10, doubledown: 11 };
 
 function mulberry32(a) {
   return function rng() {
@@ -97,6 +97,28 @@ function scanViews(g, ctx) {
     const j = JSON.stringify({ ...v, myTeam: null });
     for (const s of perfSecrets) if (s.length >= 4 && !allowed.includes(s) && j.includes(esc(s))) ctx.leaks.push(`player ${p.id} view leaks performer secret "${s}"`);
   }
+  checkCoach(g, ctx, secrets, allowed);
+}
+/** Coach invariants: a headline, at least one usable action, every enabled action accepted by the server, never reads a secret aloud. */
+function checkCoach(g, ctx, secrets, allowed) {
+  const where = `phase ${g.state.phase}, challenge ${g.state.challenge && g.state.challenge.type}/${g.state.challenge && g.state.challenge.stage}`;
+  const co = hostView(g, { connections: { tv: 1, hosts: 1 } }).host.coach;
+  if (!co || typeof co.headline !== 'string' || !co.headline.trim()) { ctx.leaks.push(`coach without headline (${where})`); return; }
+  ctx.coachStates = (ctx.coachStates || 0) + 1;
+  const enabled = co.actions.filter((a) => !a.disabled && a.event);
+  if (!enabled.length) ctx.leaks.push(`coach has no usable action (${where})`);
+  for (const a of enabled) {
+    const r = g.check({ role: 'host' }, a.event, a.payload || {});
+    if (!r.ok) ctx.leaks.push(`coach action ${a.id} -> ${r.error} (${where})`);
+  }
+  for (const a of co.actions) {
+    if (!['primary', 'secondary', 'danger', 'success'].includes(a.kind)) ctx.leaks.push(`coach action ${a.id} bad kind ${a.kind}`);
+    if (a.disabled && !a.reason) ctx.leaks.push(`disabled coach action ${a.id} without a reason (${where})`);
+  }
+  if (new Set(co.actions.map((a) => a.id)).size !== co.actions.length) ctx.leaks.push(`duplicate coach action ids (${where})`);
+  if (co.primary && !enabled.some((a) => a.id === co.primary)) ctx.leaks.push(`coach primary ${co.primary} is not an enabled action (${where})`);
+  if (co.say) for (const sec of secrets) if (!allowed.includes(sec) && co.say.includes(sec)) ctx.leaks.push(`coach.say reads out a secret "${sec}" (${where})`);
+  if (!Array.isArray(co.steps) || !Array.isArray(co.tips) || !Array.isArray(co.progress)) ctx.leaks.push(`coach arrays missing (${where})`);
 }
 
 // ------------------------------------------------------------------------------------------------ fixture
@@ -754,8 +776,9 @@ test('14. Final Chaos: wager bounds, reveal low->high, +/-wager floored at 0, sh
   T.okP(P(a), 'wager', { amount: 200 }); // last lock-in wins
   // d never wagers -> 0
   const pv = publicView(T.g);
-  assert.deepEqual(pv.final.wagers.find((w) => w.teamId === a), { teamId: a, locked: true }, 'amounts hidden');
-  assert.ok(!JSON.stringify(pv.final).includes('800'));
+  assert.deepEqual(pv.final.wagers.find((w) => w.teamId === a), { teamId: a, locked: true, max: T.g.maxWager(a) }, 'amounts hidden (only the public max)');
+  assert.ok(!JSON.stringify(pv.final).includes('"amount"'), 'no wager amounts in the public view');
+  assert.ok(!JSON.stringify(pv.final.wagers.map((w) => ({ ...w, max: 0 }))).includes('200'), 'team a wagered 200: not visible');
   assert.equal(playerView(T.g, T.pid(P(a))).myTeam.wager.amount, 200);
   assert.equal(playerView(T.g, T.pid(P(a))).myTeam.maxWager, 500);
   T.okHost('finalStartAnswering');
@@ -898,7 +921,7 @@ test('3. play again keeping teams keeps players; game 2 playable; no question re
   assert.equal(new Set(asked).size, asked.length, 'no question repeats across games');
 });
 
-test('dare: performer, timer start, room vote (others only, once each), majority + host override + crowd bonus', () => {
+test('dare: performer, timer start, room vote (others only, one vote each, changeable while open), majority + host override + crowd bonus', () => {
   const T = setup({ teams: 3, perTeam: 2 });
   T.okHost('start');
   const act = T.active();
@@ -924,7 +947,13 @@ test('dare: performer, timer start, room vote (others only, once each), majority
   const voters = T.teamIds.filter((t) => t !== act).flatMap((t) => T.players[t]);
   assert.equal(playerView(T.g, T.pid(voters[0])).can.vote, true);
   T.okP(voters[0], 'vote', { choice: 'good' });
-  assert.equal(T.d(voters[0], 'vote', { choice: 'nailed' }).error, 'already-voted');
+  // voting again CHANGES the vote (one vote per player), it never adds a second one
+  assert.deepEqual(T.d(voters[0], 'vote', { choice: 'nailed' }), { ok: true, changed: true });
+  assert.equal(publicView(T.g).challenge.vote.voters, 1);
+  assert.equal(publicView(T.g).challenge.vote.nailed, 1);
+  T.okP(voters[0], 'vote', { choice: 'good' });
+  assert.deepEqual(T.d(voters[0], 'vote', { choice: 'good' }), { ok: true, changed: false });
+  assert.equal(publicView(T.g).challenge.vote.voters, 1);
   assert.equal(playerView(T.g, T.pid(voters[0])).myVote, 'good');
   assert.equal(T.d(voters[1], 'vote', { choice: 'maybe' }).error, 'bad-choice');
   T.okP(voters[1], 'vote', { choice: 'nailed' });
@@ -1058,8 +1087,10 @@ test('every malformed payload is rejected without throwing (unit-level fuzz)', (
   const T = setup({ teams: 3, perTeam: 1 });
   const rng = mulberry32(4);
   const junk = [undefined, null, 0, -1, 1e309, NaN, '', 'x'.repeat(5000), [], [1, 2], {}, { __proto__: { teamId: 't1' } }, JSON.parse('{"__proto__":{"x":1}}'), { teamId: 't1', amount: 'all' },
-    { teamId: { toString: null } }, { level: ['hard'] }, { index: 99 }, { index: -1 }, { n: 3.5 }, { result: 'correct' }, { turnId: 1 }, { text: 42 }, { name: { a: 1 }, teamId: 't1' }];
-  const types = ['join', 'spin', 'pickDifficulty', 'buzz', 'pickTarget', 'submitAnswer', 'wager', 'vote',
+    { teamId: { toString: null } }, { level: ['hard'] }, { index: 99 }, { index: -1 }, { n: 3.5 }, { result: 'correct' }, { turnId: 1 }, { text: 42 }, { name: { a: 1 }, teamId: 't1' },
+    { order: ['t1', 't1', 't2'] }, { order: 't1' }, { order: [{}, null, 3] }, { teamId: null }, { choice: 'good' }];
+  const types = ['join', 'spin', 'pickDifficulty', 'buzz', 'pickTarget', 'previewTarget', 'submitAnswer', 'wager', 'vote', 'peek',
+    'host:swapSecret', 'host:reorderTeams', 'host:shuffleTeams', 'host:soundTest',
     ...['createTeam', 'updateTeam', 'removeTeam', 'movePlayer', 'kickPlayer', 'setRounds', 'setOption', 'start', 'spin', 'forceSegment', 'judge', 'openSteal', 'reveal', 'showHint', 'timer', 'rerollPerformer', 'swapQuestion', 'dareResult', 'openVote', 'closeVote', 'showdownResult', 'listTick', 'listUntick', 'listOther', 'hotseatMark', 'markAnswer', 'revealAnswers', 'finalStartAnswering', 'finalRevealNext', 'adjustScore', 'undo', 'nextTurn', 'continue', 'pickDifficulty', 'pickTarget', 'endChallenge'].map((x) => 'host:' + x), 'host:nope', '__proto__', 'constructor', 'toString'];
   const actors = [{ role: 'host' }, { role: 'player', clientId: 'client-0-0' }, { role: 'player', clientId: 'client-1-0' }, { role: 'tv' }, null, 'host', { role: 'player' }, { role: 'player', clientId: 'x'.repeat(200) }];
   T.okHost('start');
@@ -1071,6 +1102,7 @@ test('every malformed payload is rejected without throwing (unit-level fuzz)', (
     T.clock.advance(Math.floor(rng() * 4000));
     assert.ok(T.g.state.teams.every((t) => Number.isInteger(t.score) && t.score >= 0), 'scores stay valid integers');
     if (T.g.state.phase === 'lobby' && rng() < 0.05) T.host('start');
+    if (i % 50 === 0) assert.ok(hostView(T.g, {}).host.coach.headline, 'coach survives any state');
   }
   assert.doesNotThrow(() => { publicView(T.g); hostView(T.g, {}); for (const p of Object.keys(T.g.state.players)) playerView(T.g, p); });
 });
@@ -1122,7 +1154,7 @@ test('views: can flags, segments, spin info, players never carry clientId', () =
   assert.ok(!JSON.stringify(pv0).includes('client-0-0'));
   T.okHost('start');
   const v = playerView(T.g, T.pid(T.activeP()));
-  assert.deepEqual(v.can, { spin: true, pickDifficulty: false, buzz: false, pickTarget: false, submitAnswer: false, wager: false, vote: false });
+  assert.deepEqual(v.can, { spin: true, pickDifficulty: false, buzz: false, pickTarget: false, previewTarget: false, submitAnswer: false, wager: false, vote: false, peek: false });
   assert.equal(v.myTeam.isActive, true);
   T.okP(T.activeP(), 'spin');
   const pv = publicView(T.g);
@@ -1208,7 +1240,338 @@ for (const n of [2, 4, 6, 8]) {
     for (const s of pv.podium.standings) assert.equal(s.place, 1 + pv.podium.standings.filter((o) => o.score > s.score).length);
     for (const a of pv.podium.awards) assert.ok(['fastestFinger', 'starPerformer'].includes(a.key) && a.name && a.detail);
     assert.ok(T.ctx.scans > 100, 'scanned many states');
+    assert.ok(T.ctx.coachStates > 100, 'coach checked on many states');
     assert.deepEqual(T.ctx.leaks.slice(0, 5), [], 'no secrets leaked');
     assert.equal(T.g.state.round, T.g.state.settings.rounds);
   });
 }
+
+// ================================================================================================ v2.1 additions
+
+test('Christmas Movies: slot 4, movie sub-chip once the question is shown, fallback to Christmas movie questions', () => {
+  assert.equal(SEGMENTS[4].label, 'Christmas Movies');
+  assert.equal(SEGMENTS[4].category, 'movies');
+  assert.equal(SEGMENTS[4].color, '#8E1B3A');
+  assert.equal(SEGMENTS[4].icon, 'popcorn');
+  assert.ok(CONTENT.trivia.some((q) => q.category === 'movies' && q.movie), 'movies file loaded');
+  const T = setup({ teams: 2, perTeam: 1 });
+  T.okHost('start');
+  const c = T.land(SEG.movies);
+  assert.equal(c.category, 'movies');
+  let pv = publicView(T.g);
+  assert.equal(pv.challenge.categoryLabel, 'Christmas Movies');
+  assert.equal(pv.challenge.movie, undefined, 'no movie before the question');
+  T.okP(T.activeP(), 'pickDifficulty', { level: 'medium' });
+  pv = publicView(T.g);
+  assert.equal(pv.challenge.movie, T.g.state.challenge.q.movie);
+  assert.ok(pv.challenge.movie);
+  assert.ok(!JSON.stringify(pv).includes(esc(T.g.state.challenge.q.answer)), 'answer hidden');
+  T.okHost('judge', { result: 'correct' });
+  assert.equal(T.g.state.lastAwards[T.g.state.lastAwards.length - 1].reason, 'Christmas Movies');
+  // without data/trivia-movies.json the slot draws Christmas questions about movies
+  const noMovies = { ...CONTENT, trivia: CONTENT.trivia.filter((q) => q.category !== 'movies') };
+  const T2 = setup({ teams: 2, perTeam: 1, content: noMovies });
+  T2.okHost('start');
+  T2.land(SEG.movies);
+  T2.okP(T2.activeP(), 'pickDifficulty', { level: 'easy' });
+  const q = T2.g.state.challenge.q;
+  const src = noMovies.trivia.find((x) => x.id === q.id);
+  assert.equal(src.category, 'christmas');
+  assert.equal(src.topic, 'movies');
+  // the validator rejects a movie question whose answer is in the film title (the TV shows the title)
+  const bad = validateItem('trivia', { id: 'x', category: 'movies', difficulty: 'easy', movie: 'How the Grinch Stole Christmas', question: 'Who steals all the presents from Whoville?', answer: 'The Grinch' });
+  assert.ok(bad.some((e) => /movie title/.test(e)));
+  assert.deepEqual(validateItem('trivia', { id: 'y', category: 'movies', difficulty: 'easy', movie: 'Elf', question: 'Which actor plays Buddy?', answer: 'Will Ferrell' }), []);
+  assert.equal(FILES['trivia-movies.json'], 'trivia');
+});
+
+test('matchKind: exact / match (extra words) / close (typo) / none; changed answers reset the host mark', () => {
+  assert.equal(matchKind('Clarence', 'Clarence', ['Clarence Odbody']), 'exact');
+  assert.equal(matchKind('clarence odbody', 'Clarence', ['Clarence Odbody']), 'exact');
+  assert.equal(matchKind('CLARENCE (he got his wings!)', 'Clarence'), 'match');
+  assert.equal(matchKind('paris france', 'Paris'), 'match');
+  assert.equal(matchKind('clarance', 'Clarence'), 'close');
+  assert.equal(matchKind('Maxx', 'Max the dog', ['Max']), 'close', 'doubled letter: close, host checks it');
+  assert.equal(matchKind('Mix', 'Max the dog', ['Max']), 'none', 'too short for a typo');
+  assert.equal(matchKind('Gabriel', 'Clarence'), 'none');
+  assert.equal(matchKind('', 'Clarence'), 'none');
+  const T = setup({ teams: 3, perTeam: 1 });
+  T.okHost('start');
+  const c = T.land(SEG.allplay);
+  const [a, b] = T.teamIds;
+  T.clock.advance(3000);
+  T.okP(T.players[a][0], 'submitAnswer', { text: c.q.answer });
+  T.okP(T.players[b][0], 'submitAnswer', { text: 'wrong guess' });
+  T.okHost('markAnswer', { teamId: b, correct: true });
+  let hv = hostView(T.g);
+  const sb = hv.host.submissions.find((x) => x.teamId === b);
+  assert.equal(sb.override, true);
+  assert.equal(sb.preview, 100);
+  const sa = hv.host.submissions.find((x) => x.teamId === a);
+  assert.equal(sa.match, 'exact');
+  assert.equal(sa.elapsedMs, 3000);
+  assert.equal(sa.first, true);
+  assert.equal(sa.preview, 150, '100 + 50 first');
+  assert.equal(hv.host.payout, sa.preview + sb.preview);
+  T.okP(T.players[b][0], 'submitAnswer', { text: 'another guess' });
+  hv = hostView(T.g);
+  assert.equal(hv.host.submissions.find((x) => x.teamId === b).override, null, 'a changed answer resets the mark');
+});
+
+test('new player events: previewTarget (TV "eyeing"), peek (host sees it), vote change; new host events: swapSecret, reorder/shuffle, soundTest', () => {
+  const T = setup({ teams: 3, perTeam: 2 });
+  // lobby: reorder + shuffle teams, sound test
+  const [t1, t2, t3] = T.teamIds;
+  T.okHost('reorderTeams', { order: [t3, t1, t2] });
+  assert.deepEqual(T.g.state.teams.map((t) => t.id), [t3, t1, t2]);
+  assert.equal(T.host('reorderTeams', { order: [t3, t1] }).error, 'bad-order');
+  assert.equal(T.host('reorderTeams', { order: [t3, t3, t1] }).error, 'bad-order');
+  T.okHost('shuffleTeams');
+  assert.notDeepEqual(T.g.state.teams.map((t) => t.id), [t3, t1, t2], 'shuffle always changes the order');
+  assert.deepEqual(T.g.state.teams.map((t) => t.id).sort(), [t1, t2, t3].sort(), 'same teams, stable ids');
+  T.okHost('soundTest');
+  assert.ok(T.fx.some((e) => e.type === 'soundTest'));
+  T.okHost('start');
+  assert.equal(T.host('shuffleTeams').error, 'not-now');
+  assert.equal(T.host('reorderTeams', { order: T.g.state.teams.map((t) => t.id) }).error, 'not-now');
+  // grinch: previewTarget shows who is being eyed; only the active team; cleared on pick
+  T.setScores([0, 300, 500]);
+  const act = T.active();
+  T.land(SEG.grinch);
+  const target = T.g.state.challenge.targets[0];
+  assert.equal(T.d(T.otherP(), 'previewTarget', { teamId: target }).error, 'not-your-turn');
+  assert.equal(T.d(T.activeP(), 'previewTarget', { teamId: act }).error, 'bad-target');
+  assert.equal(playerView(T.g, T.pid(T.activeP())).can.previewTarget, true);
+  T.okP(T.activeP(), 'previewTarget', { teamId: target });
+  let pv = publicView(T.g);
+  assert.equal(pv.challenge.eyeing.teamId, target);
+  assert.equal(pv.challenge.eyeing.by.playerId, T.pid(T.activeP()));
+  T.okP(T.activeP(), 'previewTarget', { teamId: null });
+  assert.equal(publicView(T.g).challenge.eyeing, null);
+  T.okP(T.activeP(), 'pickTarget', { teamId: target });
+  assert.equal(publicView(T.g).challenge.eyeing, null);
+  T.next();
+  // sound it out: only the performer can peek; host sees it; swapSecret swaps the song and keeps the performer
+  const c = T.land(SEG.sound);
+  const perf = c.performer.playerId;
+  const perfActor = T.players[T.active()].find((a) => T.pid(a) === perf);
+  const other = T.players[T.active()].find((a) => T.pid(a) !== perf);
+  assert.equal(T.d(other, 'peek').error, 'no-secret');
+  assert.equal(playerView(T.g, perf).can.peek, true);
+  assert.equal(hostView(T.g).host.secretPeeked, false);
+  assert.deepEqual(T.okP(perfActor, 'peek'), { ok: true, first: true });
+  assert.deepEqual(T.okP(perfActor, 'peek'), { ok: true, first: false });
+  assert.equal(hostView(T.g).host.secretPeeked, true);
+  assert.equal(JSON.stringify(publicView(T.g)).includes('secretPeeked'), false, 'peek state is host-only');
+  const song = c.song.title;
+  T.okHost('swapSecret');
+  assert.notEqual(T.g.state.challenge.song.title, song);
+  assert.equal(T.g.state.challenge.performer.playerId, perf, 'same performer');
+  assert.equal(hostView(T.g).host.secretPeeked, false, 'new secret, not peeked yet');
+  T.next();
+  // dare with a secret: swapSecret picks another option; swapQuestion (Swap dare) keeps the performer
+  let d = T.land(SEG.dare);
+  for (let i = 0; i < 40 && !(d.secretValue && d.dare.secret.options.length > 1); i++) { T.okHost('swapQuestion'); d = T.g.state.challenge; }
+  assert.ok(d.secretValue, 'found a dare with a secret');
+  const p0 = d.performer.playerId;
+  const v0 = d.secretValue;
+  T.okHost('swapSecret');
+  assert.notEqual(T.g.state.challenge.secretValue, v0);
+  T.okHost('swapQuestion');
+  assert.equal(T.g.state.challenge.performer.playerId, p0, 'Swap dare keeps the performer');
+  // vote change
+  T.okHost('timer', { action: 'start' });
+  T.okHost('openVote');
+  const voter = T.otherP();
+  T.okP(voter, 'vote', { choice: 'good' });
+  T.okP(voter, 'vote', { choice: 'nailed' });
+  pv = publicView(T.g);
+  assert.deepEqual([pv.challenge.vote.nailed, pv.challenge.vote.good, pv.challenge.vote.voters], [1, 0, 1]);
+  assert.equal(playerView(T.g, T.pid(voter)).myVote, 'nailed');
+});
+
+test('public extras: lastSpin, firstTime, hot seat banked, round-break standings with movement, final max wager', () => {
+  const T = setup({ teams: 3, perTeam: 1 });
+  T.okHost('setRounds', { n: 3 });
+  T.okHost('start');
+  T.okP(T.activeP(), 'spin');
+  T.clock.advance(5000);
+  let pv = publicView(T.g);
+  assert.equal(pv.lastSpin.teamId, T.teamIds[0]);
+  assert.equal(pv.lastSpin.by.name, 'Player 00');
+  assert.equal(pv.lastSpin.segmentIndex, pv.lastSegmentIndex);
+  assert.equal(pv.challenge.firstTime, true);
+  T.okHost('nextTurn', { turnId: T.g.state.turnId });
+  const hs = T.land(SEG.hotseat);
+  T.okHost('hotseatMark', { result: 'correct', index: 0 });
+  T.okHost('hotseatMark', { result: 'wrong', index: 1 });
+  T.okHost('hotseatMark', { result: 'correct', index: 2 });
+  assert.equal(publicView(T.g).challenge.hotseat.banked, 100);
+  assert.ok(hs.performer);
+  T.okHost('nextTurn', { turnId: T.g.state.turnId });
+  T.land(SEG.hotseat);
+  assert.equal(publicView(T.g).challenge.firstTime, false, 'second Hot Seat is not the first');
+  T.okHost('endChallenge');
+  T.setScores([100, 300, 200]);
+  T.okHost('nextTurn', { turnId: T.g.state.turnId });
+  assert.equal(T.g.state.phase, 'roundBreak');
+  pv = publicView(T.g);
+  assert.deepEqual(pv.roundBreak.standings.map((s) => [s.teamId, s.rank, s.move]), [[T.teamIds[1], 1, null], [T.teamIds[2], 2, null], [T.teamIds[0], 3, null]]);
+  assert.equal(pv.roundBreak.leadBy, 100);
+  T.okHost('continue');
+  for (let i = 0; i < 3; i++) { T.land(SEG.dare); T.okHost('dareResult', { result: 'fail' }); if (i < 2) T.okHost('nextTurn', { turnId: T.g.state.turnId }); }
+  T.setScores([500, 300, 200]);
+  T.okHost('nextTurn', { turnId: T.g.state.turnId });
+  assert.equal(T.g.state.phase, 'roundBreak');
+  pv = publicView(T.g);
+  const st = Object.fromEntries(pv.roundBreak.standings.map((s) => [s.teamId, s]));
+  assert.deepEqual([st[T.teamIds[0]].move, st[T.teamIds[0]].places], ['up', 2]);
+  assert.equal(st[T.teamIds[1]].move, 'down');
+  assert.equal(st[T.teamIds[2]].move, 'down');
+  assert.equal(pv.roundBreak.finalNext, true);
+  // final: max wager is public, amount is not
+  T.okHost('continue');
+  for (let i = 0; i < 3; i++) { T.land(SEG.dare); T.okHost('dareResult', { result: 'fail' }); T.okHost('nextTurn', { turnId: T.g.state.turnId }); }
+  assert.equal(T.g.state.phase, 'finalIntro');
+  T.okHost('continue');
+  assert.equal(T.g.state.phase, 'finalWager');
+  pv = publicView(T.g);
+  assert.deepEqual(pv.final.wagers.map((w) => w.max), T.g.state.teams.map((t) => Math.max(300, t.score)));
+});
+
+test('coach: right words and buttons per stage; dare judging unlocks with the timer; say never contains the answer', () => {
+  const T = setup({ teams: 3, perTeam: 2 });
+  const coach = (ex) => hostView(T.g, ex || { connections: { tv: 0, hosts: 1 } }).host.coach;
+  const ids = (co) => co.actions.map((a) => a.id);
+  let co = coach();
+  assert.equal(co.primary, 'start');
+  assert.ok(co.tips.some((t) => /TV screen/.test(t)), 'TV not connected tip');
+  assert.ok(co.say.includes('Scan the code'));
+  assert.ok(ids(co).includes('introScript'));
+  assert.equal(co.actions.find((a) => a.id === 'introScript').local, 'introScript');
+  const intro = hostView(T.g).host.introScript;
+  assert.ok(intro.sections.length >= 5 && intro.words > 100 && intro.text.includes('Christmas Chaos'));
+  for (const s of SEGMENTS) assert.ok(intro.text.includes(s.label), 'script names ' + s.label);
+  assert.ok(intro.summary.includes('Team 1'));
+  T.okHost('start');
+  assert.equal(hostView(T.g).host.introScript, null);
+  co = coach();
+  assert.match(co.headline, /Team 1 is up/);
+  assert.ok(ids(co).includes('spinFor') && ids(co).includes('skipTurn'));
+  assert.equal(co.progress[0].state, 'current');
+  // trivia
+  T.land(SEG.christmas);
+  co = coach();
+  assert.deepEqual(ids(co).filter((x) => x.startsWith('pick-')), ['pick-easy', 'pick-medium', 'pick-hard']);
+  assert.ok(co.tips.some((t) => /First Christmas Trivia/.test(t)));
+  T.okHost('pickDifficulty', { level: 'hard' });
+  co = coach();
+  const q = T.g.state.challenge.q;
+  assert.ok(co.say.startsWith(q.question));
+  assert.ok(!co.say.includes(q.answer));
+  assert.equal(co.primary, 'correct');
+  assert.equal(co.actions.find((a) => a.id === 'correct').shortcut, 'C');
+  assert.equal(co.actions.find((a) => a.id === 'wrong').shortcut, 'W');
+  assert.equal(!!co.actions.find((a) => a.id === 'hint').disabled, !q.hint);
+  assert.deepEqual(co.progress.map((p) => p.state), ['done', 'done', 'current', 'todo', 'todo']);
+  T.okHost('judge', { result: 'wrong' });
+  co = coach();
+  assert.match(co.headline, /arm/);
+  T.clock.advance(3000);
+  co = coach();
+  assert.match(co.headline, /waiting for a buzz/);
+  T.okP(T.otherP(0), 'buzz');
+  co = coach();
+  assert.match(co.headline, /buzzed first/);
+  T.okHost('judge', { result: 'wrong' });
+  co = coach();
+  assert.equal(co.primary, 'reopen');
+  T.okHost('reveal');
+  co = coach();
+  assert.equal(T.g.state.phase, 'turnResult');
+  assert.equal(co.primary, 'nextTurn');
+  assert.ok(co.say.includes(q.answer), 'after the reveal the host reads the answer');
+  assert.deepEqual(co.actions.find((a) => a.id === 'nextTurn').payload, { turnId: T.g.state.turnId });
+  T.okHost('nextTurn', { turnId: T.g.state.turnId });
+  // dare: judging unlocks when the timer starts
+  const d = T.land(SEG.dare);
+  co = coach();
+  assert.equal(co.primary, 'timerStart');
+  for (const id of ['nailed', 'valiant', 'fail', 'vote']) {
+    const a = co.actions.find((x) => x.id === id);
+    assert.equal(a.disabled, true, id);
+    assert.equal(a.reason, 'Unlocks when the timer starts');
+  }
+  if (d.secretValue) assert.ok(!co.say.includes(d.secretValue), 'dare secret never read out');
+  T.okHost('timer', { action: 'start' });
+  co = coach();
+  assert.equal(co.primary, 'nailed');
+  assert.equal(co.actions.find((a) => a.id === 'nailed').disabled, undefined);
+  T.okHost('dareResult', { result: 'nailed' });
+  co = coach();
+  assert.ok(ids(co).includes('crowd'));
+  T.okHost('dareResult', co.actions.find((a) => a.id === 'crowd').payload);
+  assert.equal(T.g.state.challenge.dareResult.bonus, true);
+  T.okHost('nextTurn', { turnId: T.g.state.turnId });
+  // double down: tip about x2
+  T.land(SEG.doubledown);
+  co = coach();
+  assert.ok(co.tips.some((t) => /Double Down active/.test(t)));
+  // sound it out: the song title never appears in the coach
+  T.okHost('forceSegment', { index: SEG.sound });
+  T.clock.advance(5000);
+  co = coach();
+  assert.ok(!JSON.stringify(co).includes(T.g.state.challenge.song.title));
+  assert.equal(co.primary, 'timerStart');
+});
+
+test('coach-driven game: pressing only the coach’s buttons (and phones doing what they show) reaches the podium', () => {
+  for (const [teams, seed] of [[2, 5], [4, 6], [6, 7]]) {
+    const T = setup({ teams, perTeam: 2, seed });
+    const { g, clock, players, teamIds } = T;
+    const rng = mulberry32(seed * 31);
+    const pickOne = (arr) => arr[Math.floor(rng() * arr.length)];
+    const all = teamIds.flatMap((t) => players[t]);
+    const done = new Set();
+    const types = new Set();
+    let presses = 0;
+    for (let step = 0; step < 6000 && g.state.phase !== 'podium'; step++) {
+      const S = g.state;
+      if (S.challenge) types.add(S.challenge.type);
+      // phones first: each phone does what its screen offers (once)
+      let acted = false;
+      for (const a of all.slice().sort(() => rng() - 0.5)) {
+        const v = playerView(g, T.pid(a));
+        const key = (k) => `${S.turnId}|${S.phase}|${S.challenge ? S.challenge.id + S.challenge.stage : ''}|${a.clientId}|${k}`;
+        const once = (k, payload) => { if (done.has(key(k))) return false; done.add(key(k)); return g.dispatch(a, k, payload).ok; };
+        const answer = () => (S.phase === 'finalAnswer' ? S.final.q.answer : S.challenge && S.challenge.q ? S.challenge.q.answer : 'x');
+        if (v.can.spin && rng() < 0.6 && once('spin', {})) acted = true;
+        else if (v.can.pickDifficulty && once('pickDifficulty', { level: pickOne(['easy', 'medium', 'hard']) })) acted = true;
+        else if (v.can.pickTarget && once('pickTarget', { teamId: pickOne(v.challenge.targets) })) acted = true;
+        else if (v.can.submitAnswer && !v.myTeam.submission && once('submitAnswer', { text: rng() < 0.5 ? answer() : 'no idea' })) acted = true;
+        else if (v.can.wager && !(v.myTeam.wager && v.myTeam.wager.by) && once('wager', { amount: Math.floor(rng() * (v.myTeam.maxWager + 1)) })) acted = true;
+        else if (v.can.vote && !v.myVote && once('vote', { choice: rng() < 0.6 ? 'nailed' : 'good' })) acted = true;
+        else if (v.can.buzz && rng() < 0.5 && once('buzz', {})) acted = true;
+        if (acted) break;
+      }
+      if (acted) continue;
+      if (S.spin || (S.challenge && S.challenge.buzz && S.challenge.buzz.armingUntil)) { clock.advance(1000); continue; }
+      if (S.timer && S.timer.running && rng() < 0.2) { clock.advance(S.timer.endsAt - clock.now()); continue; }
+      // the host presses the coach's primary button, sometimes another one it offers (never a confirm-guarded one)
+      const co = hostView(g, { connections: { tv: 1, hosts: 1 } }).host.coach;
+      const usable = co.actions.filter((x) => !x.disabled && x.event && !x.confirm);
+      let a = co.actions.find((x) => x.id === co.primary);
+      if (!a || rng() < 0.3) a = usable.length ? pickOne(usable) : a;
+      if (!a) { clock.advance(1000); continue; }
+      const r = g.dispatch({ role: 'host' }, a.event, a.payload || {});
+      assert.equal(r.ok, true, `coach action ${a.id} (${a.event}) rejected: ${r.error} in ${S.phase}/${S.challenge && S.challenge.stage}`);
+      presses++;
+    }
+    assert.equal(g.state.phase, 'podium', `${teams}-team coach-driven game reached ${g.state.phase}`);
+    assert.ok(presses > 20);
+    assert.ok(types.size >= 5, 'several mini-games were played');
+    const co = hostView(g).host.coach;
+    assert.match(co.headline, /Christmas/);
+    assert.equal(co.primary, 'playAgain');
+  }
+});

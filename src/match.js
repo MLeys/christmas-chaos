@@ -69,40 +69,67 @@ function variants(answer) {
   return [...out];
 }
 
-function matchOne(t, c) {
-  if (!t || !c) return false;
-  if (t === c) return true;
+/**
+ * How well normalized text `t` matches one normalized candidate `c`:
+ * 3 exact (same words / same letters), 2 match (the answer plus up to 2 extra words), 1 close (small typo), 0 none.
+ */
+function matchRank(t, c) {
+  if (!t || !c) return 0;
+  if (t === c) return 3;
   const tn = t.replace(/ /g, ''), cn = c.replace(/ /g, '');
-  if (tn === cn) return true;
+  if (tn === cn) return 3;
   const td = digitsOf(t), cd = digitsOf(c);
   if (td || cd) {
-    if (td !== cd) return false;
+    if (td !== cd) return 0;
   }
-  // typo tolerance (on a lightly "phonetic" form: ph=f, ck=k, doubled letters collapsed)
-  if (levenshtein(tn, cn) <= allowedTypos(cn.length)) return true;
-  if (levenshtein(phonetic(tn), phonetic(cn)) <= allowedTypos(cn.length)) return true;
   // containment: "paris france" / "kevin mccallister" for "paris" / "kevin" \u2014 at most 2 extra words
   const tt = t.split(' '), ct = c.split(' ');
+  let contained = 0;
   if (cn.length >= 3 && tt.length > ct.length && tt.length - ct.length <= 2) {
-    for (let i = 0; i + ct.length <= tt.length; i++) {
+    for (let i = 0; i + ct.length <= tt.length && contained < 2; i++) {
+      let exact = true;
       let ok = true;
       for (let j = 0; j < ct.length; j++) {
         const a = tt[i + j], b = ct[j];
-        if (a !== b && levenshtein(a, b) > allowedTypos(b.length)) { ok = false; break; }
+        if (a === b) continue;
+        exact = false;
+        if (levenshtein(a, b) > allowedTypos(b.length)) { ok = false; break; }
       }
-      if (ok) return true;
+      if (ok) contained = Math.max(contained, exact ? 2 : 1);
     }
   }
-  return false;
+  if (contained === 2) return 2;
+  // typo tolerance (on a lightly "phonetic" form: ph=f, ck=k, doubled letters collapsed)
+  if (levenshtein(tn, cn) <= allowedTypos(cn.length)) return 1;
+  if (levenshtein(phonetic(tn), phonetic(cn)) <= allowedTypos(cn.length)) return 1;
+  return contained;
+}
+
+const KINDS = ['none', 'close', 'match', 'exact'];
+/**
+ * 'exact' | 'match' (extra words around the answer) | 'close' (small typo) | 'none'.
+ * Everything except 'none' counts as correct; hosts see 'close' in amber so they can double-check.
+ */
+function matchKind(text, answer, accept = []) {
+  const t = normalize(text);
+  if (!t) return 'none';
+  // "CLARENCE (he got his wings!)": also try the typed text without its (asides); at best that is a 'match'
+  const raw = String(text == null ? '' : text);
+  const aside = normalize(raw.replace(/\([^)]*\)?/g, ' '));
+  const typed = aside && aside !== t ? [[t, 3], [aside, 2]] : [[t, 3]];
+  let best = 0;
+  for (const a of [answer, ...(Array.isArray(accept) ? accept : [])]) {
+    for (const c of variants(a)) {
+      for (const [x, cap] of typed) best = Math.max(best, Math.min(cap, matchRank(x, c)));
+      if (best === 3) return 'exact';
+    }
+  }
+  return KINDS[best];
 }
 
 /** Does the typed text match the answer or any accepted alternative? */
 function isMatch(text, answer, accept = []) {
-  const t = normalize(text);
-  if (!t) return false;
-  const cands = [];
-  for (const a of [answer, ...(Array.isArray(accept) ? accept : [])]) cands.push(...variants(a));
-  return cands.some((c) => matchOne(t, c));
+  return matchKind(text, answer, accept) !== 'none';
 }
 
 const POSSESSIVE = new RegExp("['\\u2019]s(?![a-z])", 'gi');
@@ -114,4 +141,4 @@ function containsAnswer(question, answer) {
   return (' ' + q + ' ').includes(' ' + a + ' ');
 }
 
-module.exports = { normalize, levenshtein, isMatch, containsAnswer, variants };
+module.exports = { normalize, levenshtein, isMatch, matchKind, containsAnswer, variants };

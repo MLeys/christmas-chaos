@@ -10,8 +10,8 @@
  * server-computed `can` flags in the views, so a phone only ever shows an action the server will accept.
  * All scoring goes through award(); all delayed work goes through the generation-aware scheduler.
  */
-const { drawFrom, isQuickQuestion, contentStats } = require('./content');
-const { isMatch } = require('./match');
+const { drawFrom, isQuickQuestion, contentStats, triviaPool } = require('./content');
+const { matchKind } = require('./match');
 const { createScheduler } = require('./scheduler');
 
 const TIMING = {
@@ -39,7 +39,7 @@ const SEGMENTS = Object.freeze([
   seg(1, 'dare', 'Dare', ['Dare'], '#F5B82E', '#1A1206', 'drama', '200', DARE_RULE),
   seg(2, 'trivia', 'Pop Culture', ['Pop', 'Culture'], '#1F6FD1', CREAM, 'clapperboard', '100\u2013300', TRIVIA_RULE, 'popculture'),
   seg(3, 'hotseat', 'Hot Seat', ['Hot', 'Seat'], '#D63384', CREAM, 'flame', '50\u2013300', 'One player, alone, 45 seconds: up to 6 quick questions. 50 points each.'),
-  seg(4, 'trivia', 'Christmas Trivia', ['Christmas', 'Trivia'], '#C8232C', CREAM, 'tree-pine', '100\u2013300', TRIVIA_RULE, 'christmas'),
+  seg(4, 'trivia', 'Christmas Movies', ['Christmas', 'Movies'], '#8E1B3A', CREAM, 'popcorn', '100\u2013300', TRIVIA_RULE, 'movies'),
   seg(5, 'sounditout', 'Sound It Out', ['Sound', 'It Out'], '#7A4FD3', CREAM, 'music', '200', 'One of you hums a secret song (no words!). Your team has 30 s to name it.'),
   seg(6, 'grinch', 'Grinch Steal', ['Grinch', 'Steal'], CREAM, NIGHT, 'hand-coins', '150', 'Steal 150 points from a team that is ahead of you.'),
   seg(7, 'showdown', 'Showdown', ['Showdown'], '#8FD8FF', NIGHT, 'swords', '200', 'Pick a rival team. One player from each team goes head to head. Winner takes 200.'),
@@ -67,11 +67,13 @@ const TIMER_LABELS = {
   list: 'Rapid List', hotseat: 'Hot Seat', allplay: 'All Play', bonus: 'Bonus question', vote: 'Room vote',
   wager: 'Wagers', final: 'Final answer',
 };
-const CATEGORY_LABELS = { christmas: 'Christmas', popculture: 'Pop Culture', mixed: 'Mixed Bag' };
+const CATEGORY_LABELS = { christmas: 'Christmas', popculture: 'Pop Culture', movies: 'Christmas Movies', mixed: 'Mixed Bag' };
+const TRIVIA_LABELS = { christmas: 'Christmas Trivia', popculture: 'Pop Culture', movies: 'Christmas Movies' };
 const OTHER_ANSWER = 'Other answer';
 const IN_TURN = new Set(['turnIntro', 'spinning', 'challenge', 'turnResult']);
 const PLAYING = new Set(['turnIntro', 'spinning', 'challenge', 'turnResult', 'roundBreak', 'finalIntro', 'finalWager', 'finalAnswer', 'finalReveal']);
 
+const PLAYER_CAN = ['spin', 'pickDifficulty', 'buzz', 'pickTarget', 'previewTarget', 'submitAnswer', 'wager', 'vote', 'peek'];
 const MAX_TEAMS = 8;
 const MAX_PLAYERS = 120;
 const LIMITS = { playerName: 20, teamName: 24, answer: 80 };
@@ -113,6 +115,9 @@ function freshState() {
     lastSegmentIndex: 0,
     spinSeq: 0,
     spin: null,
+    lastSpin: null,      // {segmentIndex, teamId, by} of the most recent landed spin (TV "spun by" line)
+    seen: [],            // challenge types already played this game (first time = explain the rules)
+    prevRanks: null,     // {teamId: rank} at the previous round break (round-break movement arrows)
     challengeSeq: 0,
     challenge: null,
     turn: null,
@@ -156,6 +161,13 @@ function createGame(opts = {}) {
   const rint = (n) => Math.min(n - 1, Math.floor(rng() * n));
   const pick = (arr) => arr[rint(arr.length)];
   const teamName = (id) => (team(id) ? team(id).name : 'a team');
+
+  /** {teamId: rank} with shared ranks for ties (1, 1, 3). */
+  function rankNow() {
+    const out = {};
+    for (const t of S.teams) out[t.id] = 1 + S.teams.filter((o) => o.score > t.score).length;
+    return out;
+  }
 
   function recomputeAuto() {
     if (S.settings.autoRounds) S.settings.rounds = recommendedRounds(S.teams.length);
@@ -305,10 +317,12 @@ function createGame(opts = {}) {
   }
 
   // ---------------------------------------------------------------- content draws
-  const copyQ = (q) => ({ id: q.id, category: q.category, difficulty: q.difficulty, question: q.question, answer: q.answer, accept: q.accept || [], hint: q.hint || '', funFact: q.funFact || '' });
+  const copyQ = (q) => ({
+    id: q.id, category: q.category, difficulty: q.difficulty, question: q.question, answer: q.answer, accept: q.accept || [],
+    hint: q.hint || '', funFact: q.funFact || '', movie: q.movie || '', year: Number.isInteger(q.year) ? q.year : null,
+  });
   function drawTrivia(category, difficulty, exclude) {
-    const pool = content.trivia.filter((q) => q.category === category && q.difficulty === difficulty);
-    const q = drawFrom(pool, used, rng, exclude);
+    const q = drawFrom(triviaPool(content.trivia, category, difficulty), used, rng, exclude);
     return q ? copyQ(q) : null;
   }
   function drawQuick(exclude) {
@@ -354,6 +368,7 @@ function createGame(opts = {}) {
     for (const t of S.teams) t.score = 0;
     S.round = 1; S.turnIndex = 0;
     S.undo = []; S.lastAwards = []; S.final = null; S.podium = null; S.roundBreak = null;
+    S.seen = []; S.prevRanks = null; S.lastSpin = null;
     S.stats = { picks: {}, buzzes: [], firsts: {}, perf: {} };
     fx('round', { round: 1 });
     beginTurn();
@@ -375,13 +390,17 @@ function createGame(opts = {}) {
   function land() {
     const idx = S.spin.segmentIndex;
     S.lastSegmentIndex = idx;
+    S.lastSpin = { segmentIndex: idx, teamId: activeTeamId(), by: S.spin.by || null };
     S.spin = null;
     S.phase = 'challenge';
     S.challenge = buildChallenge(idx);
     fx('land', { segmentIndex: idx, segmentType: SEGMENTS[idx].type, teamId: activeTeamId() });
   }
   function newChallenge(type, segmentIndex, rule) {
-    return { id: ++S.challengeSeq, type, segmentIndex, stage: '', rule, points: 0, awarded: {}, revealed: false, hintShown: false, started: false, result: null };
+    if (!Array.isArray(S.seen)) S.seen = [];
+    const firstTime = !S.seen.includes(type);
+    if (firstTime) S.seen.push(type);
+    return { id: ++S.challengeSeq, type, segmentIndex, stage: '', rule, points: 0, awarded: {}, revealed: false, hintShown: false, started: false, result: null, firstTime, secretPeeked: false, eyeing: null };
   }
   function buildChallenge(idx) {
     const sg = SEGMENTS[idx];
@@ -454,6 +473,7 @@ function createGame(opts = {}) {
         c.points = PTS.allPlay;
         c.q = drawQuick();
         c.subs = {};
+        c.openedAt = now();
         c.stage = 'answering';
         prepareTimer('allplay', T.allPlayMs, true);
         break;
@@ -466,13 +486,17 @@ function createGame(opts = {}) {
     }
     return c;
   }
-  function setupDare(c, d) {
+  /** Set up a dare. keepPerformer (Swap dare) keeps the same performer, adding/dropping a partner as needed. */
+  function setupDare(c, d, keepPerformer) {
     const act = activeTeamId();
-    unpick(c.performer); unpick(c.partner);
+    const keep = keepPerformer && c.performer && player(c.performer.playerId) ? c.performer : null;
+    if (!keep) unpick(c.performer);
+    unpick(c.partner);
     c.points = PTS.dare.nailed;
     c.dare = { id: d.id, title: d.title, who: d.who, instructions: d.instructions, time: d.time, props: d.props || [], judge: d.judge, tags: d.tags || [], secret: d.secret || null };
     c.secretValue = d.secret && d.secret.options && d.secret.options.length ? pick(d.secret.options) : null;
-    c.performer = pickPlayer(act);
+    c.secretPeeked = false;
+    c.performer = keep || pickPlayer(act);
     c.partner = d.who === 'pair' ? pickPlayer(act, c.performer ? [c.performer.playerId] : []) : null;
     if (c.partner && c.performer && c.partner.playerId === c.performer.playerId) { unpick(c.partner); c.partner = null; }
     c.stage = 'perform';
@@ -600,6 +624,7 @@ function createGame(opts = {}) {
     c.points = PTS.bonus;
     c.q = drawQuick();
     c.subs = {};
+    c.openedAt = now();
     c.stage = 'answering';
     S.challenge = c;
     prepareTimer('bonus', T.bonusMs, true);
@@ -613,7 +638,10 @@ function createGame(opts = {}) {
     S.turnId = ++S.turnSeq; // any stale nextTurn is now ignored
     if (S.round < S.settings.rounds) {
       S.phase = 'roundBreak';
-      S.roundBreak = { round: S.round, nextRound: S.round + 1, finalNext: S.round + 1 === S.settings.rounds, bonusDone: false };
+      const ranks = rankNow();
+      S.roundBreak = { round: S.round, nextRound: S.round + 1, finalNext: S.round + 1 === S.settings.rounds, bonusDone: false, prevRanks: S.prevRanks ? { ...S.prevRanks } : null };
+      S.prevRanks = ranks;
+      fx('roundBreak', { round: S.round });
     } else enterFinal();
   }
   function nextRound() {
@@ -642,6 +670,7 @@ function createGame(opts = {}) {
   function startFinalAnswering() {
     for (const t of S.teams) if (!S.final.wagers[t.id]) S.final.wagers[t.id] = { amount: 0, locked: true, by: null, name: null, at: now(), auto: true };
     for (const t of S.teams) { const w = S.final.wagers[t.id]; w.locked = true; w.amount = Math.min(w.amount, maxWager(t.id)); }
+    S.final.openedAt = now();
     S.phase = 'finalAnswer';
     prepareTimer('final', T.finalMs, true);
   }
@@ -654,7 +683,7 @@ function createGame(opts = {}) {
     for (const id of order) {
       const sub = S.final.subs[id];
       const w = S.final.wagers[id] || { amount: 0 };
-      S.final.rows[id] = { text: sub ? sub.text : '', by: sub ? sub.name : null, wager: w.amount, autoCorrect: sub ? sub.autoCorrect : false, override: sub && sub.override != null ? sub.override : null, revealed: false, judged: false, correct: null, delta: null, before: team(id).score, after: null };
+      S.final.rows[id] = { text: sub ? sub.text : '', by: sub ? sub.name : null, wager: w.amount, autoCorrect: sub ? sub.autoCorrect : false, match: sub ? sub.match || (sub.autoCorrect ? 'match' : 'none') : 'none', override: sub && sub.override != null ? sub.override : null, revealed: false, judged: false, correct: null, delta: null, before: team(id).score, after: null };
     }
     S.final.current = null;
   }
@@ -813,8 +842,15 @@ function createGame(opts = {}) {
         const text = cleanText(p.text, LIMITS.answer);
         const target = S.phase === 'finalAnswer' ? S.final : ch();
         const q = target.q;
-        target.subs[ctx.team.id] = { text, by: ctx.player.id, name: ctx.player.name, at: now(), autoCorrect: isMatch(text, q.answer, q.accept), override: null };
-        fx('answered', { teamId: ctx.team.id });
+        const prev = target.subs[ctx.team.id];
+        const match = matchKind(text, q.answer, q.accept);
+        const at = now();
+        // a changed answer resets the host's manual mark ("If a team changes its answer, its mark resets.")
+        target.subs[ctx.team.id] = {
+          text, by: ctx.player.id, name: ctx.player.name, at, elapsedMs: Math.max(0, at - (target.openedAt || at)),
+          autoCorrect: match !== 'none', match, override: prev && prev.text === text ? prev.override : null,
+        };
+        fx('answered', { teamId: ctx.team.id, changed: !!prev });
       },
     },
     wager: {
@@ -828,18 +864,42 @@ function createGame(opts = {}) {
     },
     vote: {
       player: true,
+      // One vote per player; voting again while the vote is open CHANGES that player's vote (phone "Change vote").
       guard: (ctx) => all(() => needTeam(ctx), () => inChallenge('dare', ['vote']), () => {
         const c = ch();
         if (!c.vote.open) return 'not-now';
-        if (ctx.team.id === activeTeamId()) return 'not-eligible';
-        return hasOwn(c.vote.votes, ctx.player.id) ? 'already-voted' : ok;
+        return ctx.team.id === activeTeamId() ? 'not-eligible' : ok;
       }),
       validate: (p) => (p.choice === 'nailed' || p.choice === 'good' ? ok : 'bad-choice'),
       run: (ctx, p) => {
         const c = ch();
+        const changedVote = hasOwn(c.vote.votes, ctx.player.id);
+        if (changedVote && c.vote.votes[ctx.player.id] === p.choice) return { changed: false };
         c.vote.votes[ctx.player.id] = p.choice;
-        fx('vote', voteTally(c));
-        if (Object.keys(c.vote.votes).length >= eligibleVoters()) closeVote();
+        fx('vote', { ...voteTally(c), choice: p.choice, changed: changedVote });
+        if (!changedVote && Object.keys(c.vote.votes).length >= eligibleVoters()) closeVote();
+        return { changed: changedVote };
+      },
+    },
+    previewTarget: {
+      // The active team's phone highlights a target before confirming: the TV shows "Mia is eyeing Team Rudolph...".
+      player: true,
+      guard: (ctx) => all(() => needActive(ctx), () => (inChallenge('grinch', ['pickTarget']) === ok || inChallenge('showdown', ['pickRival']) === ok ? ok : 'not-now')),
+      validate: (p) => (p.teamId === null || (typeof p.teamId === 'string' && ch().targets.includes(p.teamId)) ? ok : 'bad-target'),
+      run: (ctx, p) => {
+        const c = ch();
+        c.eyeing = p.teamId ? { teamId: p.teamId, by: { playerId: ctx.player.id, name: ctx.player.name } } : null;
+      },
+    },
+    peek: {
+      // The performer pressed-and-held their secret card (host sees "Aunt Linda has peeked").
+      player: true,
+      guard: (ctx) => (!ctx.player ? 'not-joined' : playerSecret(ctx.player.id) ? ok : 'no-secret'),
+      run: () => {
+        const c = ch();
+        if (c.secretPeeked) return { first: false };
+        c.secretPeeked = true;
+        return { first: true };
       },
     },
 
@@ -1033,7 +1093,7 @@ function createGame(opts = {}) {
         } else {
           const old = c.performer;
           const np = pickPlayer(act, [old.playerId, c.partner && c.partner.playerId].filter(Boolean));
-          if (np) { unpick(old); c.performer = np; }
+          if (np) { unpick(old); c.performer = np; c.secretPeeked = false; }
           if (c.type === 'dare' && c.dare.secret) { const rest = c.dare.secret.options.filter((o) => o !== c.secretValue); if (rest.length) c.secretValue = pick(rest); }
         }
         calledUp(c);
@@ -1049,6 +1109,44 @@ function createGame(opts = {}) {
         return 'not-now';
       },
       run: () => swapQuestion(),
+    },
+    'host:swapSecret': {
+      // New secret for the SAME performer: another option of the same dare, or another song (Sound It Out).
+      guard: () => {
+        const c = ch();
+        if (inChallenge('dare', ['perform']) === ok) return c.secretValue && c.dare.secret.options.length > 1 ? ok : 'no-secret';
+        if (inChallenge('sounditout', ['perform']) === ok) return ok;
+        return 'not-now';
+      },
+      run: () => {
+        const c = ch();
+        if (c.type === 'sounditout') { swapQuestion(); return; }
+        const rest = c.dare.secret.options.filter((o) => o !== c.secretValue);
+        c.secretValue = pick(rest);
+        c.secretPeeked = false;
+      },
+    },
+    'host:reorderTeams': {
+      guard: () => (S.phase === 'lobby' ? ok : 'not-now'),
+      validate: (p) => {
+        if (!Array.isArray(p.order) || p.order.length !== S.teams.length) return 'bad-order';
+        const ids = new Set(p.order);
+        return ids.size === S.teams.length && S.teams.every((t) => ids.has(t.id)) ? ok : 'bad-order';
+      },
+      run: (ctx, p) => { S.teams = p.order.map((id) => team(id)); },
+    },
+    'host:shuffleTeams': {
+      guard: () => (S.phase !== 'lobby' ? 'not-now' : S.teams.length < 2 ? 'need-two-teams' : ok),
+      run: () => {
+        const a = S.teams.slice();
+        for (let i = a.length - 1; i > 0; i--) { const j = rint(i + 1); [a[i], a[j]] = [a[j], a[i]]; }
+        if (a.every((t, i) => t === S.teams[i])) a.push(a.shift()); // always visibly change the order
+        S.teams = a;
+      },
+    },
+    'host:soundTest': {
+      guard: () => ok,
+      run: () => { fx('soundTest', {}); },
     },
     'host:endChallenge': {
       guard: () => (S.phase === 'challenge' && ch() && ch().type !== 'doubledown' && ch().stage !== 'done' ? ok : 'not-now'),
@@ -1198,6 +1296,7 @@ function createGame(opts = {}) {
   function pickTarget(targetId) {
     const c = ch();
     const act = activeTeamId();
+    c.eyeing = null;
     if (c.type === 'grinch') {
       const victim = team(targetId);
       const amount = Math.min(PTS.grinch * S.turn.multiplier, victim.score);
@@ -1237,7 +1336,7 @@ function createGame(opts = {}) {
       return;
     }
     if (result === 'correct') {
-      cAward(act, c.points, c.type === 'trivia' ? (c.category === 'christmas' ? 'Christmas Trivia' : 'Pop Culture') : 'Sound It Out');
+      cAward(act, c.points, c.type === 'trivia' ? (TRIVIA_LABELS[c.category] || 'Trivia') : 'Sound It Out');
       fx('correct', { teamId: act });
       finish('correct');
     } else {
@@ -1264,12 +1363,12 @@ function createGame(opts = {}) {
     }
     switch (c.type) {
       case 'trivia': c.q = drawTrivia(c.category, c.difficulty, [c.q.id]); c.hintShown = false; c.points = PTS.trivia[c.difficulty]; prepareTimer('trivia', T.triviaMs, true); break;
-      case 'sounditout': { const s = draw('songs', [c.song.id]); c.song = { id: s.id, title: s.title, artist: s.artist || '', accept: s.accept || [], hint: s.hint || '' }; c.hintShown = false; c.points = PTS.sound; prepareTimer('sound', T.soundMs, false); break; }
-      case 'dare': setupDare(c, draw('dares', [c.dare.id])); break;
+      case 'sounditout': { const s = draw('songs', [c.song.id]); c.song = { id: s.id, title: s.title, artist: s.artist || '', accept: s.accept || [], hint: s.hint || '' }; c.hintShown = false; c.secretPeeked = false; c.points = PTS.sound; prepareTimer('sound', T.soundMs, false); break; }
+      case 'dare': setupDare(c, draw('dares', [c.dare.id]), true); break;
       case 'showdown': { const s = draw('showdowns', [c.showdown.id]); c.showdown = { id: s.id, title: s.title, instructions: s.instructions, time: s.time, props: s.props || [], winner: s.winner, tags: s.tags || [] }; prepareTimer('showdown', s.time * 1000, false); break; }
       case 'rapidlist': { const l = draw('lists', [c.list.id]); c.list = { id: l.id, prompt: l.prompt, answers: l.answers.slice(), note: l.note || '' }; prepareTimer('list', T.listMs, false); break; }
       case 'hotseat': { const q = drawQuick(c.hs.questions.map((x) => x.id)); if (q) c.hs.questions[c.hs.index] = q; break; }
-      case 'allplay': case 'bonus': c.q = drawQuick([c.q.id]); c.subs = {}; prepareTimer(c.type, c.type === 'bonus' ? T.bonusMs : T.allPlayMs, true); break;
+      case 'allplay': case 'bonus': c.q = drawQuick([c.q.id]); c.subs = {}; c.openedAt = now(); prepareTimer(c.type, c.type === 'bonus' ? T.bonusMs : T.allPlayMs, true); break;
       default: break;
     }
   }
@@ -1308,18 +1407,34 @@ function createGame(opts = {}) {
     if (a.role === 'player' && typeof a.clientId === 'string') pl = player(S.clients[clientKey(a.clientId)]);
     return { actor: a, player: pl, team: pl ? team(pl.teamId) : null };
   }
+  /** Role, guard and payload checks shared by dispatch() and check(). Returns {def, ctx, p} or a failure. */
+  function prepare(actor, type, payload) {
+    if (typeof type !== 'string' || !hasOwn(ACTIONS, type)) return fail('unknown-event');
+    const def = ACTIONS[type];
+    const a = isObj(actor) ? actor : {};
+    if (def.player) { if (a.role !== 'player' || typeof a.clientId !== 'string' || !a.clientId || a.clientId.length > 100) return fail('not-player'); }
+    else if (a.role !== 'host') return fail('not-host');
+    const p = isObj(payload) ? payload : {};
+    const ctx = makeCtx(a);
+    const g = def.guard(ctx);
+    if (g !== ok) return fail(g || 'not-now');
+    if (def.validate) { const v = def.validate(p, ctx); if (v !== ok) return fail(v || 'bad-payload'); }
+    return { def, ctx, p };
+  }
+  /** Would this action be accepted right now? (no side effects) */
+  function check(actor, type, payload) {
+    try {
+      const e = prepare(actor, type, payload);
+      return e.ok === false ? e : { ok: true };
+    } catch (err) {
+      return fail('server-error');
+    }
+  }
   function dispatch(actor, type, payload) {
     try {
-      if (typeof type !== 'string' || !hasOwn(ACTIONS, type)) return fail('unknown-event');
-      const def = ACTIONS[type];
-      const a = isObj(actor) ? actor : {};
-      if (def.player) { if (a.role !== 'player' || typeof a.clientId !== 'string' || !a.clientId || a.clientId.length > 100) return fail('not-player'); }
-      else if (a.role !== 'host') return fail('not-host');
-      const p = isObj(payload) ? payload : {};
-      const ctx = makeCtx(a);
-      const g = def.guard(ctx);
-      if (g !== ok) return fail(g || 'not-now');
-      if (def.validate) { const v = def.validate(p, ctx); if (v !== ok) return fail(v || 'bad-payload'); }
+      const e = prepare(actor, type, payload);
+      if (e.ok === false) return e;
+      const { def, ctx, p } = e;
       const r = def.run(ctx, p);
       changed();
       if (r && r.ok === false) return r;
@@ -1332,7 +1447,7 @@ function createGame(opts = {}) {
   function playerCan(playerId) {
     const pl = player(playerId);
     const out = {};
-    for (const k of ['spin', 'pickDifficulty', 'buzz', 'pickTarget', 'submitAnswer', 'wager', 'vote']) {
+    for (const k of PLAYER_CAN) {
       try { out[k] = !!pl && ACTIONS[k].guard({ actor: { role: 'player' }, player: pl, team: team(pl.teamId) }) === ok; } catch { out[k] = false; }
     }
     return out;
@@ -1421,7 +1536,9 @@ function createGame(opts = {}) {
     points: PTS,
     now,
     dispatch,
+    check,
     playerCan,
+    playerCanKeys: PLAYER_CAN.slice(),
     hostCan,
     playerIdForClient,
     setClientConnected,

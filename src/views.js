@@ -9,7 +9,9 @@
  *   playerView(game, playerId, base?)  publicView + me / secret / myTeam / myVote / can
  */
 
-const CATEGORY_LABELS = { christmas: 'Christmas Trivia', popculture: 'Pop Culture' };
+const { buildCoach, buildIntroScript } = require('./coach');
+
+const CATEGORY_LABELS = { christmas: 'Christmas Trivia', popculture: 'Pop Culture', movies: 'Christmas Movies' };
 
 function rankMap(teams) {
   const out = {};
@@ -54,8 +56,10 @@ function publicChallenge(game) {
   if (!c) return null;
   const out = {
     id: c.id, type: c.type, stage: c.stage, segmentIndex: c.segmentIndex, rule: c.rule, points: c.points,
-    started: !!c.started, revealed: !!c.revealed,
+    started: !!c.started, revealed: !!c.revealed, firstTime: !!c.firstTime,
   };
+  const eyeing = () => (c.eyeing && (c.stage === 'pickTarget' || c.stage === 'pickRival')
+    ? { teamId: c.eyeing.teamId, by: { playerId: c.eyeing.by.playerId, name: c.eyeing.by.name } } : null);
   switch (c.type) {
     case 'trivia':
       out.category = c.category;
@@ -64,6 +68,8 @@ function publicChallenge(game) {
       if (c.pickedBy !== undefined) out.pickedBy = c.pickedBy ? { playerId: c.pickedBy.playerId, name: c.pickedBy.name } : null;
       if (c.q) {
         out.question = c.q.question;
+        out.movie = c.q.movie || null;          // Christmas Movies: the film's title (sub-chip on the TV)
+        out.movieYear = c.q.movie && c.q.year ? c.q.year : null;
         out.stealPoints = c.stealPoints != null ? c.stealPoints : Math.round(c.points / 2);
         out.hasHint = !!c.q.hint;
         if (c.hintShown) out.hint = c.q.hint;
@@ -98,6 +104,7 @@ function publicChallenge(game) {
       out.rival = c.rival ? { teamId: c.rival.teamId, playerId: c.rival.playerId || null, name: c.rival.name || null } : null;
       out.showdown = c.showdown ? { title: c.showdown.title, instructions: c.showdown.instructions, time: c.showdown.time, winner: c.showdown.winner, props: c.showdown.props.slice() } : null;
       out.winnerSide = c.winnerSide || null;
+      out.eyeing = eyeing();
       break;
     case 'rapidlist':
       out.list = { prompt: c.list.prompt, ticked: c.ticked.slice(), count: c.ticked.length, max: game.points.listMax, each: game.points.listEach };
@@ -107,7 +114,10 @@ function publicChallenge(game) {
       const hs = c.hs;
       const showQ = c.stage === 'hotseat' && c.started && hs.index < hs.questions.length;
       out.performer = person(c.performer);
-      out.hotseat = { index: hs.index, total: hs.questions.length, results: hs.results.slice(), question: showQ ? hs.questions[hs.index].question : null, each: game.points.hotseatEach };
+      out.hotseat = {
+        index: hs.index, total: hs.questions.length, results: hs.results.slice(), question: showQ ? hs.questions[hs.index].question : null,
+        each: game.points.hotseatEach, banked: Math.max(0, c.awarded[c.performer ? c.performer.teamId : ''] || 0),
+      };
       break;
     }
     case 'allplay':
@@ -121,6 +131,7 @@ function publicChallenge(game) {
       out.targets = (c.targets || []).slice();
       out.gift = c.gift ? { toTeamId: c.gift.toTeamId, amount: c.gift.amount } : null;
       out.steal = c.steal ? { from: c.steal.from, to: c.steal.to, amount: c.steal.amount } : null;
+      out.eyeing = eyeing();
       break;
     default:
       break;
@@ -138,7 +149,8 @@ function publicFinal(game) {
     category: F.q.category,
     categoryLabel: F.categoryLabel,
     question: showQ ? F.q.question : null,
-    wagers: S.teams.map((t) => ({ teamId: t.id, locked: !!(F.wagers[t.id] && F.wagers[t.id].locked) })),
+    // max = the most this team may wager (max(score, 300)); public because it only depends on the score
+    wagers: S.teams.map((t) => ({ teamId: t.id, locked: !!(F.wagers[t.id] && F.wagers[t.id].locked), max: game.maxWager(t.id) })),
     submissions: S.teams.map((t) => ({ teamId: t.id, answered: !!F.subs[t.id] })),
     revealOrder: F.order.slice(),
     revealed: F.order.filter((id) => F.rows[id] && F.rows[id].revealed).map((id) => {
@@ -148,6 +160,21 @@ function publicFinal(game) {
     current: F.current || null,
     done: !!F.done,
     answer: F.done ? F.q.answer : null,
+  };
+}
+
+/** Round break: next round info + live standings with movement since the previous round break. */
+function publicRoundBreak(S, ranks) {
+  const rb = S.roundBreak;
+  const prev = rb.prevRanks || null;
+  const standings = S.teams.map((t, i) => ({ t, i })).sort((a, b) => b.t.score - a.t.score || a.i - b.i).map(({ t }) => {
+    const prevRank = prev && prev[t.id] ? prev[t.id] : null;
+    const move = prevRank == null ? null : prevRank > ranks[t.id] ? 'up' : prevRank < ranks[t.id] ? 'down' : 'same';
+    return { teamId: t.id, score: t.score, rank: ranks[t.id], prevRank, move, places: prevRank == null ? 0 : Math.abs(prevRank - ranks[t.id]) };
+  });
+  return {
+    round: rb.round, nextRound: rb.nextRound, finalNext: !!rb.finalNext, bonusDone: !!rb.bonusDone, bonusPlanned: !!S.settings.roundBonus,
+    standings, leadBy: standings.length > 1 ? standings[0].score - standings[1].score : 0,
   };
 }
 
@@ -184,10 +211,11 @@ function publicView(game, extra = {}) {
     segments: game.segments,
     lastSegmentIndex: S.lastSegmentIndex,
     spin: S.phase === 'spinning' && S.spin ? { segmentIndex: S.spin.segmentIndex, startedAt: S.spin.startedAt, durationMs: S.spin.durationMs, by: S.spin.by ? { playerId: S.spin.by.playerId, name: S.spin.by.name } : null } : null,
+    lastSpin: S.lastSpin ? { segmentIndex: S.lastSpin.segmentIndex, teamId: S.lastSpin.teamId, by: S.lastSpin.by ? { playerId: S.lastSpin.by.playerId, name: S.lastSpin.by.name } : null } : null,
     challenge: publicChallenge(game),
     timer: publicTimer(S.timer, now),
     lastAwards: S.lastAwards.map((a) => ({ id: a.id, teamId: a.teamId, delta: a.delta, reason: a.reason, doubled: !!a.doubled })),
-    roundBreak: S.phase === 'roundBreak' && S.roundBreak ? { round: S.roundBreak.round, nextRound: S.roundBreak.nextRound, finalNext: !!S.roundBreak.finalNext, bonusDone: !!S.roundBreak.bonusDone, bonusPlanned: !!S.settings.roundBonus } : null,
+    roundBreak: S.phase === 'roundBreak' && S.roundBreak ? publicRoundBreak(S, ranks) : null,
     final: publicFinal(game),
     podium: S.phase === 'podium' && S.podium ? {
       standings: S.podium.standings.map((s) => ({ teamId: s.teamId, score: s.score, place: s.place })),
@@ -218,6 +246,12 @@ function hostView(game, extra = {}, base) {
     contentProblems: (game.content.problems || []).slice(0, 50).map((p) => ({ file: p.file, id: p.id, error: p.error })),
     warnings: [],
     mascots: game.mascots.map((m) => ({ mascot: m.mascot, color: m.color, colorName: m.colorName })),
+    connections: {
+      tv: (extra.connections && extra.connections.tv) || 0,
+      hosts: (extra.connections && extra.connections.hosts) || 0,
+      phones: pv.players.filter((p) => p.connected).length,
+    },
+    secretPeeked: !!(c && c.secretPeeked),
     can: game.hostCan(),
   };
   if (c) {
@@ -237,10 +271,16 @@ function hostView(game, extra = {}, base) {
       h.hotseatQuestions = c.hs.questions.map((x, i) => ({ index: i, question: x.question, answer: x.answer, result: c.hs.results[i] || null }));
     }
     if (c.subs) {
+      const preview = allPlayPreview(game, c);
       h.submissions = S.teams.filter((t) => c.subs[t.id]).map((t) => {
         const s = c.subs[t.id];
-        return { teamId: t.id, text: s.text, by: s.by, name: s.name, at: s.at, autoCorrect: !!s.autoCorrect, override: s.override == null ? null : !!s.override, correct: !!game.effCorrect(s) };
+        return {
+          teamId: t.id, text: s.text, by: s.by, name: s.name, at: s.at, elapsedMs: s.elapsedMs || 0,
+          autoCorrect: !!s.autoCorrect, match: s.match || (s.autoCorrect ? 'match' : 'none'), override: s.override == null ? null : !!s.override,
+          correct: !!game.effCorrect(s), first: preview.first === t.id, preview: preview.points[t.id] || 0,
+        };
       });
+      h.payout = Object.values(preview.points).reduce((a, b) => a + b, 0);
     }
   }
   if (S.final) {
@@ -253,11 +293,11 @@ function hostView(game, extra = {}, base) {
       }),
       answers: S.teams.map((t) => {
         const s = F.subs[t.id];
-        return { teamId: t.id, text: s ? s.text : null, by: s ? s.name : null, autoCorrect: s ? !!s.autoCorrect : false, override: s && s.override != null ? !!s.override : null };
+        return { teamId: t.id, text: s ? s.text : null, by: s ? s.name : null, autoCorrect: s ? !!s.autoCorrect : false, match: s ? s.match || 'none' : 'none', override: s && s.override != null ? !!s.override : null };
       }),
       rows: F.order.map((id) => {
         const r = F.rows[id];
-        return { teamId: id, text: r.text, by: r.by, wager: r.wager, autoCorrect: !!r.autoCorrect, override: r.override == null ? null : !!r.override, correct: r.override != null ? !!r.override : !!r.autoCorrect, revealed: !!r.revealed, judged: !!r.judged, delta: r.delta, before: r.before, after: r.after };
+        return { teamId: id, text: r.text, by: r.by, wager: r.wager, autoCorrect: !!r.autoCorrect, match: r.match || 'none', override: r.override == null ? null : !!r.override, correct: r.override != null ? !!r.override : !!r.autoCorrect, revealed: !!r.revealed, judged: !!r.judged, delta: r.delta, before: r.before, after: r.after };
       }),
       current: F.current || null,
       done: !!F.done,
@@ -268,7 +308,33 @@ function hostView(game, extra = {}, base) {
     if (pv.teams.length < 2) h.warnings.push({ code: 'need-two-teams', text: 'Add at least two teams to start' });
   }
   if (h.contentProblems.length) h.warnings.push({ code: 'content', text: `${(game.content.problems || []).length} content problem(s) \u2014 see contentProblems` });
+  h.coach = buildCoach(game, pv, h);
+  h.introScript = S.phase === 'lobby' ? buildIntroScript(game, pv) : null;
   return { ...pv, host: h };
+}
+
+/** What each team would get if the All Play / bonus answers were revealed right now (host preview). */
+function allPlayPreview(game, c) {
+  const S = game.state;
+  const isBonus = c.type === 'bonus';
+  const correct = Object.entries(c.subs).filter(([, s]) => game.effCorrect(s)).sort((a, b) => a[1].at - b[1].at);
+  const first = !isBonus && correct.length ? correct[0][0] : null;
+  const act = game.activeTeamId();
+  const points = {};
+  for (const [id] of correct) {
+    const base = isBonus ? game.points.bonus : game.points.allPlay + (id === first ? game.points.allPlayFirst : 0);
+    points[id] = base * (!isBonus && id === act && S.turn ? S.turn.multiplier : 1);
+  }
+  return { first, points };
+}
+
+/** The only thing an un-authorised host socket (wrong / no PIN yet) receives. Never contains the PIN or game secrets. */
+function hostLoginView(game) {
+  const S = game.state;
+  return {
+    now: game.now(), phase: S.phase, needPin: true, isHost: false, joinUrl: game.joinUrl,
+    teamCount: S.teams.length, playerCount: Object.keys(S.players).length, host: null,
+  };
 }
 
 function playerView(game, playerId, base) {
@@ -294,8 +360,8 @@ function playerView(game, playerId, base) {
   }
   const c = S.challenge;
   const myVote = pl && c && c.vote && Object.prototype.hasOwnProperty.call(c.vote.votes, pl.id) ? c.vote.votes[pl.id] : null;
-  const can = pl ? game.playerCan(pl.id) : { spin: false, pickDifficulty: false, buzz: false, pickTarget: false, submitAnswer: false, wager: false, vote: false };
+  const can = pl ? game.playerCan(pl.id) : Object.fromEntries(game.playerCanKeys.map((k) => [k, false]));
   return { ...pv, me, secret: pl ? game.playerSecret(pl.id) : null, myTeam, myVote, can };
 }
 
-module.exports = { publicView, hostView, playerView, publicChallenge, publicFinal };
+module.exports = { publicView, hostView, playerView, hostLoginView, publicChallenge, publicFinal };

@@ -1411,5 +1411,85 @@
       "Tum"
     ],
     "note": "Informal words count (abs, pec, lat, gob, bum, tum). Lap counts. Pit counts only as armpit. Plurals don't add an answer (arm = arms). Four-letter body parts don't count (chin, shin, knee, neck, hand, nose, foot, head). Cheeky words like bum and tum are fine; anything ruder doesn't count."
+  },
+  {
+    "id": "list-027",
+    "prompt": "Name as many residents of the Island of Misfit Toys (Rudolph, 1964) as you can",
+    "answers": [
+      "Charlie-in-the-Box",
+      "Dolly (the \"Dolly for Sue\")",
+      "The spotted elephant",
+      "The train with square wheels (on its caboose)",
+      "The water pistol that shoots jelly",
+      "The bird that swims (it can't fly)",
+      "The cowboy who rides an ostrich",
+      "The boat that can't stay afloat",
+      "The scooter (a \"scooter for Jimmy\")",
+      "The bear with feathers",
+      "King Moonracer (the winged lion who rules the island)"
+    ],
+    "note": "Each toy counts once, described any way you like ('the jack-in-the-box named Charlie', 'the squirt gun full of jelly'). King Moonracer counts: he rules the island. Rudolph, Hermey and Yukon Cornelius only visit, so they don't count, and neither do Santa, the elves or Bumble. Other misfits glimpsed on the island or in the umbrella drop at the end (e.g. an airplane, clown nesting dolls with a wind-up mouse inside) count at the host's call. Unspecific answers ('a broken toy') don't count."
+  },
+  {
+    "id": "list-028",
+    "prompt": "Name as many Peanuts characters who appear in A Charlie Brown Christmas as you can",
+    "answers": [
+      "Charlie Brown",
+      "Linus",
+      "Lucy",
+      "Sally",
+      "Snoopy",
+      "Schroeder",
+      "Pig-Pen",
+      "Violet",
+      "Patty",
+      "Frieda",
+      "Shermy",
+      "5 (the spiky-haired boy in the orange shirt)",
+      "3 (one of 5's sisters)",
+      "4 (one of 5's sisters)"
+    ],
+    "note": "Only characters who appear in the 1965 special count. Peppermint Patty, Franklin, Marcie, Woodstock, Rerun and the Little Red-Haired Girl came later or never show up, so they don't count (plain Patty, a different girl, does). 5's sisters 3 and 4 are two answers. Charlie Brown's little tree, Linus's blanket and the grown-ups don't count."
+  },
+  {
+    "id": "list-029",
+    "prompt": "Name as many Griswold family members and visiting relatives in Christmas Vacation as you can",
+    "answers": [
+      "Clark",
+      "Ellen",
+      "Audrey",
+      "Rusty",
+      "Clark's dad (Clark Sr.)",
+      "Clark's mom (Nora)",
+      "Ellen's dad (Art)",
+      "Ellen's mom (Frances)",
+      "Uncle Lewis",
+      "Aunt Bethany",
+      "Cousin Eddie",
+      "Catherine (Eddie's wife)",
+      "Rocky",
+      "Ruby Sue",
+      "Snots (Eddie's dog)"
+    ],
+    "note": "The four grandparents count by name or by description ('Clark's dad', 'Ellen's mom'). Snots the dog counts. The neighbors Todd and Margo, Clark's boss Frank Shirley and his coworker Bill aren't family, so they don't count, and neither do the squirrel or Aunt Bethany's unnamed cat. Actor names (Chevy Chase) don't count."
+  },
+  {
+    "id": "list-030",
+    "prompt": "Name as many Christmas movies starring Tim Allen, Will Ferrell, Bill Murray, Arnold Schwarzenegger or Michael Keaton as you can",
+    "answers": [
+      "The Santa Clause (Tim Allen)",
+      "The Santa Clause 2 (Tim Allen)",
+      "The Santa Clause 3: The Escape Clause (Tim Allen)",
+      "Christmas with the Kranks (Tim Allen)",
+      "Elf (Will Ferrell)",
+      "Spirited (Will Ferrell)",
+      "Daddy's Home 2 (Will Ferrell)",
+      "Scrooged (Bill Murray)",
+      "A Very Murray Christmas (Bill Murray)",
+      "Jingle All the Way (Arnold Schwarzenegger)",
+      "Jack Frost (Michael Keaton)",
+      "Batman Returns (Michael Keaton)"
+    ],
+    "note": "Name the film, not the actor. Each Santa Clause film counts separately, but the Disney+ series The Santa Clauses doesn't (it's a TV show). Batman Returns counts: it's set at Christmas in Gotham. A Very Murray Christmas (2015 Netflix special) counts. Toy Story That Time Forgot, the Christmas TV special with Tim Allen as Buzz, counts at the host's call. Films without one of these five stars don't count (Jingle All the Way 2, Home Alone)."
   }
 ]

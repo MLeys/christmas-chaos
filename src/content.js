@@ -4,8 +4,10 @@
  * crashes on a bad content edit. Any file that matches the schema below can be dropped in.
  *
  * Schemas (arrays of objects):
- *   trivia-christmas.json / trivia-popculture.json
- *     {id, category:'christmas'|'popculture', difficulty:'easy'|'medium'|'hard', question, answer, accept?:[], hint?, funFact?, topic?, decade?}
+ *   trivia-christmas.json / trivia-popculture.json / trivia-movies.json
+ *     {id, category:'christmas'|'popculture'|'movies', difficulty:'easy'|'medium'|'hard', question, answer, accept?:[], hint?, funFact?,
+ *      topic?, decade?, movie? (movies: the film's title, shown on the TV as a sub-chip — so the answer must not be in it),
+ *      year?, kind? ('quote'|'who-said-it'|'fact'|...)}
  *   songs.json      {id, title, accept?:[], artist, era?, difficulty?, hint?}
  *   lists.json      {id, prompt, answers:[>=3], note?}
  *   dares.json      {id, title, who:'one'|'pair'|'team'|'everyone', instructions, secret:null|{label, options:[>=1]}, time, props:[], judge, tags:[]}
@@ -19,6 +21,7 @@ const { containsAnswer, normalize } = require('./match');
 const FILES = {
   'trivia-christmas.json': 'trivia',
   'trivia-popculture.json': 'trivia',
+  'trivia-movies.json': 'trivia',
   'songs.json': 'songs',
   'lists.json': 'lists',
   'dares.json': 'dares',
@@ -28,11 +31,12 @@ const FILES = {
 
 /** Minimum counts for a full 8-team game without running dry too fast. */
 const MIN_COUNTS = {
-  'trivia:christmas': 9, 'trivia:popculture': 9, // and >= 3 per difficulty
+  'trivia:christmas': 9, 'trivia:popculture': 9, 'trivia:movies': 9, // and >= 3 per difficulty
   songs: 6, lists: 6, dares: 8, finals: 2, showdowns: 6,
 };
 
 const DIFFS = ['easy', 'medium', 'hard'];
+const TRIVIA_CATEGORIES = ['christmas', 'popculture', 'movies'];
 const WHO = ['one', 'pair', 'team', 'everyone'];
 
 const isStr = (v, min = 1, max = 2000) => typeof v === 'string' && v.trim().length >= min && v.length <= max;
@@ -45,14 +49,16 @@ function validateItem(kind, it) {
   if (!isStr(it.id, 1, 80)) e.push('id must be a non-empty string');
   switch (kind) {
     case 'trivia':
-      if (!['christmas', 'popculture'].includes(it.category)) e.push('category must be christmas|popculture');
+      if (!TRIVIA_CATEGORIES.includes(it.category)) e.push('category must be christmas|popculture|movies');
       if (!DIFFS.includes(it.difficulty)) e.push('difficulty must be easy|medium|hard');
       if (!isStr(it.question, 5)) e.push('question required');
       if (!isStr(it.answer, 1, 200)) e.push('answer required');
       if (it.accept !== undefined && !isStrArr(it.accept)) e.push('accept must be an array of strings');
       if (!optStr(it.hint)) e.push('hint must be a string');
       if (!optStr(it.funFact)) e.push('funFact must be a string');
+      if (!optStr(it.movie) || (typeof it.movie === 'string' && it.movie.length > 120)) e.push('movie must be a string (<= 120 chars)');
       if (isStr(it.question) && isStr(it.answer) && containsAnswer(it.question, it.answer)) e.push('answer text appears in the question');
+      if (isStr(it.movie) && isStr(it.answer) && containsAnswer(it.movie, it.answer)) e.push('answer text appears in the movie title (the TV shows it)');
       break;
     case 'songs':
       if (!isStr(it.title, 1, 200)) e.push('title required');
@@ -103,7 +109,15 @@ function validateItem(kind, it) {
 function clean(kind, it) {
   const base = { ...it, id: String(it.id).trim() };
   if (kind === 'trivia' || kind === 'finals' || kind === 'songs') base.accept = Array.isArray(it.accept) ? it.accept.slice() : [];
-  if (kind === 'trivia') { base.hint = it.hint || ''; base.funFact = it.funFact || ''; }
+  if (kind === 'trivia') {
+    base.hint = it.hint || ''; base.funFact = it.funFact || '';
+    // "Elf (2003)" -> movie "Elf", year 2003 (the TV chip shows the title, the year separately)
+    let movie = typeof it.movie === 'string' ? it.movie.trim() : '';
+    let year = Number.isInteger(it.year) ? it.year : null;
+    const m = /^(.*\S)\s*\((\d{4})\)$/.exec(movie);
+    if (m) { movie = m[1]; if (year == null) year = Number(m[2]); }
+    base.movie = movie; base.year = year;
+  }
   if (kind === 'songs') { base.hint = it.hint || ''; base.artist = it.artist || ''; }
   if (kind === 'dares') { base.props = it.props || []; base.tags = it.tags || []; base.secret = it.secret || null; }
   if (kind === 'showdowns') { base.props = it.props || []; base.tags = it.tags || []; }
@@ -150,13 +164,15 @@ function loadContent(dir) {
       content[kind].push(clean(kind, it));
     }
   }
-  // counts
-  for (const cat of ['christmas', 'popculture']) {
+  // counts (a missing movies file is reported once; the game then uses Christmas questions about movies)
+  for (const cat of TRIVIA_CATEGORIES) {
+    const file = 'trivia-' + cat + '.json';
     const items = content.trivia.filter((q) => q.category === cat);
-    if (items.length < MIN_COUNTS['trivia:' + cat]) problems.push({ file: 'trivia-' + cat + '.json', id: null, error: `only ${items.length} valid questions (need ${MIN_COUNTS['trivia:' + cat]})` });
+    if (!items.length && problems.some((p) => p.file === file && !p.id)) continue;
+    if (items.length < MIN_COUNTS['trivia:' + cat]) problems.push({ file, id: null, error: `only ${items.length} valid questions (need ${MIN_COUNTS['trivia:' + cat]})` });
     for (const d of DIFFS) {
       const n = items.filter((q) => q.difficulty === d).length;
-      if (n < 3) problems.push({ file: 'trivia-' + cat + '.json', id: null, error: `only ${n} ${d} questions (need 3)` });
+      if (n < 3) problems.push({ file, id: null, error: `only ${n} ${d} questions (need 3)` });
     }
   }
   for (const k of ['songs', 'lists', 'dares', 'finals', 'showdowns']) {
@@ -192,13 +208,28 @@ function drawFrom(pool, used, rng, exclude = []) {
   return item;
 }
 
+/**
+ * The trivia pool for one wheel category + difficulty. Christmas Movies falls back to Christmas questions tagged
+ * topic 'movies' (then any Christmas question) when data/trivia-movies.json is missing or thin.
+ */
+function triviaPool(trivia, category, difficulty) {
+  let pool = trivia.filter((q) => q.category === category && q.difficulty === difficulty);
+  if (!pool.length && category === 'movies') {
+    pool = trivia.filter((q) => q.category === 'christmas' && q.topic === 'movies' && q.difficulty === difficulty);
+    if (!pool.length) pool = trivia.filter((q) => q.category === 'christmas' && q.difficulty === difficulty);
+  }
+  if (!pool.length) pool = trivia.filter((q) => q.difficulty === difficulty);
+  if (!pool.length) pool = trivia;
+  return pool;
+}
+
 function contentStats(content, used) {
   const s = {};
   const add = (key, pool) => { s[key] = { total: pool.length, left: pool.filter((x) => !used.has(x.id)).length }; };
-  for (const cat of ['christmas', 'popculture']) for (const d of DIFFS) add(`${cat}-${d}`, content.trivia.filter((q) => q.category === cat && q.difficulty === d));
+  for (const cat of TRIVIA_CATEGORIES) for (const d of DIFFS) add(`${cat}-${d}`, triviaPool(content.trivia, cat, d));
   add('quick', content.trivia.filter(isQuickQuestion));
   for (const k of ['songs', 'lists', 'dares', 'finals', 'showdowns']) add(k, content[k]);
   return s;
 }
 
-module.exports = { loadContent, validateItem, drawFrom, isQuickQuestion, contentStats, FILES, MIN_COUNTS, FALLBACK };
+module.exports = { loadContent, validateItem, drawFrom, isQuickQuestion, contentStats, triviaPool, FILES, MIN_COUNTS, FALLBACK, TRIVIA_CATEGORIES };

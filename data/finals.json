@@ -94,5 +94,29 @@
     "answer": "Norway",
     "accept": ["Norge", "Oslo", "Oslo, Norway"],
     "difficulty": "hard"
+  },
+  {
+    "id": "final-013",
+    "category": "movies",
+    "question": "In the 1964 TV special Rudolph the Red-Nosed Reindeer, which of Santa's reindeer is the coach at the Reindeer Games?",
+    "answer": "Comet",
+    "accept": ["Coach Comet", "Comet the reindeer"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "final-014",
+    "category": "movies",
+    "question": "In How the Grinch Stole Christmas, what is the name of the snowy mountain where the Grinch lives, high above Whoville?",
+    "answer": "Mount Crumpit",
+    "accept": ["Mt. Crumpit", "Mt Crumpit", "Crumpit", "Mount Crumpet", "Crumpet"],
+    "difficulty": "medium"
+  },
+  {
+    "id": "final-015",
+    "category": "movies",
+    "question": "In A Christmas Story, Ralphie dreams of an 'official Red Ryder carbine-action, BLANK-shot range model air rifle.' What number fills the blank?",
+    "answer": "200",
+    "accept": ["two hundred", "two-hundred", "200-shot", "200 shot", "200 shots", "two hundred shot", "two-hundred-shot"],
+    "difficulty": "medium"
   }
 ]

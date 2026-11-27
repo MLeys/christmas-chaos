@@ -18,12 +18,20 @@
         "The Nightmare Before Christmas",
         "A Charlie Brown Christmas",
         "Gremlins",
-        "A Christmas Story"
+        "A Christmas Story",
+        "Home Alone 2: Lost in New York",
+        "Die Hard",
+        "How the Grinch Stole Christmas",
+        "Scrooged",
+        "Christmas with the Kranks",
+        "Jack Frost",
+        "Rudolph the Red-Nosed Reindeer",
+        "Santa Claus Is Comin' to Town"
       ]
     },
     "time": 60,
     "props": [],
-    "judge": "Team says the title within 60 s (close enough counts, e.g. 'Christmas Vacation'); any word, sound or mouthing from the performer = fail.",
+    "judge": "Team says the title within 60 s (close enough counts, e.g. 'Christmas Vacation', 'The Grinch' or 'Rudolph'); any word, sound or mouthing from the performer = fail.",
     "tags": ["performance", "no-props"]
   },
   {
@@ -650,5 +658,36 @@
     "props": ["A phone or speaker playing Christmas music"],
     "judge": "After round 3, at least half the active team is still in; at least one active-team player still in = partial.",
     "tags": ["physical", "musical", "whole-room"]
+  },
+  {
+    "id": "dare-037",
+    "title": "Classic Special Rehearsal",
+    "who": "one",
+    "instructions": "Act out the famous moment from a classic Christmas TV special on your phone. Sound effects are fine (honks, growls, ho-ho-hos), but no real words. Your team must name the special AND the moment.",
+    "secret": {
+      "label": "Act out this moment. Sound effects only, no words!",
+      "options": [
+        "Rudolph (1964): Hermey the elf tells his boss he wants to be a dentist",
+        "Rudolph (1964): Rudolph's fake nose pops off at the Reindeer Games",
+        "Rudolph (1964): Clarice says Rudolph is cute, and he soars into the air with joy",
+        "Rudolph (1964): Yukon Cornelius throws his pickaxe into the snow, then licks it",
+        "Rudolph (1964): Hermey pulls the Abominable Snow Monster's teeth",
+        "Rudolph (1964): An elf drops the Misfit Toys from Santa's sleigh with umbrellas",
+        "A Charlie Brown Christmas: Charlie Brown hangs one ornament on his little tree and it droops",
+        "A Charlie Brown Christmas: Linus recites the Christmas story on stage and drops his blanket",
+        "A Charlie Brown Christmas: Snoopy kisses Lucy and she panics about dog germs",
+        "A Charlie Brown Christmas: The gang dances on stage while Schroeder plays piano",
+        "A Charlie Brown Christmas: Lucy runs her 5-cent psychiatric help booth",
+        "How the Grinch Stole Christmas (1966): The Grinch gets his 'wonderful, awful idea' and grins a huge, sly grin",
+        "How the Grinch Stole Christmas (1966): The Grinch ties one antler on Max the dog and makes him pull the sleigh",
+        "How the Grinch Stole Christmas (1966): Little Cindy Lou Who catches the Grinch taking the tree",
+        "How the Grinch Stole Christmas (1966): The Grinch's heart grows three sizes and he lifts the whole loaded sleigh",
+        "How the Grinch Stole Christmas (1966): The Grinch carves the roast beast at the Whos' feast"
+      ]
+    },
+    "time": 60,
+    "props": [],
+    "judge": "Team names the special and the moment (close enough, host's call) within 60 s; naming only the special = partial; any real word from the performer = fail.",
+    "tags": ["performance", "no-props"]
   }
 ]

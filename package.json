@@ -5,9 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test --test-concurrency=1 test/game.test.js test/e2e.test.js",
-    "test:unit": "node --test test/game.test.js",
-    "test:e2e": "node --test --test-concurrency=1 test/e2e.test.js",
+    "test": "node --test --test-concurrency=1 --test-force-exit test/game.test.js test/e2e.test.js",
+    "test:unit": "node --test --test-force-exit test/game.test.js",
+    "test:e2e": "node --test --test-concurrency=1 --test-force-exit test/e2e.test.js",
     "test:ui": "node test/ui-smoke.mjs",
     "firewall": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-firewall.ps1"
   },

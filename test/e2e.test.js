@@ -10,15 +10,15 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 const { io } = require('socket.io-client');
-const { startServer } = require('../server');
+const { startServer, isLocalAddress } = require('../server');
 
 const FAST = { spinMs: 60, armMs: 60, voteMs: 1500 };
 const ROOT = path.join(__dirname, '..');
-const HOST_EVENTS = ['createTeam', 'updateTeam', 'removeTeam', 'movePlayer', 'kickPlayer', 'setRounds', 'setOption', 'start', 'spin', 'forceSegment',
-  'pickDifficulty', 'pickTarget', 'judge', 'openSteal', 'reveal', 'showHint', 'timer', 'rerollPerformer', 'swapQuestion', 'endChallenge', 'dareResult',
-  'openVote', 'closeVote', 'showdownResult', 'listTick', 'listUntick', 'listOther', 'hotseatMark', 'markAnswer', 'revealAnswers', 'finalStartAnswering',
-  'finalRevealNext', 'adjustScore', 'undo', 'nextTurn', 'continue', 'resetGame', 'resume', 'discardSave'].map((e) => 'host:' + e);
-const PLAYER_EVENTS = ['join', 'spin', 'pickDifficulty', 'buzz', 'pickTarget', 'submitAnswer', 'wager', 'vote'];
+const HOST_EVENTS = ['createTeam', 'updateTeam', 'removeTeam', 'reorderTeams', 'shuffleTeams', 'movePlayer', 'kickPlayer', 'setRounds', 'setOption', 'start',
+  'spin', 'forceSegment', 'pickDifficulty', 'pickTarget', 'judge', 'openSteal', 'reveal', 'showHint', 'timer', 'rerollPerformer', 'swapQuestion', 'swapSecret',
+  'endChallenge', 'dareResult', 'openVote', 'closeVote', 'showdownResult', 'listTick', 'listUntick', 'listOther', 'hotseatMark', 'markAnswer', 'revealAnswers',
+  'finalStartAnswering', 'finalRevealNext', 'adjustScore', 'undo', 'nextTurn', 'continue', 'resetGame', 'soundTest', 'resume', 'discardSave'].map((e) => 'host:' + e);
+const PLAYER_EVENTS = ['join', 'spin', 'pickDifficulty', 'buzz', 'pickTarget', 'previewTarget', 'submitAnswer', 'wager', 'vote', 'peek'];
 
 function mulberry32(a) {
   return function rng() {
@@ -407,30 +407,57 @@ test('5. every host:* event from a non-host socket is rejected; PIN grants host 
     assert.equal(L.h.state.phase, 'lobby');
     fresh.close();
   } finally { L.closeAll(); await srv.close(); }
-  // a server that does NOT trust loopback (simulates a second device on the LAN)
+  // a server that does NOT trust loopback (simulates a second device on the LAN, e.g. the host's phone)
   const srv2 = await boot({ trustLoopback: false, pin: '4821' });
+  const open = [];
+  const mk = (hello) => { const c = client(srv2.url, hello); open.push(c); return c; };
   try {
-    const a = client(srv2.url, { role: 'host' });
-    await a.waitFor(() => a.helloAcks.length > 0 || false, 300).catch(() => {});
-    await sleep(150);
-    assert.equal(a.helloAcks[0].ok, false);
-    assert.equal(a.helloAcks[0].error, 'need-pin');
+    const a = hostOps(mk({ role: 'host' }));
+    await a.waitFor((st) => st.needPin === true, 4000, 'login view');
+    assert.deepEqual({ ok: a.helloAcks[0].ok, isHost: a.helloAcks[0].isHost, needPin: a.helloAcks[0].needPin }, { ok: true, isHost: false, needPin: true });
+    // the login view is minimal: no PIN, no teams, no host block, no secrets
+    assert.equal(a.state.host, null);
+    assert.equal(a.state.teams, undefined);
+    assert.ok(!JSON.stringify(a.state).includes('4821'), 'PIN never sent to an unauthorised socket');
+    assert.ok(a.state.joinUrl.startsWith('http://'));
     assert.equal((await a.emit('host:createTeam', { name: 'Nope' })).error, 'not-host');
-    assert.equal((await a.emit('hello', { role: 'host', hostKey: '0000' })).error, 'bad-pin');
-    const ok = await a.emit('hello', { role: 'host', hostKey: '4821' });
-    assert.equal(ok.ok, true);
-    assert.equal(ok.isHost, true);
-    a.hello = { role: 'host', hostKey: '4821' };
-    const r = await a.emit('host:createTeam', { name: 'Yes' });
-    assert.equal(r.ok, true);
-    await a.waitFor((s) => s.host && s.host.pin === '4821' && s.teams.length === 1, 4000, 'host view with pin');
-    // brute force lock-out
-    const b = client(srv2.url, { role: 'tv' });
-    await b.ready();
-    for (let i = 0; i < 8; i++) await b.emit('hello', { role: 'host', hostKey: String(1000 + i) });
-    assert.equal((await b.emit('hello', { role: 'host', hostKey: '4821' })).error, 'pin-locked');
-    a.close(); b.close();
-  } finally { await srv2.close(); }
+    // wrong PINs: 5 tries per socket per minute, with tries left
+    const r1 = await a.emit('hostLogin', { pin: '0000' });
+    assert.deepEqual(r1, { ok: false, error: 'bad-pin', triesLeft: 4 });
+    for (let i = 0; i < 3; i++) await a.emit('hostLogin', { pin: String(1000 + i) });
+    assert.equal((await a.emit('hostLogin', { pin: 12 })).triesLeft, 0);
+    const locked = await a.emit('hostLogin', { pin: '4821' });
+    assert.equal(locked.error, 'too-many-tries', 'even the right PIN waits once the limit is hit');
+    assert.ok(locked.retryInMs > 0 && locked.retryInMs <= 60000);
+    // a fresh device (new socket) logs in with the right PIN
+    const b = hostOps(mk({ role: 'host' }));
+    await b.waitFor((st) => st.needPin === true, 4000, 'login view b');
+    assert.equal((await b.emit('hostLogin')).error, 'bad-pin', 'missing pin');
+    const okLogin = await b.emit('hostLogin', { pin: '4821' });
+    assert.deepEqual(okLogin, { ok: true, isHost: true, hostKey: '4821' });
+    await b.waitFor((st) => st.host && st.host.pin === '4821', 4000, 'full host view after login');
+    await b.ok('host:createTeam', { name: 'Yes' });
+    assert.equal(b.state.teams.length, 1);
+    // remembered key: a refresh (new socket) hellos with hostKey and is host straight away
+    const c2 = hostOps(mk({ role: 'host', hostKey: okLogin.hostKey }));
+    await c2.waitFor((st) => st.host && st.teams.length === 1, 4000, 'remembered key');
+    assert.equal(c2.helloAcks[0].isHost, true);
+    assert.equal(c2.helloAcks[0].hostKey, '4821');
+    // several host devices stay in sync and the host view counts them
+    await c2.ok('host:createTeam', { name: 'Also yes' });
+    await b.waitFor((st) => st.teams.length === 2, 4000, 'b sees c2 change');
+    await b.waitFor((st) => st.host.connections.hosts === 2, 4000, 'two host screens');
+    // a stale key (PIN changed after a restart) just asks for the PIN again
+    const d = mk({ role: 'host', hostKey: '9999' });
+    await d.waitFor((st) => st.needPin === true, 4000, 'stale key -> login view');
+    assert.equal(d.helloAcks[0].pinError, 'bad-pin');
+    assert.equal(d.helloAcks[0].isHost, false);
+    // hostLogin needs a host hello first
+    const e = mk({ role: 'tv' });
+    await e.ready();
+    assert.equal((await e.emit('hostLogin', { pin: '4821' })).error, 'hello-first');
+    await b.waitFor((st) => st.host.connections.tv === 1, 4000, 'TV counted');
+  } finally { open.forEach((c) => c.close()); await srv2.close(); }
 });
 
 test('6. 200+ random/malformed payloads across all events never crash the server', async () => {
@@ -577,6 +604,14 @@ test('17. full 6-team game over real sockets reaches the podium; every segment t
     for (const t of ['spinStart', 'land', 'points', 'round', 'turn', 'buzz']) assert.ok(tv.fx.some((e) => e.type === t), 'fx ' + t);
     const leaks = checkTvLeaks(h, tv);
     assert.deepEqual(leaks.slice(0, 5), []);
+    // every host state carried live directions; the coach never offered a button the server then refused
+    assert.ok(h.states.length > 100);
+    for (const st of h.states) {
+      assert.ok(st.host && st.host.coach && st.host.coach.headline, 'coach headline in ' + st.phase);
+      assert.ok(Array.isArray(st.host.coach.actions));
+      for (const a of st.host.coach.actions) if (!a.disabled && a.event) assert.ok(a.event === 'host:' + a.event.slice(5) && st.host.can[a.event.slice(5)] !== false, `coach action ${a.id} enabled while host.can.${a.event.slice(5)} is false (${st.phase})`);
+    }
+    assert.ok(h.states.some((st) => st.challenge && st.challenge.type === 'trivia' && st.challenge.category === 'movies' && st.challenge.movie), 'a Christmas Movies question with its film chip');
     // every phone ends on the podium with its own team
     for (const p of Object.values(L.players).flat()) await p.waitFor((s) => s.phase === 'podium' && s.myTeam, 4000);
     const lines = pod.podium.standings.map((s) => `${s.place}. ${pod.teams.find((t) => t.id === s.teamId).name} ${s.score}`);
@@ -595,6 +630,64 @@ test('17b. full 2-team and 8-team games over sockets reach the podium', async ()
       assert.deepEqual(checkTvLeaks(L.h, L.tv).slice(0, 3), []);
     } finally { L.closeAll(); await srv.close(); }
   }
+});
+
+test('server: v2.1 events are routed (soundTest fx on the TV, reorder, previewTarget, peek, swapSecret, vote change)', async () => {
+  const srv = await boot();
+  const L = await lobby(srv, 3, 2);
+  try {
+    const { h, tv, teamIds, players } = L;
+    await h.ok('host:soundTest');
+    for (let i = 0; i < 100 && !tv.fx.some((e) => e.type === 'soundTest'); i++) await sleep(20);
+    assert.ok(tv.fx.some((e) => e.type === 'soundTest'), 'soundTest fx reached the TV');
+    await h.ok('host:reorderTeams', { order: [teamIds[2], teamIds[0], teamIds[1]] });
+    await tv.waitFor((st) => st.teams[0].id === teamIds[2], 4000, 'TV sees the new order');
+    await h.ok('host:start');
+    const act = h.state.activeTeamId;
+    assert.equal(act, teamIds[2]);
+    const actP = players[act];
+    const otherP = players[teamIds[0]][0];
+    assert.equal((await otherP.emit('peek')).error, 'no-secret');
+    assert.equal((await otherP.emit('previewTarget', { teamId: act })).error, 'not-your-turn');
+    // sound it out: performer peeks, host sees it, swapSecret keeps the performer
+    await h.ok('host:forceSegment', { index: 5 });
+    await h.waitFor((st) => st.phase === 'challenge' && st.challenge.type === 'sounditout', 4000, 'sound it out');
+    const perfId = h.state.challenge.performer.playerId;
+    const perf = actP.find((p) => p.state.me && p.state.me.playerId === perfId);
+    await perf.waitFor((st) => st.secret && st.can.peek, 4000, 'performer secret');
+    const r = await perf.emit('peek');
+    assert.deepEqual(r, { ok: true, first: true });
+    await h.waitFor((st) => st.host.secretPeeked === true, 4000, 'host sees the peek');
+    const before = h.state.host.song.title;
+    await h.ok('host:swapSecret');
+    assert.notEqual(h.state.host.song.title, before);
+    assert.equal(h.state.challenge.performer.playerId, perfId);
+    await h.ok('host:endChallenge');
+    await h.ok('host:nextTurn', { turnId: h.state.turnId });
+    // showdown: previewTarget shows "eyeing" on the TV
+    const act2 = h.state.activeTeamId;
+    await h.ok('host:forceSegment', { index: 7 });
+    await h.waitFor((st) => st.challenge && st.challenge.stage === 'pickRival', 4000, 'pick rival');
+    const rival = h.state.challenge.targets[0];
+    const p2 = players[act2][0];
+    await pOk(h, p2, 'previewTarget', { teamId: rival });
+    await tv.waitFor((st) => st.challenge && st.challenge.eyeing && st.challenge.eyeing.teamId === rival, 4000, 'TV eyeing');
+    await pOk(h, p2, 'pickTarget', { teamId: rival });
+    await h.ok('host:showdownResult', { winner: 'tie' });
+    await h.ok('host:nextTurn', { turnId: h.state.turnId });
+    // dare vote: one vote per player, changeable while open
+    const act3 = h.state.activeTeamId;
+    await h.ok('host:forceSegment', { index: 1 });
+    await h.waitFor((st) => st.challenge && st.challenge.type === 'dare', 4000, 'dare');
+    await h.ok('host:timer', { action: 'start' });
+    await h.ok('host:openVote');
+    const voter = players[teamIds.find((t) => t !== act3)][0];
+    await voter.waitFor((st) => st.can.vote, 4000, 'can vote');
+    await pOk(h, voter, 'vote', { choice: 'good' });
+    const ch = await voter.emit('vote', { choice: 'nailed' });
+    assert.deepEqual(ch, { ok: true, changed: true });
+    await tv.waitFor((st) => st.challenge.vote && st.challenge.vote.nailed === 1 && st.challenge.vote.good === 0 && st.challenge.vote.voters === 1, 4000, 'changed vote on TV');
+  } finally { L.closeAll(); await srv.close(); }
 });
 
 test('server: autosave + resume after restart; host lobby shows saved game; discard', async () => {
@@ -629,6 +722,7 @@ test('server: autosave + resume after restart; host lobby shows saved game; disc
     const h = hostOps(client(srv3.url, { role: 'host' }));
     await h.waitFor((s) => !!s.savedGame, 4000);
     await h.ok('host:discardSave');
+    await h.waitFor((st) => st.savedGame === null, 4000, 'saved game discarded');
     assert.equal(h.state.savedGame, null);
     h.close();
   } finally { await srv3.close(); }
@@ -677,6 +771,12 @@ test('server: http routes, QR colours, fonts, join IP switching, hello validatio
     assert.equal((await p.emit('spin')).error, 'hello-first');
     h.close(); tv.close(); p.close();
   } finally { await srv.close(); }
+});
+
+test('server: the laptop is recognised as host by loopback or its own LAN address; other devices are not', () => {
+  const ifaces = { 'Wi-Fi': [{ family: 'IPv4', address: '10.0.0.235', internal: false }, { family: 'IPv6', address: 'fe80::1', internal: false }] };
+  for (const a of ['127.0.0.1', '::1', '::ffff:127.0.0.1', '10.0.0.235', '::ffff:10.0.0.235', 'FE80::1']) assert.equal(isLocalAddress(a, ifaces), true, a);
+  for (const a of ['10.0.0.236', '::ffff:192.168.1.20', '', null, undefined, 42]) assert.equal(isLocalAddress(a, ifaces), false, String(a));
 });
 
 test('server: port in use gives a friendly error', async () => {
