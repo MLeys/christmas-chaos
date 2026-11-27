@@ -1,0 +1,202 @@
+[
+  {
+    "id": "dare-001",
+    "title": "Cookie Face Challenge",
+    "description": "Place an Oreo (or any cookie) on your forehead and move it to your mouth using ONLY your face muscles. No hands! You have 60 seconds.",
+    "props": ["1 Oreo or similar cookie"],
+    "time": 60,
+    "type": "physical"
+  },
+  {
+    "id": "dare-002",
+    "title": "Marshmallow Stack",
+    "description": "One team member must stack as many marshmallows as possible on another willing team member's forehead. Stack must stay up for 3 seconds to count. You have 45 seconds.",
+    "props": ["Bag of marshmallows"],
+    "time": 45,
+    "type": "physical"
+  },
+  {
+    "id": "dare-003",
+    "title": "Present Wrap Race",
+    "description": "Wrap a gift box using ONLY oven mitts. No removing the mitts until it's done! Fastest team to wrap it neatly wins the bonus.",
+    "props": ["A box", "Wrapping paper", "Tape", "Oven mitts"],
+    "time": 90,
+    "type": "physical"
+  },
+  {
+    "id": "dare-004",
+    "title": "Santa Belly Jumping Jacks",
+    "description": "Stuff a sofa cushion or pillow under your shirt. Do 10 jumping jacks WITHOUT the pillow falling out. If it drops, start over. You have 60 seconds.",
+    "props": ["A pillow or sofa cushion"],
+    "time": 60,
+    "type": "physical"
+  },
+  {
+    "id": "dare-005",
+    "title": "Reindeer Antler Freeze",
+    "description": "ENTIRE team must hold both hands up on their head like antlers for a full 30 seconds. First person to drop them costs the team 25 points. Hold it! 🦌",
+    "props": [],
+    "time": 30,
+    "type": "physical"
+  },
+  {
+    "id": "dare-006",
+    "title": "Jingle Bell Shake",
+    "description": "Tape a cup to the back of your pants (or tuck it in your waistband). Put 5 jingle bells or small balls in it. Shake them all out using ONLY hip movements — no hands. 30 seconds.",
+    "props": ["A plastic cup", "5 small balls or jingle bells", "Tape"],
+    "time": 30,
+    "type": "physical"
+  },
+  {
+    "id": "dare-007",
+    "title": "Candy Cane Hook",
+    "description": "Hold a candy cane in your MOUTH (hook end out). Use it to fish and stack as many other candy canes as possible. No hands. 30 seconds. Most stacked wins.",
+    "props": ["5+ candy canes"],
+    "time": 30,
+    "type": "physical"
+  },
+  {
+    "id": "dare-008",
+    "title": "Noodle the Gift",
+    "description": "Using only your NOSE (no hands), push a small wrapped gift box from one end of a table to the other and back. First person on the team to do it wins the points.",
+    "props": ["A small wrapped box"],
+    "time": 60,
+    "type": "physical"
+  },
+  {
+    "id": "dare-009",
+    "title": "Christmas Carol Karaoke",
+    "description": "Sing the entire first verse of a Christmas carol assigned by the host — IN A FULLY OPERATIC SINGING VOICE. The host (and audience) votes whether it was convincing enough for full points.",
+    "props": [],
+    "time": 60,
+    "type": "performance"
+  },
+  {
+    "id": "dare-010",
+    "title": "Mime the Christmas Movie",
+    "description": "Act out a Christmas movie for your teammates to guess — no words, no sounds, no mouthing it. 60 seconds. Host picks the movie from this list: Home Alone / Elf / The Grinch / A Christmas Story / Die Hard.",
+    "props": [],
+    "time": 60,
+    "type": "performance"
+  },
+  {
+    "id": "dare-011",
+    "title": "Christmas Movie Quote Accent",
+    "description": "Recite a famous Christmas movie quote in a ridiculous accent chosen by the host. Options: Australian, robot, valley girl, Shakespearean, slow motion. The audience votes thumbs up or down.",
+    "props": [],
+    "time": 30,
+    "type": "performance"
+  },
+  {
+    "id": "dare-012",
+    "title": "Reindeer Impressions",
+    "description": "Get on all fours and crawl around like a reindeer. The rest of your team (and other teams) shout reindeer names at you. Act excited when they say your 'secret' reindeer name, chosen before you get down.",
+    "props": [],
+    "time": 45,
+    "type": "performance"
+  },
+  {
+    "id": "dare-013",
+    "title": "30-Second Christmas Commercial",
+    "description": "Create and perform a 30-second TV commercial for a Christmas product chosen by the host. Options: a singing Christmas tree / inflatable lawn Santa / fruitcake / Christmas Snuggie. Full points if the audience claps.",
+    "props": [],
+    "time": 60,
+    "type": "performance"
+  },
+  {
+    "id": "dare-014",
+    "title": "Christmas Rap Battle",
+    "description": "You have 45 seconds to prepare, then perform a rap verse about Christmas. It must include the words: Santa, chimney, and one reindeer name. The audience scores you 1–5. 30+ points = full dare points.",
+    "props": [],
+    "time": 90,
+    "type": "performance"
+  },
+  {
+    "id": "dare-015",
+    "title": "Elf on a Shelf Pose",
+    "description": "Strike the most creative 'Elf on a Shelf' pose and hold it for 15 seconds while everyone takes a photo. The funniest pose (voted by other teams) wins the full 150 points.",
+    "props": [],
+    "time": 30,
+    "type": "performance"
+  },
+  {
+    "id": "dare-016",
+    "title": "White Elephant Reaction",
+    "description": "Act like you just opened a terrible White Elephant gift and are OVERJOYED about it. The gift is: an expired coupon book / a 1-pound block of Velveeta / a novelty toilet seat. Other teams rate your reaction 1-5.",
+    "props": [],
+    "time": 30,
+    "type": "performance"
+  },
+  {
+    "id": "dare-017",
+    "title": "Speed Reindeer",
+    "description": "WHOLE TEAM: Name all 9 of Santa's reindeer in 30 seconds. You can shout them out in any order — just get all 9. Each wrong answer costs 10 points. Missing any = no dare points.",
+    "props": [],
+    "time": 30,
+    "type": "team"
+  },
+  {
+    "id": "dare-018",
+    "title": "Christmas Carol First Lines",
+    "description": "The host names 5 Christmas carols one at a time. Your whole team must sing ONLY the first line of each. 20 points per correct first line. You have 10 seconds per song.",
+    "props": [],
+    "time": 60,
+    "type": "team"
+  },
+  {
+    "id": "dare-019",
+    "title": "Christmas Alphabet Blitz",
+    "description": "Name a Christmas-related word for every letter of the alphabet — as a team, shouting them out. You can skip 3 letters max. 90 seconds. If you finish, full points. No repeats allowed.",
+    "props": [],
+    "time": 90,
+    "type": "team"
+  },
+  {
+    "id": "dare-020",
+    "title": "Gift Description Game",
+    "description": "One team member describes a Christmas gift without saying what it is (and can't say any part of its name). Team has 30 seconds to guess. If they get it right, full points. Host picks the gift.",
+    "props": [],
+    "time": 30,
+    "type": "team"
+  },
+  {
+    "id": "dare-021",
+    "title": "Christmas Spelling Bee Backwards",
+    "description": "One team member must spell one of these words BACKWARDS, out loud, within 20 seconds: CHRISTMAS / REINDEER / MISTLETOE / SNOWFLAKE / STOCKINGS. Host picks the word. No writing it down!",
+    "props": [],
+    "time": 20,
+    "type": "mental"
+  },
+  {
+    "id": "dare-022",
+    "title": "Silent Night... Miming",
+    "description": "One team member mimes the entire song 'Silent Night' from start to finish without any sound. Teammates must identify which song it is within 20 seconds of them starting.",
+    "props": [],
+    "time": 45,
+    "type": "performance"
+  },
+  {
+    "id": "dare-023",
+    "title": "Ho Ho How Many?",
+    "description": "In 30 seconds, one team member must say 'Ho Ho Ho' as many times as possible. Other teams count out loud. For every 10 'Ho's = 25 bonus points on top of dare points.",
+    "props": [],
+    "time": 30,
+    "type": "physical"
+  },
+  {
+    "id": "dare-024",
+    "title": "Christmas Freeze Dance",
+    "description": "The host plays 20 seconds of a Christmas song. When it stops, everyone on the ACTIVE TEAM must freeze. Last one to freeze costs the team 25 points. Host plays 3 rounds of this.",
+    "props": ["Ability to play music (phone/speaker)"],
+    "time": 90,
+    "type": "physical"
+  },
+  {
+    "id": "dare-025",
+    "title": "Santa's Voice Reading",
+    "description": "Read the opening of ''Twas the Night Before Christmas' in your BEST Santa voice for 30 seconds straight. Host reads along — if you drop the Santa voice at any point, they call you out and you lose half the points. Ho ho ho!",
+    "props": ["This text: 'Twas the night before Christmas, when all through the house, not a creature was stirring, not even a mouse. The stockings were hung by the chimney with care, in hopes that St. Nicholas soon would be there...'"],
+    "time": 30,
+    "type": "performance"
+  }
+]
