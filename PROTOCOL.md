@@ -83,7 +83,7 @@ All return `{ok:false, error:'not-host'}` from any non-host or pending-host sock
 
 | Event | Payload | Valid when | Effect | Errors |
 |---|---|---|---|---|
-| `host:createTeam` | `{name, mascot?, color?}` | lobby, < 8 teams | team id `t<n>` (never reused). mascot ∈ `star bell candy-cane tree-pine gift cookie moon snowflake` (default first free); color defaults to the mascot's paired colour **(ext: optional `color` from the 8-colour palette)**. ack `{ok, teamId}` | `name-required`, `name-taken`, `bad-mascot`, `mascot-taken`, `bad-color`, `too-many-teams` |
+| `host:createTeam` | `{name, mascot?, color?}` | lobby, < 8 teams | team id `t<n>` (never reused). mascot ∈ `deer tree bell gift santa snowman cookie star` (the 3D art ids, /assets/art/<mascot>.png; default first free); color defaults to the mascot's paired team accent (`deer #D42A2A, tree #1F7A4A, bell #EDB321, gift #2E6FD1, santa #7B4BC9, snowman #F28C28, cookie #E9558A, star #0F8C8C`) **(ext: optional `color` from the 8-colour palette)**. ack `{ok, teamId}` | `name-required`, `name-taken`, `bad-mascot`, `mascot-taken`, `bad-color`, `too-many-teams` |
 | `host:updateTeam` | `{teamId, name?, mascot?, color?}` | always (rename mid-game OK) | | `no-such-team`, `name-required`, `name-taken`, `bad-mascot`, `bad-color` |
 | `host:removeTeam` | `{teamId}` | lobby | its players get `teamId:null` (phone shows the team picker; fx `teamRemoved`) | `no-such-team` |
 | `host:reorderTeams` **(ext)** | `{order:[teamId…]}` (every team exactly once) | lobby | sets the turn order | `bad-order` |
@@ -199,6 +199,16 @@ In `turnResult` the finished challenge stays in `state.challenge` with `stage:'d
 | `reveal` **(ext)** | `teamId?` | answer revealed / final row revealed |
 | `final` **(ext)** | — | Final Chaos intro |
 | `soundTest` **(ext)** | — | host pressed "Play test sound" (TV plays a jingle) |
+| `react` **(ext, comedy)** | `mood:'cheer'\|'groan'\|'gasp'\|'laugh', teamId?, key, quipId\|null` | a comedy moment (see below): play the mood's sight gag + sound; `key` = the moment (quip key) so the client can pick the exact gag; `quipId` = the line now in `state.quip` (null when no line was left) |
+
+**`react` moods by moment** (`key`): `correct`, `correctHard`, `doubleDown`, `dareNailed`, `dareValiant`, `showdownWin`,
+`showdownTie`, `hotseatPerfect`, `listBig`, `grinchGift`, `bigComeback`, `lastPlaceCheer`, `finalCorrect`, `podium` → **cheer** ·
+`wrong`, `wrongEasy`, `timeUp`, `stealMissed`, `nobodyBuzzed`, `hotseatZero`, `listSmall`, `finalWrong` → **groan** ·
+`stealWon`, `grinchSteal`, `leadChange`, `voteClose`, `finalAllIn`, `pickHard` → **gasp** · `dareFail`, `finalZeroBet`,
+`undo`, `pickEasy` → **laugh**. `teamId` = the team the moment is about (the scorer, the thief, the stealer, the new
+leader, the gift's recipient, last place for the pep talk…). A `react` is sent even when no quip line was left
+(`quipId:null`); it always comes right after the `state` that carries the quip, alongside the existing
+`correct`/`wrong`/`steal`/… fx (use those for scoring sounds, `react` for the comedy layer).
 
 ## 7. The coach panel — `hostView.host.coach` (live directions)
 
@@ -209,9 +219,16 @@ coach: {
   headline: string,                 // "Now:" one line, e.g. "Team Rudolph is answering (Medium · 200)"
   say: string | null,               // "Say this:" read aloud (may contain '\n' line breaks). NEVER contains an answer,
                                     //   song title, dare secret or list answer before it is revealed on the TV.
+                                    //   (comedy) When the TV shows a quip, its last line is the suggested punchline:
+                                    //   '\n(point at Team Elf) “STOLEN! Team Elf swoops in for 100! Ka-ching!”'.
+                                    //   On the podium `say` is the awards ceremony ("The Lump of Coal Award goes to… Leo!").
+  punchline: null | {id, key, text, cue},   // (ext, comedy) the same quip, structured: cue = the stage direction
+                                    //   ('(pause for effect)', '(with a wink)', '(point at Team Elf)', '(warmly, to Team Elf)'…)
   steps: [string],                  // "Do this:" 1–3 numbered steps
   tips: [string],                   // "Heads-up:" contextual tips (empty team, TV not connected, Double Down ×2,
                                     //   first time a mini-game comes up, close spellings to check, props, how to judge…)
+                                    //   + playful nudges for comedy moments ("Give the room a beat to gasp before you
+                                    //   move on.", "Tease the play, never the person.", "The Lump of Coal goes last…")
   actions: [{
     id: string,                     // stable per stage: 'start', 'correct', 'wrong', 'nextTurn', 'timerStart', …
     label: string,                  // button text, e.g. "Correct +200"
@@ -260,7 +277,7 @@ round, totalRounds, turnIndex, turnsPerRound, turnId,
 teams: [{id, name, mascot, color, score, rank, connectedCount, playerCount, multiplier}]   // turn order; rank shares ties (1,1,3)
 players: [{id, name, teamId|null, connected}],
 activeTeamId,                // null outside turnIntro/spinning/challenge/turnResult
-segments: [12 x {index, type, category?, label, lines, color, ink, icon, points, rule}],
+segments: [12 x {index, type, category?, label, lines, color, ink, icon, art, points, rule, pattern?, stripe?}],   // art = 3D slot art id; pattern:'candy' = Double Down stripes
 lastSegmentIndex,            // where the wheel rests
 spin: {segmentIndex, startedAt, durationMs, by:{playerId,name}|null} | null   // only during phase 'spinning'
 lastSpin: {segmentIndex, teamId, by:{playerId,name}|null} | null              (ext) the last landed spin ("Max pressed spin")
@@ -274,7 +291,13 @@ final: null | {category, categoryLabel, question|null, wagers:[{teamId, locked, 
                revealOrder:[teamId], revealed:[{teamId, text, by, wager, judged, correct|null, delta|null, before, after|null}],
                current: teamId|null, done, answer|null},
                // wagers[].max = max(score,300) (public: depends only on the score); amounts stay hidden until revealed
-podium: null | {standings:[{teamId, score, place}], awards:[{key:'fastestFinger'|'starPerformer', title, playerId, name, teamId, detail}]},
+podium: null | {standings:[{teamId, score, place}],
+                awards:[{key, title, playerId|null, name, teamId|null, detail, art, tie}],   // (comedy) max 6, only when earned
+                stats:{players:[{playerId, teamId, buzzWins, firsts, wrongAnswers, steals, performances, perfectHotSeat, buzzChances}],
+                       teams:[{teamId, steals, stealCount, wrong, timesLed, worstRank|null, climb}]}},     (ext) see §10
+quip: null | {id, key, text, tone:'cheer'|'tease'|'drama'|'pun'|null, teamId|null},   (ext, comedy) the TV's funny line for
+                             // the current moment (data/quips.json, placeholders already filled). null between moments; a
+                             // new moment replaces or clears it. Never repeats within a game. teamId = who it is about.
 savedGame: null | {summary:{savedAt, phase, round, totalRounds, teams:[{name, score}], players}}
 ```
 Timer kinds: `trivia sound steal dare showdown list hotseat allplay bonus vote wager final`.
@@ -336,7 +359,7 @@ can: {spin, pickDifficulty, buzz, pickTarget, previewTarget, submitAnswer, wager
 - `/` player page (`public/index.html`), `/tv`, `/host`; `/player` → 302 `/`. Static files from `public/` (no-cache).
 - `/fonts/lilita-one/lilita-one-latin-400-normal.woff2`, `/fonts/fredoka/fredoka-latin-{400,500,600,700}-normal.woff2` (+ every other file in the packages' `files/` folders), cached 30 days.
 - `/api/info` → `{joinUrl, candidates:[{address, iface, joinUrl}], port, tvUrl, hostUrl}` (no PIN).
-- `/api/qr.svg` → QR of the current `joinUrl`, modules `#0B1F17` on `#FFF6E5`, `no-store` (add `?v=<joinUrl>` to bust caches after `joinIp` changes).
+- `/api/qr.svg` → QR of the current `joinUrl`, ink modules `#1C2333` on white `#FFFFFF` (it sits on a gift tag), `no-store` (add `?v=<joinUrl>` to bust caches after `joinIp` changes).
 
 ## 10. Rules & numbers the UI may want
 - Points: trivia 100/200/300, steal = half (hint halves first); All Play 100 + 50 first; dare 200/100/0 +50; showdown 200 / tie 100 each; Sound It Out 200, steal 100; Rapid List & Hot Seat 50 each, max 300 (6); Grinch 150 (×2 under DD, capped at victim score) / gift 100; bonus 100; Final ±wager (floor 0).
@@ -344,14 +367,57 @@ can: {spin, pickDifficulty, buzz, pickTarget, previewTarget, submitAnswer, wager
 - Rounds: `clamp(round(20/teams), 3, 6)` while `settings.autoRounds`; `settings.estimatedMinutes = round(5 + teams×rounds×2.6 + 9)`. Round bonus defaults on for ≥ 5 teams while `roundBonusAuto`.
 - Double Down: `teams[i].multiplier` is 2 for the active team for the rest of the turn; applies only to that team's positive points.
 - Final wager bound: `max(score, 300)` (SPEC/TECH; one TV artboard says 500 — the server uses 300; show `final.wagers[].max`).
-- Podium places share ties (`place = 1 + number of teams with a higher score`). Awards appear only if earned (Fastest Finger = steal buzzes won + All Play first-correct answers; Star Performer = points earned as performer/called-up player).
+- Podium places share ties (`place = 1 + number of teams with a higher score`).
+- **Funny awards** (comedy, `podium.awards`, docs/design/COMEDY.md §2): only when earned, at most 6, shown in this order
+  (the Lump of Coal is the finale). A two-way tie is shared (`name` "A and B", `tie:true`, `playerId:null`, `teamId` only
+  if both are on the same team, detail says "each"); a bigger tie means nobody stood out, so no award. When all 7 are
+  earned, one drops out: a shared one if any, else the Rudolph Award.
+
+  | key | title | `art` | who / when earned | example `detail` |
+  |---|---|---|---|---|
+  | `fastestFinger` | Fastest Finger | `zap` | player: most steal buzzes won + All Play first-correct answers (≥ 1) | "2 buzzes won · 1 first answer — thumbs faster than Santa’s sleigh" |
+  | `starPerformer` | Star Performer | `masks` | player: most performances (dares, songs hummed, Hot Seats, showdowns; points break ties); ≥ 2, or 1 that scored and nobody tied | "3 performances · 450 pts · a perfect Hot Seat — the elves want an encore" |
+  | `grinchOfTheYear` | Grinch of the Year | `money` | team: most points stolen (steals + Grinch Steal) | "Stole 250 points in 2 heists — heart still two sizes too small" |
+  | `comebackKid` | Comeback Kid | `sled` | team: biggest climb from its worst end-of-round rank to its final place (≥ 2 places, or ≥ 1 to win) | "From 4th to 1st — and won the whole thing!" |
+  | `rudolph` | Rudolph Award | `deer` | team: ended the most rounds in first place (≥ 2) | "Led 3 of 4 rounds — guided the sleigh all night" |
+  | `silentNight` | Silent Night Award | `moon` | player without another award: fewest buzzes among players who could buzz (≥ 3 steal windows open to their team, buzzed in ≤ 1 in 4) | "Not one buzz in 7 steal chances — all is calm, all is bright" |
+  | `lumpOfCoal` | Lump of Coal Award | `snowman` | player with the most wrong answers (≥ 3: missed steals, Hot Seat misses, wrong All Play / bonus / Final answers they typed), else the team with the most (≥ 2, incl. its missed trivia / songs) | "4 wrong answers — Santa noticed" |
+
+  `podium.stats` (the numbers behind them): players — `buzzWins` (won the race to buzz), `firsts` (All Play first-correct),
+  `wrongAnswers`, `steals` (steals won), `performances`, `perfectHotSeat`, `buzzChances`; teams — `steals` (points
+  stolen), `stealCount`, `wrong`, `timesLed` (rounds ended in first; ties count), `worstRank`, `climb`. Re-judging and
+  undo never double count (per-challenge stats are recomputed from the challenge).
+- **Quips** (comedy, `quip` + fx `react`, docs/design/COMEDY.md §1): picked server-side from `data/quips.json` (an object
+  `{<moment key>: [{id, text, tone}]}`; a missing file = no quips, the game is unaffected; bad lines are reported in
+  `host.contentProblems`). The first key in a moment's chain with an unused line whose placeholders can all be filled wins
+  (e.g. `correctHard` → `correct`); lines used earlier tonight (before "Play again") are avoided when possible.
+  Moments: lobby (`lobbyIdle`, rotates as players join) · first turn `gameStart`, later turns `turnIntro`, or `leadChange`
+  when a new team has taken the sole lead since the last turn intro · `spinStart` · `land.<type>` (`land.trivia`,
+  `land.movies`, `land.popculture`, …) or `grinchGift` · `pickEasy|Medium|Hard` · active team right: `doubleDown` (Double
+  Down) → `correctHard` (Hard) → `correct` · wrong: `wrongEasy` (Easy) → `wrong` · `timeUp` · steal buzzers armed:
+  `stealOpen` · a buzz clears the quip · `stealWon` / `stealMissed` / `nobodyBuzzed` (steal timed out, or the host revealed
+  an untouched steal) · `dareNailed|Valiant|Fail` (a new verdict, not the +50 toggle) · `voteClose` (open room vote
+  neck and neck) · `showdownWin` / `showdownTie` · `hotseatPerfect` / `hotseatZero` · `listBig` (≥ 5) / `listSmall` (≤ 2)
+  · `grinchSteal` · All Play / bonus reveal: `correct` (≥ 1 team right) / `wrong` / `nobodyBuzzed` (no answers) · round
+  break: `bigComeback` (a team climbed ≥ 2 places) → `lastPlaceCheer` (sole last place ≥ 300 behind) → `roundBreak` ·
+  `finalIntro` · final reveal of a row: `finalAllIn` (wager ≥ the team's score, or ≥ 300 from 0) / `finalZeroBet` — never
+  before the reveal, wagers stay secret · `finalCorrect` / `finalWrong` · `podium` · `undo`.
+  Placeholders: `{team}` the team the moment is about (stealWon: the stealer; grinchSteal: the thief; grinchGift: the giver),
+  `{other}` the other team (stealWon: the team that missed; grinchSteal: the victim; showdownWin: the loser; leadChange: the
+  previous leader), `{leader}` (leadChange / roundBreak: the sole leader; podium: the winner(s)), `{last}` (sole last place;
+  grinchGift: the recipient), `{player}` (spinStart: the spinner, or the team when the host spun; dares / Hot Seat: the
+  performer(s), the team for team dares; showdownWin: the winner), `{points}`, `{segment}` (the wheel slot label).
+  **Secrets:** `{answer}` exists only in `correct`, `correctHard`, `finalCorrect` and is filled only after the reveal (the
+  final's official answer only once every row is judged; before that the team's own revealed text). A line whose
+  placeholder can't be filled is skipped, so nothing is ever shown half-filled.
 - Content: Hot Seat / All Play / bonus draw easy+medium trivia with ≤ 4-word answers from all three trivia categories. Christmas Movies falls back to Christmas questions with `topic:'movies'` if `data/trivia-movies.json` is missing.
 
 ## 11. Examples (generated from a real scripted game)
 
 Teams: t1 Team Rudolph (Max, Aunt Linda), t2 The Grinches (Priya), t3 Frosty's Crew (Sam). Example 1 shows every base
 field; later examples show only the fields that matter. `host.can` lists only the `true` flags; `introScript.sections`
-is shortened.
+is shortened. Examples 1–23 were captured before the comedy layer: every view now also carries `quip` (see §8.1) and
+`host.coach.punchline` (§7), shown in examples 24–25.
 
 ### 1. Lobby — hostView (every base field shown once; host block incl. coach + introScript)
 
@@ -368,9 +434,9 @@ is shortened.
   "turnsPerRound": 3,
   "turnId": 0,
   "teams": [
-    {"id": "t1", "name": "Team Rudolph", "mascot": "star", "color": "#FF5A4E", "score": 0, "rank": 1, "connectedCount": 2, "playerCount": 2, "multiplier": 1},
-    {"id": "t2", "name": "The Grinches", "mascot": "gift", "color": "#B794FF", "score": 0, "rank": 1, "connectedCount": 1, "playerCount": 1, "multiplier": 1},
-    {"id": "t3", "name": "Frosty's Crew", "mascot": "snowflake", "color": "#3DDBC4", "score": 0, "rank": 1, "connectedCount": 1, "playerCount": 1, "multiplier": 1}
+    {"id": "t1", "name": "Team Rudolph", "mascot": "deer", "color": "#D42A2A", "score": 0, "rank": 1, "connectedCount": 2, "playerCount": 2, "multiplier": 1},
+    {"id": "t2", "name": "The Grinches", "mascot": "tree", "color": "#1F7A4A", "score": 0, "rank": 1, "connectedCount": 1, "playerCount": 1, "multiplier": 1},
+    {"id": "t3", "name": "Frosty's Crew", "mascot": "snowman", "color": "#F28C28", "score": 0, "rank": 1, "connectedCount": 1, "playerCount": 1, "multiplier": 1}
   ],
   "players": [
     {"id": "p1", "name": "Max", "teamId": "t1", "connected": true},
@@ -1426,9 +1492,9 @@ is shortened.
 {
   "phase": "finalReveal",
   "teams": [
-    {"id": "t1", "name": "Team Rudolph", "mascot": "star", "color": "#FF5A4E", "score": 150, "rank": 2, "connectedCount": 2, "playerCount": 2, "multiplier": 1},
-    {"id": "t2", "name": "The Grinches", "mascot": "gift", "color": "#B794FF", "score": 0, "rank": 3, "connectedCount": 1, "playerCount": 1, "multiplier": 1},
-    {"id": "t3", "name": "Frosty's Crew", "mascot": "snowflake", "color": "#3DDBC4", "score": 350, "rank": 1, "connectedCount": 1, "playerCount": 1, "multiplier": 1}
+    {"id": "t1", "name": "Team Rudolph", "mascot": "deer", "color": "#D42A2A", "score": 150, "rank": 2, "connectedCount": 2, "playerCount": 2, "multiplier": 1},
+    {"id": "t2", "name": "The Grinches", "mascot": "tree", "color": "#1F7A4A", "score": 0, "rank": 3, "connectedCount": 1, "playerCount": 1, "multiplier": 1},
+    {"id": "t3", "name": "Frosty's Crew", "mascot": "snowman", "color": "#F28C28", "score": 350, "rank": 1, "connectedCount": 1, "playerCount": 1, "multiplier": 1}
   ],
   "final": {
     "category": "christmas",
@@ -1567,9 +1633,9 @@ is shortened.
 {
   "phase": "podium",
   "teams": [
-    {"id": "t1", "name": "Team Rudolph", "mascot": "star", "color": "#FF5A4E", "score": 450, "rank": 1, "connectedCount": 2, "playerCount": 2, "multiplier": 1},
-    {"id": "t2", "name": "The Grinches", "mascot": "gift", "color": "#B794FF", "score": 0, "rank": 3, "connectedCount": 1, "playerCount": 1, "multiplier": 1},
-    {"id": "t3", "name": "Frosty's Crew", "mascot": "snowflake", "color": "#3DDBC4", "score": 350, "rank": 2, "connectedCount": 1, "playerCount": 1, "multiplier": 1}
+    {"id": "t1", "name": "Team Rudolph", "mascot": "deer", "color": "#D42A2A", "score": 450, "rank": 1, "connectedCount": 2, "playerCount": 2, "multiplier": 1},
+    {"id": "t2", "name": "The Grinches", "mascot": "tree", "color": "#1F7A4A", "score": 0, "rank": 3, "connectedCount": 1, "playerCount": 1, "multiplier": 1},
+    {"id": "t3", "name": "Frosty's Crew", "mascot": "snowman", "color": "#F28C28", "score": 350, "rank": 2, "connectedCount": 1, "playerCount": 1, "multiplier": 1}
   ],
   "podium": {
     "standings": [
@@ -1578,10 +1644,12 @@ is shortened.
       {"teamId": "t2", "score": 0, "place": 3}
     ],
     "awards": [
-      {"key": "fastestFinger", "title": "Fastest Finger", "playerId": "p4", "name": "Sam", "teamId": "t3", "detail": "1 buzz won · 1 first answer"},
-      {"key": "starPerformer", "title": "Star Performer", "playerId": "p4", "name": "Sam", "teamId": "t3", "detail": "3 performances · 250 pts"}
-    ]
+      {"key": "fastestFinger", "title": "Fastest Finger", "playerId": "p4", "name": "Sam", "teamId": "t3", "detail": "1 buzz won · 1 first answer — thumbs faster than Santa’s sleigh", "art": "zap", "tie": false},
+      {"key": "starPerformer", "title": "Star Performer", "playerId": "p4", "name": "Sam", "teamId": "t3", "detail": "3 performances · 250 pts — the elves want an encore", "art": "masks", "tie": false}
+    ],
+    "stats": "… (see example 25)"
   },
+  "quip": {"id": "podium-05", "key": "podium", "text": "And the winner is… Team Rudolph! Everyone else: there's always next year's rematch.", "tone": "tease", "teamId": "t1"},
   "final": {
     "category": "christmas",
     "categoryLabel": "Christmas",
@@ -1618,6 +1686,76 @@ is shortened.
 }
 ```
 
+### 25. Comedy layer (ext) — a steal is won: `quip`, the `react` fx, the coach punchline; then the podium awards
+
+A second scripted game (t1 Team Rudolph: Mia, Leo · t2 Team Elf: Sam, Ava · t3 Team Grinch: Max, Zoe). Team Rudolph
+missed a Medium one (`quip` was `{"id": "wrong-18", "key": "wrong", "text": "Wrong! Like wrapping a gift in newspaper:
+bold, but no.", "tone": "tease", "teamId": "t1"}`), the buzzers armed (`stealOpen` line), Ava buzzed (quip cleared to
+`null`), and the host tapped Correct:
+
+```json
+{
+  "phase": "turnResult",
+  "quip": {"id": "steal-won-07", "key": "stealWon", "text": "Christmas is about sharing. Today, Team Rudolph shared with Team Elf.", "tone": "tease", "teamId": "t2"},
+  "...": "other fields as usual"
+}
+```
+fx right after that state: `{"type": "react", "mood": "gasp", "teamId": "t2", "key": "stealWon", "quipId": "steal-won-07", "at": 1700000008000}`
+
+hostView `host.coach` at the same moment:
+```json
+{
+  "say": "The answer: A Christmas cracker. London confectioner Tom Smith is credited with inventing them in the 1840s: first wrapped sweets, then he added the bang. The jokes got worse from there.\n(point at Team Elf) “Christmas is about sharing. Today, Team Rudolph shared with Team Elf.”",
+  "punchline": {"id": "steal-won-07", "key": "stealWon", "text": "Christmas is about sharing. Today, Team Rudolph shared with Team Elf.", "cue": "(point at Team Elf)"},
+  "tips": ["Give the room a beat to gasp before you move on.", "Last change: Team Elf +100 · Steal. Wrong? Press Undo (U)."],
+  "...": "headline, steps, actions, primary, progress as usual"
+}
+```
+
+Later quips in that game: round break `{"key": "roundBreak", "text": "End of the round! Team Grinch, enjoy the view from the
+top while it lasts."}`; final reveal `finalAllIn` "Team Elf bet everything! Bold. Brave. Possibly bonkers." →
+`finalCorrect` "Correct! Team Elf's wager pays off. The elves owe each other cookies." → `finalZeroBet` "Zero! Team Rudolph is
+the 'I'll just have a tiny slice' of wagers." → `finalWrong` …; podium "Team Elf takes the crown! Everyone else: it's the
+thought that counts."
+
+publicView `podium` (Fastest Finger was a three-way tie at 1 buzz each, so nobody got it; nobody qualified for Silent Night):
+```json
+{
+  "standings": [{"teamId": "t2", "score": 400, "place": 1}, {"teamId": "t1", "score": 200, "place": 2}, {"teamId": "t3", "score": 200, "place": 2}],
+  "awards": [
+    {"key": "starPerformer", "title": "Star Performer", "playerId": "p6", "name": "Zoe", "teamId": "t3", "detail": "1 dare · 200 pts — the elves want an encore", "art": "masks", "tie": false},
+    {"key": "grinchOfTheYear", "title": "Grinch of the Year", "playerId": null, "name": "Team Elf", "teamId": "t2", "detail": "Stole 100 points — heart still two sizes too small", "art": "money", "tie": false},
+    {"key": "comebackKid", "title": "Comeback Kid", "playerId": null, "name": "Team Elf", "teamId": "t2", "detail": "From 3rd to 1st — and won the whole thing!", "art": "sled", "tie": false},
+    {"key": "rudolph", "title": "Rudolph Award", "playerId": null, "name": "Team Grinch", "teamId": "t3", "detail": "Led 2 of 2 rounds — guided the sleigh all night", "art": "deer", "tie": false},
+    {"key": "lumpOfCoal", "title": "Lump of Coal Award", "playerId": "p2", "name": "Leo", "teamId": "t1", "detail": "4 wrong answers — Santa noticed", "art": "snowman", "tie": false}
+  ],
+  "stats": {
+    "players": [
+      {"playerId": "p1", "teamId": "t1", "buzzWins": 1, "firsts": 0, "wrongAnswers": 2, "steals": 0, "performances": 0, "perfectHotSeat": 0, "buzzChances": 2},
+      {"playerId": "p2", "teamId": "t1", "buzzWins": 1, "firsts": 0, "wrongAnswers": 4, "steals": 1, "performances": 1, "perfectHotSeat": 0, "buzzChances": 2},
+      "… one row per player"
+    ],
+    "teams": [
+      {"teamId": "t1", "steals": 50, "stealCount": 1, "wrong": 7, "timesLed": 1, "worstRank": 2, "climb": 0},
+      "… one row per team"
+    ]
+  }
+}
+```
+Host coach `say` on the podium (the awards ceremony; tip: "Read the awards slowly: drumroll, pause, then the name. The
+Lump of Coal goes last: it is the biggest laugh."):
+```
+Congratulations, Team Elf!
+(say it with feeling) “Team Elf takes the crown! Everyone else: it's the thought that counts.”
+Now, the awards!
+The Star Performer award goes to… Zoe! (1 dare · 200 pts — the elves want an encore)
+The Grinch of the Year award goes to… Team Elf! (Stole 100 points — heart still two sizes too small)
+The Comeback Kid award goes to… Team Elf! (From 3rd to 1st — and won the whole thing!)
+The Rudolph Award goes to… Team Grinch! (Led 2 of 2 rounds — guided the sleigh all night)
+The Lump of Coal Award goes to… Leo! (4 wrong answers — Santa noticed)
+Thanks for playing, and Merry Christmas!
+```
+
 ### Segments (constant, in every view as `segments`)
 
 ```json
@@ -1627,10 +1765,14 @@ is shortened.
     "type": "trivia",
     "category": "christmas",
     "label": "Christmas Trivia",
-    "lines": ["Christmas", "Trivia"],
-    "color": "#C8232C",
-    "ink": "#FFF6E5",
+    "lines": [
+      "Christmas",
+      "Trivia"
+    ],
+    "color": "#D42A2A",
+    "ink": "#FFFFFF",
     "icon": "tree-pine",
+    "art": "tree",
     "points": "100–300",
     "rule": "Pick Easy, Medium or Hard, then answer out loud in 20 s. Miss it and the other teams can steal."
   },
@@ -1638,10 +1780,13 @@ is shortened.
     "index": 1,
     "type": "dare",
     "label": "Dare",
-    "lines": ["Dare"],
-    "color": "#F5B82E",
-    "ink": "#1A1206",
+    "lines": [
+      "Dare"
+    ],
+    "color": "#EDB321",
+    "ink": "#1C2333",
     "icon": "drama",
+    "art": "masks",
     "points": "200",
     "rule": "One of you performs the dare. Nail it for 200!"
   },
@@ -1650,10 +1795,14 @@ is shortened.
     "type": "trivia",
     "category": "popculture",
     "label": "Pop Culture",
-    "lines": ["Pop", "Culture"],
-    "color": "#1F6FD1",
-    "ink": "#FFF6E5",
+    "lines": [
+      "Pop",
+      "Culture"
+    ],
+    "color": "#2E6FD1",
+    "ink": "#FFFFFF",
     "icon": "clapperboard",
+    "art": "clapper",
     "points": "100–300",
     "rule": "Pick Easy, Medium or Hard, then answer out loud in 20 s. Miss it and the other teams can steal."
   },
@@ -1661,10 +1810,14 @@ is shortened.
     "index": 3,
     "type": "hotseat",
     "label": "Hot Seat",
-    "lines": ["Hot", "Seat"],
-    "color": "#D63384",
-    "ink": "#FFF6E5",
+    "lines": [
+      "Hot",
+      "Seat"
+    ],
+    "color": "#E9558A",
+    "ink": "#FFFFFF",
     "icon": "flame",
+    "art": "fire",
     "points": "50–300",
     "rule": "One player, alone, 45 seconds: up to 6 quick questions. 50 points each."
   },
@@ -1673,10 +1826,14 @@ is shortened.
     "type": "trivia",
     "category": "movies",
     "label": "Christmas Movies",
-    "lines": ["Christmas", "Movies"],
-    "color": "#8E1B3A",
-    "ink": "#FFF6E5",
+    "lines": [
+      "Christmas",
+      "Movies"
+    ],
+    "color": "#9E1B32",
+    "ink": "#FFFFFF",
     "icon": "popcorn",
+    "art": "popcorn",
     "points": "100–300",
     "rule": "Pick Easy, Medium or Hard, then answer out loud in 20 s. Miss it and the other teams can steal."
   },
@@ -1684,10 +1841,14 @@ is shortened.
     "index": 5,
     "type": "sounditout",
     "label": "Sound It Out",
-    "lines": ["Sound", "It Out"],
-    "color": "#7A4FD3",
-    "ink": "#FFF6E5",
+    "lines": [
+      "Sound",
+      "It Out"
+    ],
+    "color": "#7B4BC9",
+    "ink": "#FFFFFF",
     "icon": "music",
+    "art": "music",
     "points": "200",
     "rule": "One of you hums a secret song (no words!). Your team has 30 s to name it."
   },
@@ -1695,10 +1856,14 @@ is shortened.
     "index": 6,
     "type": "grinch",
     "label": "Grinch Steal",
-    "lines": ["Grinch", "Steal"],
-    "color": "#FFF6E5",
-    "ink": "#0B1F17",
+    "lines": [
+      "Grinch",
+      "Steal"
+    ],
+    "color": "#7CB518",
+    "ink": "#1C2333",
     "icon": "hand-coins",
+    "art": "money",
     "points": "150",
     "rule": "Steal 150 points from a team that is ahead of you."
   },
@@ -1706,10 +1871,14 @@ is shortened.
     "index": 7,
     "type": "showdown",
     "label": "Showdown",
-    "lines": ["Showdown"],
-    "color": "#8FD8FF",
-    "ink": "#0B1F17",
+    "lines": [
+      "Show",
+      "Down"
+    ],
+    "color": "#8ECAE6",
+    "ink": "#1C2333",
     "icon": "swords",
+    "art": "boxing",
     "points": "200",
     "rule": "Pick a rival team. One player from each team goes head to head. Winner takes 200."
   },
@@ -1717,10 +1886,13 @@ is shortened.
     "index": 8,
     "type": "dare",
     "label": "Dare",
-    "lines": ["Dare"],
-    "color": "#F5B82E",
-    "ink": "#1A1206",
+    "lines": [
+      "Dare"
+    ],
+    "color": "#EDB321",
+    "ink": "#1C2333",
     "icon": "drama",
+    "art": "masks",
     "points": "200",
     "rule": "One of you performs the dare. Nail it for 200!"
   },
@@ -1728,10 +1900,14 @@ is shortened.
     "index": 9,
     "type": "rapidlist",
     "label": "Rapid List",
-    "lines": ["Rapid", "List"],
-    "color": "#0B8A75",
-    "ink": "#FFF6E5",
+    "lines": [
+      "Rapid",
+      "List"
+    ],
+    "color": "#1F7A4A",
+    "ink": "#FFFFFF",
     "icon": "list-checks",
+    "art": "list",
     "points": "50–300",
     "rule": "Shout as many answers as you can in 30 s. 50 each, up to 300."
   },
@@ -1739,10 +1915,14 @@ is shortened.
     "index": 10,
     "type": "allplay",
     "label": "All Play",
-    "lines": ["All", "Play"],
-    "color": "#F2731D",
-    "ink": "#0B1F17",
+    "lines": [
+      "All",
+      "Play"
+    ],
+    "color": "#F28C28",
+    "ink": "#1C2333",
     "icon": "zap",
+    "art": "zap",
     "points": "100+",
     "rule": "Every team types an answer on a phone. 100 for each right answer, +50 for the first."
   },
@@ -1750,12 +1930,18 @@ is shortened.
     "index": 11,
     "type": "doubledown",
     "label": "Double Down",
-    "lines": ["Double", "Down"],
-    "color": "#1E8A4C",
-    "ink": "#FFF6E5",
+    "lines": [
+      "Double",
+      "Down"
+    ],
+    "color": "#FFFFFF",
+    "ink": "#1C2333",
     "icon": "sparkles",
+    "art": "sparkles",
     "points": "×2",
-    "rule": "Spin again! Everything your team wins this turn is doubled."
+    "rule": "Spin again! Everything your team wins this turn is doubled.",
+    "pattern": "candy",
+    "stripe": "#D42A2A"
   }
 ]
 ```

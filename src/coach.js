@@ -3,12 +3,13 @@
  * Host "live directions" (coach panel) + the opening script. Pure functions of the game state, recomputed on
  * every state push, so they are never out of date.
  *
- *   buildCoach(game, pv, host) -> { headline, say, steps[], tips[], actions[], primary, progress[] }
+ *   buildCoach(game, pv, host) -> { headline, say, steps[], tips[], actions[], primary, progress[], punchline }
  *   buildIntroScript(game, pv) -> { title, minutes, words, joinAddress, summary, sections[], text }
  *
  * Every action that sends an event is dry-run through game.check(): if the server would reject it right now it
  * comes back `disabled:true` with a human `reason`, so the host never sees a live button that does nothing.
  * `say` is read OUT LOUD, so it never contains an answer, song title, dare secret or list answer before the reveal.
+ * The TV quip (publicView.quip, already public) is appended to `say` as a suggested punchline with a stage direction.
  */
 
 const HOST = { role: 'host' };
@@ -60,6 +61,33 @@ const TAGLINES = {
   'Double Down': 'spin again, double points.',
 };
 
+// Comedy (docs/design/COMEDY.md §4): a light stage direction for the suggested punchline.
+const TONE_CUES = { cheer: '(big smile, arms up)', tease: '(with a wink)', drama: '(pause for effect)', pun: '(deadpan, then wait for the groan)' };
+const KEY_CUES = {
+  wrong: '(sad trombone face)', wrongEasy: '(slow head shake)', timeUp: '(tap your wrist)', nobodyBuzzed: '(cup a hand to your ear)',
+  undo: '(mime pressing rewind)', voteClose: '(lean in)', finalZeroBet: '(raise one eyebrow)', finalIntro: '(dramatic whisper)',
+  spinStart: '(follow the wheel with your finger)', podium: '(say it with feeling)', stealOpen: '(rub your hands together)',
+};
+const POINT_AT = new Set(['stealWon', 'grinchSteal', 'leadChange', 'bigComeback', 'correctHard', 'showdownWin', 'finalAllIn', 'hotseatPerfect', 'listBig', 'dareNailed', 'doubleDown']);
+const WARMLY = new Set(['lastPlaceCheer', 'grinchGift', 'hotseatZero', 'dareFail', 'dareValiant', 'stealMissed', 'finalWrong']);
+/** Playful nudges for the host, by quip moment. */
+const KEY_TIPS = {
+  wrongEasy: 'Missed an Easy one: a gentle roast is fair game. Tease the play, never the person.',
+  stealWon: 'Give the room a beat to gasp before you move on.',
+  grinchSteal: 'Boo the Grinch (affectionately), then move on.',
+  dareFail: 'Lead a round of applause for the brave attempt.',
+  dareValiant: 'Applause for the effort: it keeps the next performer brave.',
+  leadChange: 'New leader: point at them. It fires everybody else up.',
+  lastPlaceCheer: 'Pep-talk time: get the whole room cheering for the underdog.',
+  roundBreak: 'Roast the leader gently, then give last place a pep talk.',
+  bigComeback: 'Big climb! Make them stand up and take a bow.',
+  finalAllIn: 'All in! Slow right down: wager, answer, pause, verdict.',
+  undo: 'Own the undo: “The elves have reviewed the tape.”',
+  nobodyBuzzed: 'Nobody buzzed: enjoy one second of silence, then move on.',
+  voteClose: 'Too close to call: let the room shout their votes in.',
+  hotseatPerfect: 'Perfect Hot Seat! A standing ovation is mandatory.',
+};
+
 // Turn progress tracker: the steps of each mini-game, keyed by challenge stage.
 const FLOW = {
   trivia: [['Pick difficulty', ['pickDifficulty']], ['Answer & judge', ['question']], ['Steal, if they miss', ['steal']]],
@@ -75,7 +103,7 @@ const FLOW = {
 
 function buildCoach(game, pv, h) {
   const S = game.state;
-  const out = { headline: '', say: null, steps: [], tips: [], actions: [], primary: null, progress: [] };
+  const out = { headline: '', say: null, steps: [], tips: [], actions: [], primary: null, progress: [], punchline: null };
   const teams = pv.teams;
   const T = (id) => teams.find((t) => t.id === id) || null;
   const tn = (id) => (T(id) ? T(id).name : 'a team');
@@ -167,9 +195,15 @@ function buildCoach(game, pv, h) {
       const pd = pv.podium;
       const winners = pd ? pd.standings.filter((s) => s.place === 1).map((s) => tn(s.teamId)) : [];
       out.headline = winners.length ? `${names(winners)} ${winners.length === 1 ? 'wins' : 'win'} Christmas!` : 'Game over';
-      const awards = pd ? pd.awards.map((a) => `${a.title}: ${a.name}${a.detail ? ' (' + a.detail + ')' : ''}.`) : [];
-      out.say = winners.length ? [`Congratulations, ${names(winners)}!`, ...awards, 'Thanks for playing, and Merry Christmas!'].join(' ') : null;
+      // the awards ceremony: drumroll, pause, name (the Lump of Coal comes last: it is the biggest laugh)
+      const awards = pd ? pd.awards.map((a) => `The ${a.title}${/award/i.test(a.title) ? '' : ' award'} goes to${ELL} ${a.name}!${a.detail ? ' (' + a.detail + ')' : ''}`) : [];
+      const q = pv.quip && pv.quip.key === 'podium' ? pv.quip : null;
+      if (q) { out.punchline = { id: q.id, key: q.key, text: q.text, cue: cueFor(q) }; }
+      out.say = winners.length
+        ? [`Congratulations, ${names(winners)}!`, ...(q ? [`${out.punchline.cue} “${q.text}”`] : []), ...(awards.length ? ['Now, the awards!', ...awards] : []), 'Thanks for playing, and Merry Christmas!'].join('\n')
+        : null;
       out.steps = ['Read out the winners and the awards', 'Play again, or call it a night'];
+      if (awards.length) tip(`Read the awards slowly: drumroll, pause, then the name${pd.awards.some((a) => a.key === 'lumpOfCoal') ? '. The Lump of Coal goes last: it is the biggest laugh' : ''}.`);
       A('playAgain', 'Play again (same teams)', 'host:resetGame', { keepTeams: true }, 'primary', null, { confirm: 'Start a new game with the same teams and players? Scores go back to 0. No question repeats.' });
       A('newTeams', 'New game, new teams', 'host:resetGame', { keepTeams: false }, 'danger', null, { confirm: 'Start over with new teams? Everyone picks a team again.' });
       break;
@@ -177,6 +211,9 @@ function buildCoach(game, pv, h) {
     default:
       out.headline = '';
   }
+
+  // ------------------------------------------------------------------ comedy: the TV quip as a suggested punchline
+  punchline();
 
   // ------------------------------------------------------------------ shared tips
   if (act && mult > 1 && ['challenge', 'turnResult', 'spinning'].includes(pv.phase)) tip(`Double Down active: ${tn(act)}’s points are ×2 this turn.`);
@@ -195,6 +232,22 @@ function buildCoach(game, pv, h) {
   return out;
 
   // ================================================================== sections
+  function cueFor(q) {
+    if (q.teamId && POINT_AT.has(q.key)) return `(point at ${tn(q.teamId)})`;
+    if (q.teamId && WARMLY.has(q.key)) return `(warmly, to ${tn(q.teamId)})`;
+    return KEY_CUES[q.key] || TONE_CUES[q.tone] || '(say it with feeling)';
+  }
+  /** Append the TV quip (public text) as a suggested punchline with a stage direction, plus a playful tip. */
+  function punchline() {
+    const q = pv.quip;
+    if (!q || !q.text) return;
+    if (!out.punchline) {
+      out.punchline = { id: q.id, key: q.key, text: q.text, cue: cueFor(q) };
+      out.say = (out.say ? out.say + '\n' : '') + `${out.punchline.cue} “${q.text}”`;
+    }
+    if (KEY_TIPS[q.key]) tip(KEY_TIPS[q.key]);
+  }
+
   function lobby() {
     const addr = displayUrl(pv.joinUrl);
     if (pv.savedGame) {

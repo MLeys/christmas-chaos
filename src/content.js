@@ -13,10 +13,32 @@
  *   dares.json      {id, title, who:'one'|'pair'|'team'|'everyone', instructions, secret:null|{label, options:[>=1]}, time, props:[], judge, tags:[]}
  *   finals.json     {id, category, question, answer, accept?:[], difficulty?}
  *   showdowns.json  {id, title, instructions, time, props:[], winner, tags:[]}
+ *
+ * Plus the comedy bank (an OBJECT, optional — missing file = no quips, the game still works):
+ *   quips.json      { <moment key>: [{id, text, tone?:'cheer'|'tease'|'drama'|'pun', when?:{}}] }   (docs/design/COMEDY.md §1)
+ *     text placeholders: {team} {player} {points} {answer} {other} {leader} {last} {segment};
+ *     {answer} is only allowed in correct / correctHard / finalCorrect (the server fills it only after the reveal).
  */
 const fs = require('fs');
 const path = require('path');
 const { containsAnswer, normalize } = require('./match');
+
+const QUIP_FILE = 'quips.json';
+/** Every moment the server can pick a quip for (COMEDY.md §1). */
+const QUIP_KEYS = Object.freeze([
+  'lobbyIdle', 'gameStart', 'turnIntro', 'spinStart',
+  'land.trivia', 'land.movies', 'land.popculture', 'land.dare', 'land.showdown', 'land.sounditout', 'land.rapidlist',
+  'land.hotseat', 'land.allplay', 'land.doubledown', 'land.grinch',
+  'pickEasy', 'pickMedium', 'pickHard', 'correct', 'correctHard', 'wrong', 'wrongEasy', 'timeUp',
+  'stealOpen', 'stealWon', 'stealMissed', 'nobodyBuzzed', 'dareNailed', 'dareValiant', 'dareFail', 'voteClose',
+  'showdownWin', 'showdownTie', 'hotseatPerfect', 'hotseatZero', 'listBig', 'listSmall', 'doubleDown',
+  'grinchSteal', 'grinchGift', 'leadChange', 'bigComeback', 'lastPlaceCheer', 'roundBreak',
+  'finalIntro', 'finalAllIn', 'finalZeroBet', 'finalCorrect', 'finalWrong', 'podium', 'undo',
+]);
+const QUIP_PLACEHOLDERS = Object.freeze(['team', 'player', 'points', 'answer', 'other', 'leader', 'last', 'segment']);
+/** The only moments whose lines may name the answer (filled only once it is public). */
+const QUIP_ANSWER_KEYS = Object.freeze(['correct', 'correctHard', 'finalCorrect']);
+const QUIP_TONES = Object.freeze(['cheer', 'tease', 'drama', 'pun']);
 
 const FILES = {
   'trivia-christmas.json': 'trivia',
@@ -183,7 +205,59 @@ function loadContent(dir) {
   for (const cat of ['christmas', 'popculture']) for (const d of DIFFS) {
     if (!content.trivia.some((q) => q.category === cat && q.difficulty === d)) content.trivia.push(...FALLBACK.trivia.filter((q) => q.category === cat && q.difficulty === d));
   }
-  return { ...content, problems };
+  const quips = loadQuips(dir, problems, seen);
+  return { ...content, quips, problems };
+}
+
+/** Problems with one quip line (empty = valid). */
+function validateQuip(key, it) {
+  const e = [];
+  if (!it || typeof it !== 'object' || Array.isArray(it)) return ['not an object'];
+  if (!isStr(it.id, 1, 80)) e.push('id must be a non-empty string');
+  if (!isStr(it.text, 1, 240)) e.push('text required (<= 240 chars)');
+  if (it.tone !== undefined && !QUIP_TONES.includes(it.tone)) e.push('tone must be cheer|tease|drama|pun');
+  if (it.when !== undefined && (it.when === null || typeof it.when !== 'object' || Array.isArray(it.when))) e.push('when must be an object');
+  if (typeof it.text === 'string') {
+    for (const m of it.text.matchAll(/\{([^{}]*)\}/g)) {
+      if (!QUIP_PLACEHOLDERS.includes(m[1])) e.push(`unknown placeholder {${m[1]}}`);
+      else if (m[1] === 'answer' && !QUIP_ANSWER_KEYS.includes(key)) e.push('{answer} is only allowed in ' + QUIP_ANSWER_KEYS.join(' / '));
+    }
+  }
+  return e;
+}
+
+/**
+ * data/quips.json -> { key: [{id, text, tone}] }. A missing file is fine (empty bank: the game runs without quips);
+ * a broken file / bad line is reported in `problems` and skipped.
+ */
+function loadQuips(dir, problems = [], seen = new Map()) {
+  const bank = {};
+  let data;
+  try {
+    data = JSON.parse(fs.readFileSync(path.join(dir, QUIP_FILE), 'utf8'));
+  } catch (err) {
+    if (err.code !== 'ENOENT') problems.push({ file: QUIP_FILE, id: null, error: 'invalid JSON: ' + err.message });
+    return bank;
+  }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    problems.push({ file: QUIP_FILE, id: null, error: 'top level must be an object of moment -> [lines]' });
+    return bank;
+  }
+  for (const [key, lines] of Object.entries(data)) {
+    if (!QUIP_KEYS.includes(key)) { problems.push({ file: QUIP_FILE, id: null, error: `unknown moment "${key}"` }); continue; }
+    if (!Array.isArray(lines)) { problems.push({ file: QUIP_FILE, id: null, error: `"${key}" must be an array of lines` }); continue; }
+    const out = [];
+    for (const it of lines) {
+      const errs = validateQuip(key, it);
+      const id = it && typeof it.id === 'string' ? it.id.trim() : null;
+      if (id && seen.has(id)) errs.push('duplicate id (also in ' + seen.get(id) + ')');
+      if (errs.length) { for (const error of errs) problems.push({ file: QUIP_FILE, id, error }); continue; }
+      seen.set(id, QUIP_FILE);
+      out.push({ id, text: it.text.replace(/\s+/g, ' ').trim(), tone: it.tone || null });
+    }
+    if (out.length) bank[key] = out;
+  }
+  return bank;
 }
 
 const wordCount = (s) => String(s).trim().split(/\s+/).filter(Boolean).length;
@@ -232,4 +306,7 @@ function contentStats(content, used) {
   return s;
 }
 
-module.exports = { loadContent, validateItem, drawFrom, isQuickQuestion, contentStats, triviaPool, FILES, MIN_COUNTS, FALLBACK, TRIVIA_CATEGORIES };
+module.exports = {
+  loadContent, validateItem, drawFrom, isQuickQuestion, contentStats, triviaPool, FILES, MIN_COUNTS, FALLBACK, TRIVIA_CATEGORIES,
+  loadQuips, validateQuip, QUIP_FILE, QUIP_KEYS, QUIP_PLACEHOLDERS, QUIP_ANSWER_KEYS, QUIP_TONES,
+};

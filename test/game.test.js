@@ -10,7 +10,7 @@ const fs = require('fs');
 const os = require('os');
 
 const { createGame, SEGMENTS, recommendedRounds, PTS, MASCOTS, OTHER_ANSWER } = require('../src/game');
-const { loadContent, validateItem, drawFrom, isQuickQuestion, FILES } = require('../src/content');
+const { loadContent, validateItem, drawFrom, isQuickQuestion, FILES, loadQuips, validateQuip, QUIP_KEYS, QUIP_ANSWER_KEYS } = require('../src/content');
 const { createScheduler, createFakeClock } = require('../src/scheduler');
 const { publicView, hostView, playerView } = require('../src/views');
 const { isMatch, matchKind, normalize, containsAnswer } = require('../src/match');
@@ -74,6 +74,11 @@ function scanViews(g, ctx) {
   const secrets = secretsOf(g);
   const allowed = allowedText(g);
   const pvJson = JSON.stringify(publicView(g));
+  // comedy: every TV quip has its placeholders filled; record each new quip (in a game) for the no-repeat check
+  const q = publicView(g).quip;
+  if (q && /\{[a-zA-Z]+\}/.test(q.text)) ctx.leaks.push(`quip ${q.id} has an unfilled placeholder: ${q.text}`);
+  if (q && g.state.phase !== 'lobby' && (!ctx.lastQuip || ctx.lastQuip.id !== q.id)) (ctx.quips = ctx.quips || []).push({ ...q, phase: g.state.phase, gameNo: g.state.gameNo });
+  ctx.lastQuip = q;
   for (const key of ['"accept":', '"secretValue"', '"clientId"', '"clients"', '"subs"', '"hs":', '"song":', '"awarded"']) {
     if (pvJson.includes(key)) ctx.leaks.push(`publicView has key ${key} (phase ${g.state.phase})`);
   }
@@ -438,13 +443,13 @@ test('team creation rules: unique names, mascot/colour pairing, max 8, escaping-
   const r1 = T.okHost('createTeam', { name: '  <b>Elves</b>  ' });
   const t1 = T.g.state.teams[0];
   assert.equal(t1.name, '<b>Elves</b>', 'stored as plain text (clients escape)');
-  assert.equal(t1.mascot, 'candy-cane');
-  assert.equal(t1.color, '#FF5F6D');
+  assert.equal(t1.mascot, 'deer', 'first team gets the reindeer');
+  assert.equal(t1.color, '#D42A2A', '…paired with candy red');
   assert.equal(T.host('createTeam', { name: '<B>ELVES</B>' }).error, 'name-taken');
-  assert.equal(T.host('createTeam', { name: 'Other', mascot: 'candy-cane' }).error, 'mascot-taken');
+  assert.equal(T.host('createTeam', { name: 'Other', mascot: 'deer' }).error, 'mascot-taken');
   assert.equal(T.host('createTeam', { name: 'Other', mascot: 'unicorn' }).error, 'bad-mascot');
   assert.equal(T.host('createTeam', { name: '' }).error, 'name-required');
-  assert.equal(T.okHost('createTeam', { name: 'Gifts', mascot: 'gift' }) && T.g.state.teams[1].color, '#FF8AD0');
+  assert.equal(T.okHost('createTeam', { name: 'Gifts', mascot: 'gift' }) && T.g.state.teams[1].color, '#2E6FD1');
   for (let i = 0; i < 6; i++) T.okHost('createTeam', { name: 'T' + i });
   assert.equal(T.host('createTeam', { name: 'Ninth' }).error, 'too-many-teams');
   assert.equal(new Set(T.g.state.teams.map((t) => t.mascot)).size, 8);
@@ -1148,12 +1153,16 @@ test('views: can flags, segments, spin info, players never carry clientId', () =
   const pv0 = publicView(T.g);
   assert.equal(pv0.segments.length, 12);
   assert.deepEqual(pv0.segments.map((s) => s.type), ['trivia', 'dare', 'trivia', 'hotseat', 'trivia', 'sounditout', 'grinch', 'showdown', 'dare', 'rapidlist', 'allplay', 'doubledown']);
-  assert.equal(pv0.segments[6].color, '#9BD13B');
-  assert.equal(pv0.segments[6].ink, '#0B1430');
-  assert.equal(pv0.segments[4].trim, '#F6C453', 'Christmas Movies has the gold curtain-fringe trim');
+  // North Pole wheel: exactly the approved TV concept's slot fills, label inks and 3D slot art
+  assert.deepEqual(pv0.segments.map((s) => [s.color, s.ink, s.art]), [
+    ['#D42A2A', '#FFFFFF', 'tree'], ['#EDB321', '#1C2333', 'masks'], ['#2E6FD1', '#FFFFFF', 'clapper'], ['#E9558A', '#FFFFFF', 'fire'],
+    ['#9E1B32', '#FFFFFF', 'popcorn'], ['#7B4BC9', '#FFFFFF', 'music'], ['#7CB518', '#1C2333', 'money'], ['#8ECAE6', '#1C2333', 'boxing'],
+    ['#EDB321', '#1C2333', 'masks'], ['#1F7A4A', '#FFFFFF', 'list'], ['#F28C28', '#1C2333', 'zap'], ['#FFFFFF', '#1C2333', 'sparkles'],
+  ]);
+  assert.equal(pv0.segments[4].trim, undefined, 'Christmas Movies is a plain cranberry slot now');
   assert.equal(pv0.segments[11].pattern, 'candy', 'Double Down is candy-cane striped');
-  assert.deepEqual([pv0.segments[11].color, pv0.segments[11].ink], ['#FFF7EA', '#0B1430']);
-  assert.ok(pv0.segments.every((s) => s.icon && s.rule && s.lines.length));
+  assert.equal(pv0.segments[11].stripe, '#D42A2A', 'red stripes on white');
+  assert.ok(pv0.segments.every((s) => s.icon && s.art && s.rule && s.lines.length));
   assert.ok(!JSON.stringify(pv0).includes('client-0-0'));
   T.okHost('start');
   const v = playerView(T.g, T.pid(T.activeP()));
@@ -1178,6 +1187,10 @@ test('views: can flags, segments, spin info, players never carry clientId', () =
   assert.equal(hv.host.can.nextTurn, true);
   assert.equal(hv.host.can.start, false);
   assert.equal(hv.host.mascots.length, MASCOTS.length);
+  assert.deepEqual(hv.host.mascots.map((m) => [m.mascot, m.color]), [
+    ['deer', '#D42A2A'], ['tree', '#1F7A4A'], ['bell', '#EDB321'], ['gift', '#2E6FD1'],
+    ['santa', '#7B4BC9'], ['snowman', '#F28C28'], ['cookie', '#E9558A'], ['star', '#0F8C8C'],
+  ], 'mascots are the 3D art ids, each paired with a team accent that reads on white');
 });
 
 test('net: pickLanAddress skips virtual/VPN adapters, prefers Wi-Fi, honours HOST_IP', () => {
@@ -1241,7 +1254,15 @@ for (const n of [2, 4, 6, 8]) {
     const sorted = [...pv.podium.standings].sort((a, b) => b.score - a.score);
     assert.deepEqual(pv.podium.standings.map((s) => s.score), sorted.map((s) => s.score));
     for (const s of pv.podium.standings) assert.equal(s.place, 1 + pv.podium.standings.filter((o) => o.score > s.score).length);
-    for (const a of pv.podium.awards) assert.ok(['fastestFinger', 'starPerformer'].includes(a.key) && a.name && a.detail);
+    const AWARD_KEYS = ['fastestFinger', 'starPerformer', 'lumpOfCoal', 'grinchOfTheYear', 'silentNight', 'comebackKid', 'rudolph'];
+    assert.ok(pv.podium.awards.length <= 6, 'at most 6 awards');
+    assert.equal(new Set(pv.podium.awards.map((a) => a.key)).size, pv.podium.awards.length, 'each award once');
+    for (const a of pv.podium.awards) assert.ok(AWARD_KEYS.includes(a.key) && a.title && a.name && a.detail && a.art, JSON.stringify(a));
+    // comedy: quips all game long, never the same line twice in a game
+    const ids = (T.ctx.quips || []).map((x) => x.id);
+    assert.ok(ids.length > 15 * n / 2, `quips on the TV (${ids.length})`);
+    assert.equal(new Set(ids).size, ids.length, 'a quip repeated within the game');
+    assert.ok(T.fx.some((e) => e.type === 'react'), 'react cues fired');
     assert.ok(T.ctx.scans > 100, 'scanned many states');
     assert.ok(T.ctx.coachStates > 100, 'coach checked on many states');
     assert.deepEqual(T.ctx.leaks.slice(0, 5), [], 'no secrets leaked');
@@ -1254,7 +1275,8 @@ for (const n of [2, 4, 6, 8]) {
 test('Christmas Movies: slot 4, movie sub-chip once the question is shown, fallback to Christmas movie questions', () => {
   assert.equal(SEGMENTS[4].label, 'Christmas Movies');
   assert.equal(SEGMENTS[4].category, 'movies');
-  assert.equal(SEGMENTS[4].color, '#7E0B22');
+  assert.equal(SEGMENTS[4].color, '#9E1B32', 'Christmas Movies cranberry (TV concept)');
+  assert.equal(SEGMENTS[4].art, 'popcorn');
   assert.equal(SEGMENTS[4].icon, 'popcorn');
   assert.ok(CONTENT.trivia.some((q) => q.category === 'movies' && q.movie), 'movies file loaded');
   const T = setup({ teams: 2, perTeam: 1 });
@@ -1577,4 +1599,452 @@ test('coach-driven game: pressing only the coach’s buttons (and phones doing w
     assert.match(co.headline, /Christmas/);
     assert.equal(co.primary, 'playAgain');
   }
+});
+
+// ================================================================================================ comedy layer (COMEDY.md)
+
+/** A synthetic quip bank whose lines show exactly which value went into which placeholder ("#n" = line number). */
+function testBank(extra = {}) {
+  const mk = (key, tpl, n = 6) => Array.from({ length: n }, (_, i) => ({ id: `${key}-${i}`, text: `${tpl} #${i}`, tone: 'cheer' }));
+  const b = {
+    lobbyIdle: mk('lobbyIdle', 'lobby', 2), gameStart: mk('gameStart', 'start'), turnIntro: mk('turnIntro', 'up: {team}', 12),
+    spinStart: mk('spinStart', 'spin: {player}', 12), 'land.trivia': mk('land.trivia', 'land: {team} at {segment}'),
+    pickEasy: mk('pickEasy', 'easy: {team} for {points}'), pickMedium: mk('pickMedium', 'medium: {team} for {points}'), pickHard: mk('pickHard', 'hard: {team} for {points}'),
+    correct: mk('correct', 'right: {team} +{points} ({answer})'), correctHard: mk('correctHard', 'hard right: {team} +{points}'),
+    wrong: mk('wrong', 'wrong: {team}'), wrongEasy: mk('wrongEasy', 'easy miss: {team}'), timeUp: mk('timeUp', 'time: {team}'),
+    stealOpen: mk('stealOpen', 'steal open'), stealWon: mk('stealWon', 'stole: {team} took {points} from {other}'),
+    stealMissed: mk('stealMissed', 'steal miss: {team}'), nobodyBuzzed: mk('nobodyBuzzed', 'silence'),
+    grinchSteal: mk('grinchSteal', 'grinch: {team} took {points} from {other}'), leadChange: mk('leadChange', 'lead: {leader} over {other}'),
+    dareNailed: mk('dareNailed', 'nailed: {player} of {team}'), dareFail: mk('dareFail', 'fail: {player} of {team}'), undo: mk('undo', 'undo'),
+    roundBreak: mk('roundBreak', 'break: {leader} / {last}'), finalAllIn: mk('finalAllIn', 'all in: {team} {points}'), finalZeroBet: mk('finalZeroBet', 'zero: {team}'),
+    finalCorrect: mk('finalCorrect', 'final right: {team} said {answer}'), finalWrong: mk('finalWrong', 'final wrong: {team}'), podium: mk('podium', 'winner: {leader}'),
+  };
+  return { ...b, ...extra };
+}
+const lastReact = (T) => [...T.fx].reverse().find((e) => e.type === 'react') || null;
+
+test('comedy: quips.json loads + validates; a missing file is an empty bank and a game without quips still runs', () => {
+  assert.ok(Object.keys(CONTENT.quips).length >= 40, 'quip bank loaded');
+  for (const key of QUIP_KEYS) assert.ok((CONTENT.quips[key] || []).length >= 6, `${key} has at least 6 lines`);
+  for (const [key, lines] of Object.entries(CONTENT.quips)) {
+    assert.ok(QUIP_KEYS.includes(key), key);
+    for (const l of lines) {
+      assert.deepEqual(validateQuip(key, l), [], `${key} ${l.id}`);
+      if (l.text.includes('{answer}')) assert.ok(QUIP_ANSWER_KEYS.includes(key), `${l.id}: {answer} outside the answer moments`);
+    }
+  }
+  assert.ok(validateQuip('wrong', { id: 'x', text: 'It was {answer}!' }).some((e) => /answer/.test(e)), '{answer} only in correct/correctHard/finalCorrect');
+  assert.ok(validateQuip('correct', { id: 'x', text: 'Hi {santa}' }).some((e) => /placeholder/.test(e)));
+  assert.ok(validateQuip('correct', { id: 'x', text: 'ok', tone: 'loud' }).length > 0);
+  assert.deepEqual(validateQuip('correct', { id: 'x', text: '{team} got {answer}!', tone: 'cheer' }), []);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cc-quips-'));
+  const problems = [];
+  assert.deepEqual(loadQuips(dir, problems), {}, 'missing file = empty bank');
+  assert.deepEqual(problems, [], 'a missing quips file is not a content problem');
+  fs.writeFileSync(path.join(dir, 'quips.json'), JSON.stringify({ correct: [{ id: 'c1', text: 'Yes {team}!' }, { id: 'c1', text: 'dup' }, { id: 'c2', text: 'bad {nope}' }], wrong: 'nope', mystery: [] }));
+  const bank = loadQuips(dir, problems);
+  assert.deepEqual(bank.correct.map((l) => l.id), ['c1']);
+  assert.equal(bank.wrong, undefined);
+  assert.equal(problems.length, 4, JSON.stringify(problems));
+  fs.writeFileSync(path.join(dir, 'quips.json'), '{broken');
+  const p2 = [];
+  assert.deepEqual(loadQuips(dir, p2), {});
+  assert.equal(p2.length, 1);
+  // a whole game with no quip bank: the quip stays null, react cues still fire, nothing breaks
+  const T = setup({ content: { ...CONTENT, quips: {} }, teams: 2, perTeam: 1, scan: true });
+  playFullGame(T, 9);
+  assert.equal(publicView(T.g).quip, null);
+  assert.equal((T.ctx.quips || []).length, 0);
+  assert.ok(T.fx.some((e) => e.type === 'react' && e.quipId === null));
+  assert.deepEqual(T.ctx.leaks.slice(0, 3), []);
+});
+
+test('comedy: quips land on the right moments with the right names; cleared between moments; react moods; coach punchline', () => {
+  const T = setup({ content: { ...CONTENT, quips: testBank() }, teams: 3, perTeam: 2, seed: 21 });
+  const { g, clock, okHost, okP, players, teamIds } = T;
+  const [A, B, C] = teamIds;
+  const q = () => publicView(g).quip;
+  const coach = () => hostView(g, { connections: { tv: 1, hosts: 1 } }).host.coach;
+  const seen = [];
+  const note = () => { const x = q(); if (x) seen.push(x.id); return x; };
+  assert.equal(note().key, 'lobbyIdle');
+  okHost('setRounds', { n: 2 });
+  okHost('start');
+  assert.match(note().text, /^start #\d$/);
+  // the host spins for Team 1: {player} = the team
+  okHost('forceSegment', { index: SEG.christmas });
+  assert.match(note().text, /^spin: Team 1 #\d+$/);
+  clock.advance(g.timing.spinMs);
+  assert.match(note().text, /^land: Team 1 at Christmas Trivia #\d$/);
+  okP(T.activeP(), 'pickDifficulty', { level: 'hard' });
+  assert.match(note().text, /^hard: Team 1 for 300 #\d$/);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).key], ['gasp', 'pickHard']);
+  okHost('judge', { result: 'correct' });
+  assert.match(note().text, /^hard right: Team 1 \+300 #\d$/);
+  let r = lastReact(T);
+  assert.deepEqual([r.type, r.mood, r.teamId, r.key, r.quipId], ['react', 'cheer', A, 'correctHard', q().id]);
+  assert.equal(q().teamId, A);
+  // coach: the quip is the suggested punchline, with a stage direction
+  let co = coach();
+  assert.deepEqual(co.punchline, { id: q().id, key: 'correctHard', text: q().text, cue: '(point at Team 1)' });
+  assert.ok(co.say.endsWith(`(point at Team 1) “${q().text}”`), co.say);
+  assert.ok(co.say.startsWith('The answer:'), 'the answer line still comes first');
+  okHost('nextTurn', { turnId: g.state.turnId });
+  // Team 1 leads now, but there was no previous leader for {other}: the turn intro line is used, the react still fires
+  assert.match(note().text, /^up: Team 2 #\d+$/);
+  r = lastReact(T);
+  assert.deepEqual([r.mood, r.key, r.teamId], ['gasp', 'leadChange', A]);
+  // a player spins: {player} = the spinner
+  okP(T.activeP(), 'spin');
+  assert.equal(note().text.replace(/ #\d+$/, ''), 'spin: Player 10');
+  g.state.spin.segmentIndex = SEG.christmas; // (test) make this random spin land on Christmas Trivia
+  clock.advance(g.timing.spinMs);
+  assert.equal(g.state.challenge.type, 'trivia');
+  okP(T.activeP(), 'pickDifficulty', { level: 'easy' });
+  assert.deepEqual([lastReact(T).mood, lastReact(T).key], ['laugh', 'pickEasy']);
+  okHost('judge', { result: 'wrong' });
+  assert.match(note().text, /^easy miss: Team 2 #\d$/);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).teamId, lastReact(T).key], ['groan', B, 'wrongEasy']);
+  co = coach();
+  assert.ok(co.tips.some((t) => /Tease the play, never the person/.test(t)), 'playful tip');
+  assert.ok(co.say.includes('(slow head shake)'));
+  clock.advance(g.timing.armMs);
+  assert.match(note().text, /^steal open #\d$/);
+  okP(players[C][0], 'buzz');
+  assert.equal(q(), null, 'a buzz is a new moment: the old quip is cleared');
+  assert.equal(coach().punchline, null);
+  okHost('judge', { result: 'correct' });
+  assert.match(note().text, /^stole: Team 3 took 50 from Team 2 #\d$/);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).teamId, lastReact(T).key], ['gasp', C, 'stealWon']);
+  okHost('nextTurn', { turnId: g.state.turnId });
+  assert.match(note().text, /^up: Team 3 #\d+$/, 'same leader: a plain turn intro');
+  // Grinch Steal: {team} = the thief, {other} = the victim; then the host undoes it
+  T.land(SEG.grinch);
+  okP(players[C][0], 'pickTarget', { teamId: A });
+  assert.match(note().text, /^grinch: Team 3 took 150 from Team 1 #\d$/);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).teamId], ['gasp', C]);
+  okHost('undo');
+  assert.match(note().text, /^undo #\d$/);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).key], ['laugh', 'undo']);
+  assert.deepEqual(T.scores(), [300, 0, 50]);
+  // round break: Team 1 leads, Team 2 is far behind -> the pep talk (no lastPlaceCheer lines here -> the roundBreak line)
+  okHost('nextTurn', { turnId: g.state.turnId });
+  assert.equal(g.state.phase, 'roundBreak');
+  assert.match(note().text, /^break: Team 1 \/ Team 2 #\d$/);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).key, lastReact(T).teamId], ['cheer', 'lastPlaceCheer', B]);
+  okHost('continue');
+  assert.match(note().text, /^up: Team 1 #\d+$/);
+  // time up, then nobody buzzes
+  T.land(SEG.christmas);
+  okP(T.activeP(), 'pickDifficulty', { level: 'medium' });
+  clock.advance(g.timing.triviaMs);
+  assert.match(note().text, /^time: Team 1 #\d$/);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).key], ['groan', 'timeUp']);
+  clock.advance(g.timing.armMs);
+  clock.advance(g.timing.stealMs);
+  assert.match(note().text, /^silence #\d$/);
+  assert.equal(lastReact(T).key, 'nobodyBuzzed');
+  okHost('nextTurn', { turnId: g.state.turnId });
+  // a failed dare gets a laugh; {player} = the performer(s) (or the team for a team dare)
+  const d = T.land(SEG.dare);
+  okHost('timer', { action: 'start' });
+  okHost('dareResult', { result: 'fail' });
+  const who = d.dare.who === 'team' || d.dare.who === 'everyone' ? 'Team 2' : [d.performer, d.partner].filter(Boolean).map((x) => x.name).join(' and ');
+  assert.equal(note().text.replace(/ #\d$/, ''), `fail: ${who} of Team 2`);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).key], ['laugh', 'dareFail']);
+  okHost('dareResult', { result: 'fail', bonus: true });
+  assert.equal(q().key, 'dareFail', 'the crowd-favourite toggle is not a new verdict');
+  okHost('nextTurn', { turnId: g.state.turnId });
+  okHost('nextTurn', { turnId: g.state.turnId }); // Team 3 skips: Final Chaos
+  assert.equal(g.state.phase, 'finalIntro');
+  assert.equal(q(), null, 'no finalIntro lines in this bank');
+  okHost('continue');
+  okP(players[B][0], 'wager', { amount: 300 }); // 0 points: 300 is all in
+  okP(players[C][0], 'wager', { amount: 0 });
+  okP(players[A][0], 'wager', { amount: 100 });
+  assert.equal(q(), null, 'wagers stay secret: no all-in quip before the reveal');
+  okHost('finalStartAnswering');
+  const ans = g.state.final.q.answer;
+  okP(players[B][0], 'submitAnswer', { text: ans.toUpperCase() });
+  okP(players[C][0], 'submitAnswer', { text: 'certainly not that' });
+  okP(players[A][0], 'submitAnswer', { text: ans });
+  okHost('continue');
+  assert.deepEqual(g.state.final.order, [B, C, A]);
+  okHost('finalRevealNext');
+  assert.match(note().text, /^all in: Team 2 300 #\d$/);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).key], ['gasp', 'finalAllIn']);
+  okHost('finalRevealNext');
+  // not every row is judged yet: {answer} is this team's own (revealed) text, never the official answer
+  assert.equal(note().text.replace(/ #\d$/, ''), `final right: Team 2 said ${ans.toUpperCase()}`);
+  if (ans.toUpperCase() !== ans) assert.ok(!q().text.includes(ans));
+  okHost('finalRevealNext');
+  assert.match(note().text, /^zero: Team 3 #\d$/);
+  okHost('finalRevealNext');
+  assert.match(note().text, /^final wrong: Team 3 #\d$/);
+  okHost('finalRevealNext');
+  assert.equal(q(), null, 'a plain wager: no quip, the old one is cleared');
+  okHost('finalRevealNext');
+  assert.equal(note().text.replace(/ #\d$/, ''), `final right: Team 1 said ${ans}`, 'last row: the official answer is public now');
+  okHost('finalRevealNext');
+  assert.equal(g.state.phase, 'podium');
+  assert.match(note().text, /^winner: Team 1 #\d$/);
+  assert.equal(new Set(seen).size, seen.length, 'no line twice in one game');
+  for (const e of T.fx.filter((x) => x.type === 'react')) assert.ok(['cheer', 'groan', 'gasp', 'laugh'].includes(e.mood) && typeof e.key === 'string', JSON.stringify(e));
+});
+
+test('comedy: never the same line twice in a game (falls back, then nothing); {answer} never fills outside the answer moments', () => {
+  const bank = testBank({ correct: [{ id: 'only', text: 'only {team}' }], correctHard: [] });
+  const T = setup({ content: { ...CONTENT, quips: bank }, teams: 2, perTeam: 1 });
+  const { g, okHost } = T;
+  okHost('start');
+  const right = (level) => { T.land(SEG.christmas); okHost('pickDifficulty', { level }); okHost('judge', { result: 'correct' }); return publicView(g).quip; };
+  assert.equal(right('hard').id, 'only', 'correctHard has no lines: falls back to correct');
+  okHost('nextTurn', { turnId: g.state.turnId });
+  assert.equal(right('easy'), null, 'the only correct line was used: no repeat, no quip');
+  assert.equal(lastReact(T).key, 'correct', 'the react cue still fires');
+  okHost('resetGame', { keepTeams: true });
+  okHost('start');
+  assert.equal(right('easy').id, 'only', 'a new game may use it again');
+  // a bank that bypasses the loader: {answer} in a moment that must not name it never fills
+  const T2 = setup({ content: { ...CONTENT, quips: { wrong: [{ id: 'w', text: 'it was {answer}' }], correct: [{ id: 'c', text: 'yes, {answer}' }] } }, teams: 2, perTeam: 1 });
+  T2.okHost('start');
+  T2.land(SEG.christmas);
+  T2.okHost('pickDifficulty', { level: 'easy' });
+  T2.okHost('judge', { result: 'wrong' });
+  assert.equal(publicView(T2.g).quip, null);
+  T2.okHost('reveal');
+  T2.okHost('nextTurn', { turnId: T2.g.state.turnId });
+  T2.land(SEG.christmas);
+  T2.okHost('pickDifficulty', { level: 'easy' });
+  const qq = T2.g.state.challenge.q;
+  assert.ok(!JSON.stringify(publicView(T2.g)).includes(esc(qq.answer)));
+  T2.okHost('judge', { result: 'correct' });
+  assert.equal(publicView(T2.g).quip.text, `yes, ${qq.answer}`, 'filled once revealed');
+});
+
+test('comedy: result variants (hot seat perfect/zero, rapid list big/small, showdown, gift, Double Down, close vote, lead change)', () => {
+  const T = setup({ teams: 3, perTeam: 2, seed: 33 });
+  const { g, clock, okHost, okP, players, teamIds } = T;
+  const [A, B, C] = teamIds;
+  const q = () => publicView(g).quip;
+  const nextT = () => { okHost('nextTurn', { turnId: g.state.turnId }); for (let i = 0; i < 3 && g.state.phase === 'roundBreak'; i++) okHost('continue'); };
+  okHost('setRounds', { n: 6 });
+  okHost('start');
+  // Team 1: a perfect Hot Seat
+  let c = T.land(SEG.hotseat);
+  okHost('timer', { action: 'start' });
+  while (g.state.challenge.stage === 'hotseat') okHost('hotseatMark', { result: 'correct', index: g.state.challenge.hs.index });
+  assert.equal(c.hs.results.length, 6);
+  assert.equal(q().key, 'hotseatPerfect');
+  assert.deepEqual([lastReact(T).mood, lastReact(T).teamId], ['cheer', A]);
+  nextT();
+  // Team 2: zero
+  T.land(SEG.hotseat);
+  okHost('timer', { action: 'start' });
+  while (g.state.challenge.stage === 'hotseat') okHost('hotseatMark', { result: 'wrong', index: g.state.challenge.hs.index });
+  assert.equal(q().key, 'hotseatZero');
+  assert.equal(lastReact(T).mood, 'groan');
+  nextT();
+  // Team 3: a big list (5 ticks)
+  c = T.land(SEG.list);
+  okHost('timer', { action: 'start' });
+  for (const a of c.list.answers.slice(0, 5)) okHost('listTick', { answer: a });
+  okHost('continue');
+  assert.equal(q().key, 'listBig');
+  nextT();
+  // Team 1: a small list (1 tick, time runs out)
+  c = T.land(SEG.list);
+  okHost('timer', { action: 'start' });
+  okHost('listTick', { answer: c.list.answers[0] });
+  clock.advance(g.timing.listMs);
+  assert.equal(q().key, 'listSmall');
+  nextT();
+  // Team 2: showdown won by the rival (Team 3): {team} = the winner, the react goes to the winner
+  T.land(SEG.showdown);
+  okP(T.activeP(), 'pickTarget', { teamId: C });
+  okHost('timer', { action: 'start' });
+  okHost('showdownResult', { winner: 'rival' });
+  assert.equal(q().key, 'showdownWin');
+  assert.equal(q().teamId, C);
+  assert.deepEqual([lastReact(T).mood, lastReact(T).teamId], ['cheer', C]);
+  nextT();
+  // Team 3 leads: the Grinch's heart grows -> gift to last place
+  T.setScores([300, 0, 550]);
+  c = T.land(SEG.grinch);
+  assert.ok(c.gift);
+  assert.equal(q().key, 'grinchGift');
+  assert.deepEqual([lastReact(T).mood, lastReact(T).teamId], ['cheer', c.gift.toTeamId]);
+  nextT();
+  // Team 1: Double Down, then a right answer -> the doubled line
+  T.land(SEG.doubledown);
+  assert.equal(q().key, 'land.doubledown');
+  okHost('forceSegment', { index: SEG.pop });
+  clock.advance(g.timing.spinMs);
+  assert.equal(q().key, 'land.popculture');
+  okHost('pickDifficulty', { level: 'easy' });
+  okHost('judge', { result: 'correct' });
+  assert.equal(q().key, 'doubleDown');
+  assert.equal(lastReact(T).key, 'doubleDown');
+  nextT();
+  // Team 2: a dare with a neck-and-neck room vote
+  T.land(SEG.dare);
+  okHost('timer', { action: 'start' });
+  okHost('openVote');
+  okP(players[A][0], 'vote', { choice: 'nailed' });
+  okP(players[C][0], 'vote', { choice: 'good' });
+  assert.equal(q().key, 'voteClose');
+  assert.equal(lastReact(T).mood, 'gasp');
+  okP(players[A][1], 'vote', { choice: 'nailed' });
+  okP(players[C][1], 'vote', { choice: 'nailed' }); // everyone voted: it closes as nailed
+  assert.equal(q().key, 'dareNailed');
+  // a lead change with a previous leader: Team 2 jumps over Team 3 by the next turn intro
+  T.setScores([100, 900, 550]);
+  nextT();
+  assert.equal(q().key, 'leadChange');
+  assert.equal(q().teamId, B);
+  assert.ok(q().text.includes('Team 2'));
+});
+
+test('comedy: funny awards from a scripted game (stats per player and team, only when earned, ceremony order)', () => {
+  const T = setup({ teams: 3, perTeam: 2, seed: 11 });
+  const { g, clock, okHost, okP, players, teamIds, pid } = T;
+  const [A, B, C] = teamIds;
+  okHost('kickPlayer', { playerId: pid(players[C][1]) }); // Team 3 is one player: c0
+  const c0 = players[C][0];
+  const [a0, b0] = [players[A][0], players[B][0]];
+  const nextT = () => okHost('nextTurn', { turnId: g.state.turnId });
+  okHost('setRounds', { n: 2 });
+  okHost('start');
+  // Round 1 — Team 1 misses a Hard one; b0 buzzes wrong; the steal reopens; c0 steals 150
+  T.land(SEG.christmas);
+  okHost('pickDifficulty', { level: 'hard' });
+  okHost('judge', { result: 'wrong' });
+  clock.advance(g.timing.armMs);
+  okP(b0, 'buzz');
+  okHost('judge', { result: 'wrong' });
+  okHost('openSteal');
+  clock.advance(g.timing.armMs);
+  okP(c0, 'buzz');
+  okHost('judge', { result: 'correct' });
+  nextT();
+  // Team 2 misses a Medium one; c0 steals 100
+  T.land(SEG.christmas);
+  okHost('pickDifficulty', { level: 'medium' });
+  okHost('judge', { result: 'wrong' });
+  clock.advance(g.timing.armMs);
+  okP(c0, 'buzz');
+  okHost('judge', { result: 'correct' });
+  nextT();
+  // Team 3: c0 nails a dare
+  let d = T.land(SEG.dare);
+  assert.equal(d.performer.playerId, pid(c0));
+  okHost('timer', { action: 'start' });
+  okHost('dareResult', { result: 'nailed' });
+  assert.deepEqual(T.scores(), [0, 0, 450]);
+  nextT();
+  assert.equal(g.state.phase, 'roundBreak');
+  okHost('continue');
+  // Round 2 — Team 1's Hot Seat: 3 wrong, 3 right
+  const hs = T.land(SEG.hotseat);
+  const hsPerf = hs.performer.playerId;
+  okHost('timer', { action: 'start' });
+  for (const res of ['wrong', 'wrong', 'wrong', 'correct', 'correct', 'correct']) okHost('hotseatMark', { result: res, index: g.state.challenge.hs.index });
+  nextT();
+  // Team 2 Grinch-steals 150 from Team 3
+  T.land(SEG.grinch);
+  okP(b0, 'pickTarget', { teamId: C });
+  nextT();
+  // Team 3: c0 dares again and fails
+  d = T.land(SEG.dare);
+  okHost('timer', { action: 'start' });
+  okHost('dareResult', { result: 'fail' });
+  assert.deepEqual(T.scores(), [150, 150, 300]);
+  nextT();
+  assert.equal(g.state.phase, 'finalIntro');
+  okHost('continue');
+  okP(a0, 'wager', { amount: 300 });
+  okP(b0, 'wager', { amount: 0 });
+  okP(c0, 'wager', { amount: 0 });
+  okHost('finalStartAnswering');
+  okP(a0, 'submitAnswer', { text: g.state.final.q.answer });
+  okP(b0, 'submitAnswer', { text: 'no idea at all' });
+  okP(c0, 'submitAnswer', { text: 'something else entirely' });
+  okHost('continue');
+  while (g.state.phase === 'finalReveal') okHost('finalRevealNext');
+  const pv = publicView(g);
+  assert.deepEqual(pv.podium.standings.map((s) => [s.teamId, s.score, s.place]), [[A, 450, 1], [C, 300, 2], [B, 150, 3]]);
+  // ceremony order (the Lump of Coal is the finale); Silent Night not earned (nobody else had 3 steal chances)
+  assert.deepEqual(pv.podium.awards.map((a) => a.key), ['fastestFinger', 'starPerformer', 'grinchOfTheYear', 'comebackKid', 'rudolph', 'lumpOfCoal']);
+  const aw = Object.fromEntries(pv.podium.awards.map((a) => [a.key, a]));
+  const pick = (o, keys) => Object.fromEntries(keys.map((k) => [k, o[k]]));
+  assert.deepEqual(pick(aw.fastestFinger, ['playerId', 'name', 'teamId', 'art', 'tie']), { playerId: T.pid(c0), name: 'Player 20', teamId: C, art: 'zap', tie: false });
+  assert.match(aw.fastestFinger.detail, /^2 buzzes won — /);
+  assert.deepEqual(pick(aw.starPerformer, ['playerId', 'art']), { playerId: T.pid(c0), art: 'masks' });
+  assert.match(aw.starPerformer.detail, /^2 dares · 200 pts — /);
+  assert.deepEqual(pick(aw.grinchOfTheYear, ['playerId', 'name', 'teamId', 'art']), { playerId: null, name: 'Team 3', teamId: C, art: 'money' });
+  assert.match(aw.grinchOfTheYear.detail, /^Stole 250 points in 2 heists — /);
+  assert.deepEqual(pick(aw.comebackKid, ['teamId', 'art']), { teamId: A, art: 'sled' });
+  assert.match(aw.comebackKid.detail, /^From 2nd to 1st — and won the whole thing!$/);
+  assert.deepEqual(pick(aw.rudolph, ['teamId', 'art']), { teamId: C, art: 'deer' });
+  assert.match(aw.rudolph.detail, /^Led 2 of 2 rounds — /);
+  assert.deepEqual(pick(aw.lumpOfCoal, ['playerId', 'teamId', 'art']), { playerId: hsPerf, teamId: A, art: 'snowman' });
+  assert.equal(aw.lumpOfCoal.detail, '3 wrong answers — Santa noticed');
+  // the stats behind them
+  const ps = Object.fromEntries(pv.podium.stats.players.map((p) => [p.playerId, p]));
+  const P = ['buzzWins', 'steals', 'performances', 'wrongAnswers', 'buzzChances', 'perfectHotSeat'];
+  assert.deepEqual(pick(ps[T.pid(c0)], P), { buzzWins: 2, steals: 2, performances: 2, wrongAnswers: 1, buzzChances: 3, perfectHotSeat: 0 });
+  assert.deepEqual(pick(ps[T.pid(b0)], P), { buzzWins: 1, steals: 0, performances: 0, wrongAnswers: 2, buzzChances: 1, perfectHotSeat: 0 });
+  assert.deepEqual(pick(ps[hsPerf], ['wrongAnswers', 'performances']), { wrongAnswers: 3, performances: 1 });
+  const ts = Object.fromEntries(pv.podium.stats.teams.map((t) => [t.teamId, t]));
+  const TK = ['steals', 'stealCount', 'wrong', 'timesLed', 'climb'];
+  assert.deepEqual(pick(ts[A], TK), { steals: 0, stealCount: 0, wrong: 4, timesLed: 0, climb: 1 });
+  assert.deepEqual(pick(ts[B], TK), { steals: 150, stealCount: 1, wrong: 3, timesLed: 0, climb: 0 });
+  assert.deepEqual(pick(ts[C], TK), { steals: 250, stealCount: 2, wrong: 1, timesLed: 2, climb: 0 });
+  // the host reads it as a ceremony, coal last
+  const co = hostView(g).host.coach;
+  assert.ok(co.say.includes(`The Lump of Coal Award goes to… ${aw.lumpOfCoal.name}! (3 wrong answers — Santa noticed)`), co.say);
+  assert.ok(co.say.indexOf('Lump of Coal') > co.say.indexOf('Rudolph Award'), 'coal comes last');
+  assert.ok(co.tips.some((t) => /Lump of Coal goes last/.test(t)));
+  // undo on the podium recomputes it (and says so)
+  okHost('undo');
+  assert.equal(publicView(g).quip.key, 'undo');
+  assert.ok(publicView(g).podium.awards.length >= 1);
+});
+
+test('comedy: tied awards are shared ("A and B"); a game with no notable play earns no awards', () => {
+  const T = setup({ teams: 3, perTeam: 1, seed: 12 });
+  const { g, clock, okHost, okP, players, teamIds } = T;
+  const [, B, C] = teamIds;
+  okHost('setRounds', { n: 1 });
+  okHost('start');
+  for (const thief of [B, C]) { // Team 1, then Team 2, miss an Easy one; Team 2, then Team 3, steal 50
+    T.land(SEG.christmas);
+    okHost('pickDifficulty', { level: 'easy' });
+    okHost('judge', { result: 'wrong' });
+    clock.advance(g.timing.armMs);
+    okP(players[thief][0], 'buzz');
+    okHost('judge', { result: 'correct' });
+    okHost('nextTurn', { turnId: g.state.turnId });
+  }
+  okHost('nextTurn', { turnId: g.state.turnId });
+  assert.equal(g.state.phase, 'finalIntro');
+  okHost('continue');
+  okHost('finalStartAnswering');
+  okHost('continue');
+  while (g.state.phase === 'finalReveal') okHost('finalRevealNext');
+  const aw = Object.fromEntries(publicView(g).podium.awards.map((a) => [a.key, a]));
+  assert.deepEqual([aw.fastestFinger.name, aw.fastestFinger.playerId, aw.fastestFinger.teamId, aw.fastestFinger.tie], ['Player 10 and Player 20', null, null, true]);
+  assert.match(aw.fastestFinger.detail, /^1 buzz won each — /);
+  assert.deepEqual([aw.grinchOfTheYear.name, aw.grinchOfTheYear.tie], ['Team 2 and Team 3', true]);
+  // nothing notable at all: no awards
+  const T2 = setup({ teams: 2, perTeam: 1 });
+  T2.okHost('setRounds', { n: 1 });
+  T2.okHost('start');
+  T2.okHost('nextTurn', { turnId: T2.g.state.turnId });
+  T2.okHost('nextTurn', { turnId: T2.g.state.turnId });
+  T2.okHost('continue');
+  T2.okHost('finalStartAnswering');
+  T2.okHost('continue');
+  while (T2.g.state.phase === 'finalReveal') T2.okHost('finalRevealNext');
+  assert.deepEqual(publicView(T2.g).podium.awards, []);
 });

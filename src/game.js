@@ -10,7 +10,7 @@
  * server-computed `can` flags in the views, so a phone only ever shows an action the server will accept.
  * All scoring goes through award(); all delayed work goes through the generation-aware scheduler.
  */
-const { drawFrom, isQuickQuestion, contentStats, triviaPool } = require('./content');
+const { drawFrom, isQuickQuestion, contentStats, triviaPool, QUIP_ANSWER_KEYS } = require('./content');
 const { matchKind } = require('./match');
 const { createScheduler } = require('./scheduler');
 
@@ -28,42 +28,43 @@ const PTS = {
   grinch: 150, gift: 100,
 };
 
-// Midnight Premiere palette (docs/design/MIDNIGHT-PREMIERE.md, brief A6/A7). Clients draw these exactly.
-const IVORY = '#FFF7EA';
-const INK = '#0B1430';
-const GOLD_INK = '#1A1206';
-const seg = (index, type, label, lines, color, ink, icon, points, rule, category, extra) =>
-  Object.freeze({ index, type, ...(category ? { category } : {}), label, lines, color, ink, icon, points, rule, ...(extra || {}) });
+// North Pole Workshop palette (docs/design/NORTH-POLE.md §1, §3; the approved TV concept's wheel). Clients
+// draw these exactly. ink = label colour on the slot fill; art = the Fluent 3D illustration id
+// (/assets/art/<art>.png) drawn near the rim and on the category chip; icon = the small Lucide fallback glyph.
+const WHITE = '#FFFFFF';
+const INK = '#1C2333';
+const seg = (index, type, label, lines, color, ink, icon, art, points, rule, category, extra) =>
+  Object.freeze({ index, type, ...(category ? { category } : {}), label, lines, color, ink, icon, art, points, rule, ...(extra || {}) });
 const TRIVIA_RULE = 'Pick Easy, Medium or Hard, then answer out loud in 20 s. Miss it and the other teams can steal.';
 const DARE_RULE = 'One of you performs the dare. Nail it for 200!';
-// Optional drawing hints: trim = gold inner arc (curtain fringe); pattern 'candy' = 45deg ivory/cranberry
-// candy-cane stripes with an ivory label pill (color is the pill/base colour, ink the label colour).
+// Optional drawing hint: pattern 'candy' = 45deg candy-cane stripes (stripe colour on white) with a white
+// label pill (color is the pill/base colour, ink the label colour).
 const SEGMENTS = Object.freeze([
-  seg(0, 'trivia', 'Christmas Trivia', ['Christmas', 'Trivia'], '#C8102E', IVORY, 'tree-pine', '100\u2013300', TRIVIA_RULE, 'christmas'),
-  seg(1, 'dare', 'Dare', ['Dare'], '#F6C453', GOLD_INK, 'drama', '200', DARE_RULE),
-  seg(2, 'trivia', 'Pop Culture', ['Pop', 'Culture'], '#2450D0', IVORY, 'clapperboard', '100\u2013300', TRIVIA_RULE, 'popculture'),
-  seg(3, 'hotseat', 'Hot Seat', ['Hot', 'Seat'], '#FF8FB1', '#2A0A18', 'flame', '50\u2013300', 'One player, alone, 45 seconds: up to 6 quick questions. 50 points each.'),
-  seg(4, 'trivia', 'Christmas Movies', ['Christmas', 'Movies'], '#7E0B22', IVORY, 'popcorn', '100\u2013300', TRIVIA_RULE, 'movies', { trim: '#F6C453' }),
-  seg(5, 'sounditout', 'Sound It Out', ['Sound', 'It Out'], '#7B4CE0', IVORY, 'music', '200', 'One of you hums a secret song (no words!). Your team has 30 s to name it.'),
-  seg(6, 'grinch', 'Grinch Steal', ['Grinch', 'Steal'], '#9BD13B', INK, 'hand-coins', '150', 'Steal 150 points from a team that is ahead of you.'),
-  seg(7, 'showdown', 'Showdown', ['Show', 'Down'], '#5AA9E6', INK, 'swords', '200', 'Pick a rival team. One player from each team goes head to head. Winner takes 200.'),
-  seg(8, 'dare', 'Dare', ['Dare'], '#F6C453', GOLD_INK, 'drama', '200', DARE_RULE),
-  seg(9, 'rapidlist', 'Rapid List', ['Rapid', 'List'], '#0E7C74', IVORY, 'list-checks', '50\u2013300', 'Shout as many answers as you can in 30 s. 50 each, up to 300.'),
-  seg(10, 'allplay', 'All Play', ['All', 'Play'], '#FF9A3C', GOLD_INK, 'zap', '100+', 'Every team types an answer on a phone. 100 for each right answer, +50 for the first.'),
-  seg(11, 'doubledown', 'Double Down', ['Double', 'Down'], IVORY, INK, 'sparkles', '\u00D72', 'Spin again! Everything your team wins this turn is doubled.', undefined, { pattern: 'candy', stripe: '#C8102E' }),
+  seg(0, 'trivia', 'Christmas Trivia', ['Christmas', 'Trivia'], '#D42A2A', WHITE, 'tree-pine', 'tree', '100\u2013300', TRIVIA_RULE, 'christmas'),
+  seg(1, 'dare', 'Dare', ['Dare'], '#EDB321', INK, 'drama', 'masks', '200', DARE_RULE),
+  seg(2, 'trivia', 'Pop Culture', ['Pop', 'Culture'], '#2E6FD1', WHITE, 'clapperboard', 'clapper', '100\u2013300', TRIVIA_RULE, 'popculture'),
+  seg(3, 'hotseat', 'Hot Seat', ['Hot', 'Seat'], '#E9558A', WHITE, 'flame', 'fire', '50\u2013300', 'One player, alone, 45 seconds: up to 6 quick questions. 50 points each.'),
+  seg(4, 'trivia', 'Christmas Movies', ['Christmas', 'Movies'], '#9E1B32', WHITE, 'popcorn', 'popcorn', '100\u2013300', TRIVIA_RULE, 'movies'),
+  seg(5, 'sounditout', 'Sound It Out', ['Sound', 'It Out'], '#7B4BC9', WHITE, 'music', 'music', '200', 'One of you hums a secret song (no words!). Your team has 30 s to name it.'),
+  seg(6, 'grinch', 'Grinch Steal', ['Grinch', 'Steal'], '#7CB518', INK, 'hand-coins', 'money', '150', 'Steal 150 points from a team that is ahead of you.'),
+  seg(7, 'showdown', 'Showdown', ['Show', 'Down'], '#8ECAE6', INK, 'swords', 'boxing', '200', 'Pick a rival team. One player from each team goes head to head. Winner takes 200.'),
+  seg(8, 'dare', 'Dare', ['Dare'], '#EDB321', INK, 'drama', 'masks', '200', DARE_RULE),
+  seg(9, 'rapidlist', 'Rapid List', ['Rapid', 'List'], '#1F7A4A', WHITE, 'list-checks', 'list', '50\u2013300', 'Shout as many answers as you can in 30 s. 50 each, up to 300.'),
+  seg(10, 'allplay', 'All Play', ['All', 'Play'], '#F28C28', INK, 'zap', 'zap', '100+', 'Every team types an answer on a phone. 100 for each right answer, +50 for the first.'),
+  seg(11, 'doubledown', 'Double Down', ['Double', 'Down'], WHITE, INK, 'sparkles', 'sparkles', '\u00D72', 'Spin again! Everything your team wins this turn is doubled.', undefined, { pattern: 'candy', stripe: '#D42A2A' }),
 ]);
 
-// Team palette in offer order (brief A7). Teams 1-6 stay apart under simulated colour-blindness;
-// 7 (orange) and 8 (violet) each have a lookalike, so they are offered last. Glyphs are drawn in INK.
+// Team mascots (3D art ids, /assets/art/<mascot>.png) in offer order, each paired with a team accent colour
+// that reads on white (tile accent, stocking, splash). The first team created gets the reindeer + candy red.
 const MASCOTS = Object.freeze([
-  { mascot: 'candy-cane', color: '#FF5F6D', colorName: 'red' },
-  { mascot: 'star', color: '#F6C453', colorName: 'gold' },
-  { mascot: 'snowflake', color: '#6CB8FF', colorName: 'sky' },
-  { mascot: 'tree-pine', color: '#5FE0C1', colorName: 'mint' },
-  { mascot: 'gift', color: '#FF8AD0', colorName: 'pink' },
-  { mascot: 'moon', color: '#DCE3F2', colorName: 'silver' },
-  { mascot: 'cookie', color: '#FF9A3C', colorName: 'orange' },
-  { mascot: 'bell', color: '#B794FF', colorName: 'violet' },
+  { mascot: 'deer', color: '#D42A2A', colorName: 'red' },
+  { mascot: 'tree', color: '#1F7A4A', colorName: 'green' },
+  { mascot: 'bell', color: '#EDB321', colorName: 'gold' },
+  { mascot: 'gift', color: '#2E6FD1', colorName: 'blue' },
+  { mascot: 'santa', color: '#7B4BC9', colorName: 'violet' },
+  { mascot: 'snowman', color: '#F28C28', colorName: 'orange' },
+  { mascot: 'cookie', color: '#E9558A', colorName: 'pink' },
+  { mascot: 'star', color: '#0F8C8C', colorName: 'teal' },
 ]);
 const MASCOT_NAMES = MASCOTS.map((m) => m.mascot);
 const PALETTE = MASCOTS.map((m) => m.color);
@@ -78,6 +79,45 @@ const TRIVIA_LABELS = { christmas: 'Christmas Trivia', popculture: 'Pop Culture'
 const OTHER_ANSWER = 'Other answer';
 const IN_TURN = new Set(['turnIntro', 'spinning', 'challenge', 'turnResult']);
 const PLAYING = new Set(['turnIntro', 'spinning', 'challenge', 'turnResult', 'roundBreak', 'finalIntro', 'finalWager', 'finalAnswer', 'finalReveal']);
+
+// ---- comedy layer (docs/design/COMEDY.md §2)
+/** The TV's react cue for each quip moment (fx {type:'react', mood}). Moments not listed get no react. */
+const MOODS = Object.freeze({
+  correct: 'cheer', correctHard: 'cheer', doubleDown: 'cheer', wrong: 'groan', wrongEasy: 'groan', timeUp: 'groan',
+  stealWon: 'gasp', stealMissed: 'groan', nobodyBuzzed: 'groan', dareNailed: 'cheer', dareValiant: 'cheer', dareFail: 'laugh',
+  voteClose: 'gasp', showdownWin: 'cheer', showdownTie: 'cheer', hotseatPerfect: 'cheer', hotseatZero: 'groan',
+  listBig: 'cheer', listSmall: 'groan', grinchSteal: 'gasp', grinchGift: 'cheer', leadChange: 'gasp', bigComeback: 'cheer',
+  lastPlaceCheer: 'cheer', finalAllIn: 'gasp', finalZeroBet: 'laugh', finalCorrect: 'cheer', finalWrong: 'groan',
+  podium: 'cheer', undo: 'laugh', pickEasy: 'laugh', pickHard: 'gasp',
+});
+/** Funny podium awards: max 6 shown; when more are earned the last ones in PICK order drop out. */
+const AWARD_MAX = 6;
+const AWARD_PICK = ['fastestFinger', 'starPerformer', 'lumpOfCoal', 'grinchOfTheYear', 'comebackKid', 'silentNight', 'rudolph'];
+const AWARD_ORDER = ['fastestFinger', 'starPerformer', 'grinchOfTheYear', 'comebackKid', 'rudolph', 'silentNight', 'lumpOfCoal']; // coal = the finale
+const AWARD_INFO = Object.freeze({
+  fastestFinger: { title: 'Fastest Finger', art: 'zap' },
+  starPerformer: { title: 'Star Performer', art: 'masks' },
+  lumpOfCoal: { title: 'Lump of Coal Award', art: 'snowman' },
+  grinchOfTheYear: { title: 'Grinch of the Year', art: 'money' },
+  silentNight: { title: 'Silent Night Award', art: 'moon' },
+  comebackKid: { title: 'Comeback Kid', art: 'sled' },
+  rudolph: { title: 'Rudolph Award', art: 'deer' },
+});
+/** Small seeded PRNG (mulberry32) for the quip stream, so quip picks never shift the game's content draws. */
+function seededRng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] || 'th'));
+const fmtNum = (n) => String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many || one + 's'}`;
+/** "A", "A and B", "A, B and C" */
+const joinNames = (a) => (a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]);
 
 const PLAYER_CAN = ['spin', 'pickDifficulty', 'buzz', 'pickTarget', 'previewTarget', 'submitAnswer', 'wager', 'vote', 'peek'];
 const MAX_TEAMS = 8;
@@ -133,16 +173,35 @@ function freshState() {
     undoSeq: 0,
     lastAwards: [],
     awardSeq: 0,
-    stats: { picks: {}, buzzes: [], firsts: {}, perf: {} },
+    stats: freshStats(),
     final: null,
     podium: null,
     used: [],
+    quip: null,          // {id, key, text, tone, teamId} the current TV quip (COMEDY.md §2), null between moments
+    quipUsed: [],        // quip ids used this game: a line never repeats within a game
+    quipNight: [],       // quip ids used tonight (kept across "Play again"): unused lines are preferred
+    comedy: { leader: null }, // the last sole leader announced (leadChange)
+  };
+}
+/**
+ * Award stats. Event logs (buzzes, chances) only grow; per-challenge records (perf, firsts, ch) are recomputed from the
+ * challenge whenever it is (re)judged or undone, so a re-judge or an undo never double counts.
+ */
+function freshStats() {
+  return {
+    picks: {}, buzzes: [], firsts: {}, perf: {},
+    ch: {},          // challengeId -> {wrongTeams, wrongPlayers, stolen:{teamId:pts}, stealPlayers, perfect:playerId|null}
+    chances: {},     // "challengeId:attempt" -> playerIds who could buzz when the steal armed (Silent Night)
+    checkpoints: {}, // round -> {ranks:{teamId:rank}, scores:{teamId:score}} at the end of each round (Rudolph, Comeback Kid)
   };
 }
 
 function createGame(opts = {}) {
   const content = opts.content || { trivia: [], songs: [], lists: [], dares: [], finals: [], showdowns: [], problems: [] };
   const rng = opts.rng || Math.random;
+  // the quip stream is seeded from the game rng once, then runs on its own (quips never shift content draws)
+  const qrng = typeof opts.quipRng === 'function' ? opts.quipRng : seededRng(Math.floor(rng() * 4294967296));
+  const quipBank = isObj(content.quips) ? content.quips : {};
   const now = opts.now || (() => Date.now());
   const T = { ...TIMING, ...(opts.timing || {}) };
   const sched = opts.scheduler || createScheduler();
@@ -155,7 +214,10 @@ function createGame(opts = {}) {
 
   // ---------------------------------------------------------------- helpers
   const fail = (error) => ({ ok: false, error });
-  const changed = () => { try { onChange(); } catch (e) { console.error('[game] onChange', e); } };
+  const changed = () => {
+    settleQuip();
+    try { onChange(); } catch (e) { console.error('[game] onChange', e); }
+  };
   const fx = (type, data = {}) => { try { onFx({ type, ...data, at: now() }); } catch (e) { console.error('[game] onFx', e); } };
   const team = (id) => (typeof id === 'string' ? S.teams.find((t) => t.id === id) || null : null);
   const player = (id) => (typeof id === 'string' && hasOwn(S.players, id) ? S.players[id] : null);
@@ -178,6 +240,199 @@ function createGame(opts = {}) {
   function recomputeAuto() {
     if (S.settings.autoRounds) S.settings.rounds = recommendedRounds(S.teams.length);
     if (S.settings.roundBonusAuto) S.settings.roundBonus = S.teams.length >= 5;
+  }
+
+  // ---------------------------------------------------------------- comedy: quips + react cues (COMEDY.md §1–2)
+  // moment(keys, vars) picks an unused line for the first key that has one whose placeholders can all be filled,
+  // puts it on the TV (S.quip) and fires the react fx. Any other moment change clears the quip (settleQuip).
+  let quipTouched = false;
+  let lastSig = null;
+  /** {team, …} placeholder values: names are already-public text; the answer is passed only after the reveal. */
+  function fillQuip(text, key, vars) {
+    let okFill = true;
+    const out = text.replace(/\{([a-zA-Z]+)\}/g, (m, name) => {
+      if (name === 'answer' && !QUIP_ANSWER_KEYS.includes(key)) { okFill = false; return m; }
+      const v = hasOwn(vars, name) ? vars[name] : null;
+      if (v === null || v === undefined || v === '') { okFill = false; return m; }
+      return typeof v === 'number' ? fmtNum(v) : String(v);
+    });
+    return okFill ? out : null;
+  }
+  function pickQuip(keys, vars, o = {}) {
+    if (!Array.isArray(S.quipUsed)) S.quipUsed = [];
+    if (!Array.isArray(S.quipNight)) S.quipNight = [];
+    const night = new Set(S.quipNight);
+    for (const key of keys) {
+      const lines = Array.isArray(quipBank[key]) ? quipBank[key] : [];
+      const fill = () => {
+        const game = new Set(S.quipUsed);
+        return lines.map((l) => ({ l, text: game.has(l.id) ? null : fillQuip(l.text, key, vars) })).filter((x) => x.text);
+      };
+      let usable = fill();
+      if (!usable.length && o.recycle && lines.length) { // lobby idle lines may come round again (not "in a game")
+        const ids = new Set(lines.map((l) => l.id));
+        S.quipUsed = S.quipUsed.filter((id) => !ids.has(id));
+        usable = fill();
+      }
+      if (!usable.length) continue;
+      const fresh = usable.filter((x) => !night.has(x.l.id));
+      const pool = fresh.length ? fresh : usable;
+      const got = pool[Math.min(pool.length - 1, Math.floor(qrng() * pool.length))];
+      S.quipUsed.push(got.l.id);
+      if (!night.has(got.l.id)) S.quipNight.push(got.l.id);
+      return { id: got.l.id, key, text: got.text, tone: got.l.tone || null };
+    }
+    return null;
+  }
+  /** A comedy moment: the TV quip (or null when no line is left) + the react cue for the primary key. */
+  function moment(keys, vars = {}, o = {}) {
+    const list = Array.isArray(keys) ? keys : [keys];
+    const c = ch();
+    const seg = c && c.segmentIndex != null && SEGMENTS[c.segmentIndex] && S.phase !== 'spinning' ? SEGMENTS[c.segmentIndex].label : null;
+    const q = pickQuip(list, { segment: seg, ...vars }, o);
+    const teamId = o.teamId && team(o.teamId) ? o.teamId : null;
+    S.quip = q ? { ...q, teamId } : null;
+    quipTouched = true;
+    const mood = MOODS[list[0]];
+    if (mood) fx('react', { mood, ...(teamId ? { teamId } : {}), key: list[0], quipId: q ? q.id : null });
+    return q;
+  }
+  /** Everything that makes "a new moment" (a phase / stage / buzz / vote / reveal step change). */
+  function momentSig() {
+    const c = S.challenge;
+    const b = c && c.buzz;
+    const F = S.final;
+    const row = F && F.current && F.rows ? F.rows[F.current] : null;
+    return [S.phase, S.turnId, c ? c.id : '', c ? c.stage : '',
+      b ? `${b.open ? 1 : 0}${b.armingUntil ? 1 : 0}${b.winner ? b.winner.playerId : ''}/${b.attempts}` : '',
+      c && c.vote ? (c.vote.open ? 1 : 0) : '', F ? F.current || '' : '', row ? (row.judged ? 1 : 0) : ''].join('|');
+  }
+  /** Runs before every state push: a quip lives until the next moment starts (cleared unless that moment set one). */
+  function settleQuip() {
+    const sig = momentSig();
+    if (!quipTouched && lastSig !== null && sig !== lastSig) S.quip = null;
+    quipTouched = false;
+    lastSig = sig;
+  }
+  /** The one team with the highest score (> 0), or null on a tie / all zero. */
+  function soleLeader() {
+    const top = Math.max(0, ...S.teams.map((t) => t.score));
+    const lead = S.teams.filter((t) => t.score === top);
+    return top > 0 && lead.length === 1 ? lead[0].id : null;
+  }
+  function soleLast() {
+    if (S.teams.length < 2) return null;
+    const low = Math.min(...S.teams.map((t) => t.score));
+    const last = S.teams.filter((t) => t.score === low);
+    return last.length === 1 ? last[0].id : null;
+  }
+  const doubled = (teamId) => !!(S.turn && S.turn.multiplier > 1 && teamId === activeTeamId());
+  /** Who performed a dare / sound / hot seat, as one name ("Mia", "Mia and Leo", or the team for a team dare). */
+  function castName(c) {
+    if (c.dare && (c.dare.who === 'team' || c.dare.who === 'everyone')) return teamName(activeTeamId());
+    const n = [c.performer, c.partner].filter((x) => x && x.name).map((x) => x.name);
+    return n.length ? joinNames(n) : teamName(activeTeamId());
+  }
+  function turnQuip() {
+    const act = activeTeamId();
+    if (S.round === 1 && S.turnIndex === 0) { moment(['gameStart', 'turnIntro'], { team: teamName(act) }); return; }
+    const lead = soleLeader();
+    const prev = S.comedy && S.comedy.leader;
+    S.comedy = { ...(S.comedy || {}), leader: lead || prev || null };
+    if (lead && lead !== prev) {
+      moment(['leadChange', 'turnIntro'], { leader: teamName(lead), other: prev && team(prev) ? teamName(prev) : null, team: teamName(act) }, { teamId: lead });
+      return;
+    }
+    moment('turnIntro', { team: teamName(act) });
+  }
+  function landQuip(c) {
+    const act = activeTeamId();
+    if (c.type === 'grinch' && c.gift) {
+      moment('grinchGift', { team: teamName(act), last: teamName(c.gift.toTeamId), points: c.gift.amount }, { teamId: c.gift.toTeamId });
+      return;
+    }
+    const keys = c.type === 'trivia' ? (c.category === 'christmas' ? ['land.trivia'] : ['land.' + c.category, 'land.trivia']) : ['land.' + c.type];
+    moment(keys, { team: teamName(act) });
+  }
+  /** The active team just missed (wrong / time up / host opened the steal): a groan before the steal arms. */
+  function activeMiss(c, kind) {
+    const act = activeTeamId();
+    c.activeMissed = kind;
+    if (kind === 'timeUp') moment(['timeUp', 'wrong'], { team: teamName(act) }, { teamId: act });
+    else moment(c.difficulty === 'easy' ? ['wrongEasy', 'wrong'] : ['wrong'], { team: teamName(act) }, { teamId: act });
+  }
+  function rapidListQuip(c) {
+    const act = activeTeamId();
+    const pts = c.awarded[act] || 0;
+    const n = c.ticked.length;
+    const keys = [];
+    if (doubled(act) && pts > 0) keys.push('doubleDown');
+    if (n >= 5) keys.push('listBig'); else if (n <= 2) keys.push('listSmall');
+    if (keys.length) moment(keys, { team: teamName(act), points: pts }, { teamId: act });
+  }
+  function hotSeatQuip(c) {
+    const act = activeTeamId();
+    const res = c.hs.results;
+    const right = res.filter((r) => r === 'correct').length;
+    const pts = c.awarded[act] || 0;
+    const keys = [];
+    if (c.hs.questions.length && right === c.hs.questions.length) keys.push('hotseatPerfect');
+    else if (res.length && !right) keys.push('hotseatZero');
+    if (doubled(act) && pts > 0) keys.push('doubleDown');
+    if (keys.length) moment(keys, { player: c.performer ? c.performer.name : teamName(act), team: teamName(act), points: pts }, { teamId: act });
+  }
+  function allPlayQuip(c) {
+    const right = S.teams.filter((t) => c.subs[t.id] && effCorrect(c.subs[t.id])).map((t) => t.id);
+    const who = c.firstTeamId || (right.length === 1 ? right[0] : null);
+    if (right.length) moment('correct', { team: who ? teamName(who) : null, points: who ? c.awarded[who] || null : null, answer: c.q.answer }, { teamId: who });
+    else if (Object.keys(c.subs).length) moment('wrong', {});
+    else moment('nobodyBuzzed', {});
+  }
+  function roundBreakQuip() {
+    const ranks = rankNow();
+    const prev = S.roundBreak && S.roundBreak.prevRanks;
+    let climber = null;
+    let best = 1;
+    if (prev) for (const t of S.teams) { const up = (prev[t.id] || ranks[t.id]) - ranks[t.id]; if (up > best) { best = up; climber = t.id; } }
+    const lead = soleLeader();
+    const last = soleLast();
+    S.comedy = { ...(S.comedy || {}), leader: lead || (S.comedy && S.comedy.leader) || null };
+    const vars = { leader: lead ? teamName(lead) : null, last: last ? teamName(last) : null };
+    if (climber) { moment(['bigComeback', 'roundBreak'], { ...vars, team: teamName(climber) }, { teamId: climber }); return; }
+    const top = Math.max(...S.teams.map((t) => t.score));
+    if (last && top - team(last).score >= 300) { moment(['lastPlaceCheer', 'roundBreak'], vars, { teamId: last }); return; }
+    moment(['roundBreak', 'lastPlaceCheer'], vars);
+  }
+
+  // ---------------------------------------------------------------- comedy: award stats
+  /** (Re)compute this challenge's stats record from the challenge itself (idempotent; undo/re-judge safe). */
+  function recordChallengeStats(c) {
+    if (!c || !c.id) return;
+    const r = { wrongTeams: {}, wrongPlayers: {}, stolen: {}, stealPlayers: {}, perfect: null };
+    const inc = (o, k, n = 1) => { if (k) o[k] = (o[k] || 0) + n; };
+    const own = c.teamId || null;
+    if (c.activeMissed) inc(r.wrongTeams, own);
+    if (c.buzz) {
+      for (const m of c.buzz.misses || []) { inc(r.wrongTeams, m.teamId); inc(r.wrongPlayers, m.playerId); }
+      const w = c.buzz.winner;
+      if (c.result && c.result.kind === 'stolen' && w && (c.awarded[w.teamId] || 0) > 0) { inc(r.stolen, w.teamId, c.awarded[w.teamId]); inc(r.stealPlayers, w.playerId); }
+    }
+    if (c.type === 'grinch' && c.steal && (c.awarded[c.steal.to] || 0) > 0) inc(r.stolen, c.steal.to, c.awarded[c.steal.to]);
+    if (c.type === 'hotseat' && c.hs) {
+      const wrong = c.hs.results.filter((x) => x === 'wrong').length;
+      if (wrong) { inc(r.wrongTeams, own, wrong); inc(r.wrongPlayers, c.performer && c.performer.playerId, wrong); }
+      if (c.hs.questions.length && c.hs.results.filter((x) => x === 'correct').length === c.hs.questions.length && c.performer) r.perfect = c.performer.playerId;
+    }
+    if ((c.type === 'allplay' || c.type === 'bonus') && c.revealed && c.subs) {
+      for (const [tid, s] of Object.entries(c.subs)) if (!effCorrect(s)) { inc(r.wrongTeams, tid); inc(r.wrongPlayers, s.by); }
+    }
+    S.stats.ch[c.id] = r;
+  }
+  /** Rank + score snapshot at the end of a round (keyed by round, so it is idempotent). */
+  function checkpoint() {
+    if (!S.round) return;
+    const ranks = rankNow();
+    S.stats.checkpoints[S.round] = { ranks, scores: Object.fromEntries(S.teams.map((t) => [t.id, t.score])) };
   }
 
   // ---------------------------------------------------------------- scoring + undo
@@ -256,8 +511,10 @@ function createGame(opts = {}) {
     }
     if (S.lastAwards.length > 12) S.lastAwards.splice(0, S.lastAwards.length - 12);
     const c = ch();
-    if (c && snap.challengeId === c.id && snap.awarded) { c.awarded = { ...snap.awarded }; if (c.result) c.result.awards = awardsList(c); }
+    if (c && snap.challengeId === c.id && snap.awarded) { c.awarded = { ...snap.awarded }; if (c.result) { c.result.awards = awardsList(c); recordPerformance(c); } }
+    if (c) recordChallengeStats(c);
     if (S.final && snap.final) { S.final.awarded = snap.final.awarded; S.final.rows = snap.final.rows; S.final.done = snap.final.done; }
+    if (S.phase === 'roundBreak' && !c) checkpoint();
     if (S.phase === 'podium') S.podium = computePodium();
     return true;
   }
@@ -309,9 +566,9 @@ function createGame(opts = {}) {
   function onTimerEnd(kind) {
     const c = ch();
     switch (kind) {
-      case 'trivia': if (c && c.type === 'trivia' && c.stage === 'question') { fx('wrong', { teamId: activeTeamId(), timeUp: true }); openSteal(); } break;
-      case 'sound': if (c && c.type === 'sounditout' && c.stage === 'perform') { fx('wrong', { teamId: activeTeamId(), timeUp: true }); openSteal(); } break;
-      case 'steal': if (c && c.stage === 'steal' && c.buzz && !c.buzz.winner) finish('missed'); break;
+      case 'trivia': if (c && c.type === 'trivia' && c.stage === 'question') { fx('wrong', { teamId: activeTeamId(), timeUp: true }); activeMiss(c, 'timeUp'); openSteal(); } break;
+      case 'sound': if (c && c.type === 'sounditout' && c.stage === 'perform') { fx('wrong', { teamId: activeTeamId(), timeUp: true }); activeMiss(c, 'timeUp'); openSteal(); } break;
+      case 'steal': if (c && c.stage === 'steal' && c.buzz && !c.buzz.winner) { finish('missed'); moment('nobodyBuzzed', {}); } break;
       case 'list': if (c && c.type === 'rapidlist' && c.stage === 'list') finish('list'); break;
       case 'hotseat': if (c && c.type === 'hotseat' && c.stage === 'hotseat') finish('hotseat'); break;
       case 'allplay': case 'bonus': if (c && c.stage === 'answering') c.stage = 'marking'; break;
@@ -368,6 +625,7 @@ function createGame(opts = {}) {
     S.challenge = null;
     S.timer = null;
     fx('turn', { teamId: activeTeamId(), turnId: S.turnId, round: S.round });
+    turnQuip();
   }
   function startGame() {
     sched.bump();
@@ -375,7 +633,8 @@ function createGame(opts = {}) {
     S.round = 1; S.turnIndex = 0;
     S.undo = []; S.lastAwards = []; S.final = null; S.podium = null; S.roundBreak = null;
     S.seen = []; S.prevRanks = null; S.lastSpin = null;
-    S.stats = { picks: {}, buzzes: [], firsts: {}, perf: {} };
+    S.stats = freshStats();
+    S.quipUsed = []; S.comedy = { leader: null };
     fx('round', { round: 1 });
     beginTurn();
   }
@@ -392,6 +651,8 @@ function createGame(opts = {}) {
       changed();
     });
     fx('spinStart', { segmentIndex: index, startedAt: S.spin.startedAt, durationMs: T.spinMs, teamId: activeTeamId(), by });
+    // {player} = the spinner (the team's name when the host spun for them)
+    moment('spinStart', { player: by && by.name ? by.name : teamName(activeTeamId()), team: teamName(activeTeamId()) });
   }
   function land() {
     const idx = S.spin.segmentIndex;
@@ -401,12 +662,13 @@ function createGame(opts = {}) {
     S.phase = 'challenge';
     S.challenge = buildChallenge(idx);
     fx('land', { segmentIndex: idx, segmentType: SEGMENTS[idx].type, teamId: activeTeamId() });
+    landQuip(S.challenge);
   }
   function newChallenge(type, segmentIndex, rule) {
     if (!Array.isArray(S.seen)) S.seen = [];
     const firstTime = !S.seen.includes(type);
     if (firstTime) S.seen.push(type);
-    return { id: ++S.challengeSeq, type, segmentIndex, stage: '', rule, points: 0, awarded: {}, revealed: false, hintShown: false, started: false, result: null, firstTime, secretPeeked: false, eyeing: null };
+    return { id: ++S.challengeSeq, type, segmentIndex, stage: '', rule, points: 0, awarded: {}, revealed: false, hintShown: false, started: false, result: null, firstTime, secretPeeked: false, eyeing: null, teamId: activeTeamId() };
   }
   function buildChallenge(idx) {
     const sg = SEGMENTS[idx];
@@ -522,22 +784,34 @@ function createGame(opts = {}) {
     c.revealed = true;
     c.result = { kind, awards: awardsList(c), ...(text ? { text } : {}) };
     recordPerformance(c);
+    recordChallengeStats(c);
     if (S.phase === 'challenge') S.phase = 'turnResult';
+    if (kind === 'list') rapidListQuip(c);
+    if (kind === 'hotseat') hotSeatQuip(c);
   }
-  function refreshResult(c) { if (c.result) { c.result.awards = awardsList(c); recordPerformance(c); } }
+  function refreshResult(c) { if (c.result) { c.result.awards = awardsList(c); recordPerformance(c); recordChallengeStats(c); } }
+  /**
+   * Performances for the awards: `cast` = everyone who performed (Star Performer counts these), `playerIds` = who
+   * scored with it and `points` (tie-break). A skipped challenge is not a performance.
+   */
   function recordPerformance(c) {
     const act = activeTeamId();
     let ids = [];
+    let cast = [];
     let pts = 0;
+    const idsOf = (...xs) => xs.filter((x) => x && x.playerId).map((x) => x.playerId);
+    if (c.result && c.result.kind === 'skipped') { delete S.stats.perf[c.id]; return; }
     if (c.type === 'dare' || c.type === 'sounditout' || c.type === 'hotseat') {
-      ids = [c.performer, c.partner].filter((x) => x && x.playerId).map((x) => x.playerId);
+      ids = idsOf(c.performer, c.partner);
+      cast = ids;
       pts = (c.type === 'sounditout' ? (c.result && c.result.kind === 'correct' ? c.awarded[act] || 0 : 0) : c.awarded[act] || 0);
     } else if (c.type === 'showdown' && c.winnerSide) {
+      cast = idsOf(c.performer, c.rival);
       if (c.winnerSide === 'active' && c.performer) { ids = [c.performer.playerId]; pts = c.awarded[act] || 0; }
       if (c.winnerSide === 'rival' && c.rival && c.rival.playerId) { ids = [c.rival.playerId]; pts = c.awarded[c.rival.teamId] || 0; }
-      if (c.winnerSide === 'tie') { ids = [c.performer, c.rival].filter((x) => x && x.playerId).map((x) => x.playerId); pts = PTS.showdownTie; }
+      if (c.winnerSide === 'tie') { ids = cast; pts = PTS.showdownTie; }
     }
-    if (ids.length) S.stats.perf[c.id] = { playerIds: ids, points: Math.max(0, pts), kind: c.type, nailed: c.type === 'dare' && c.dareResult && c.dareResult.result === 'nailed' };
+    if (cast.length) S.stats.perf[c.id] = { playerIds: ids, cast, points: Math.max(0, pts), kind: c.type, nailed: c.type === 'dare' && c.dareResult && c.dareResult.result === 'nailed' };
   }
 
   // trivia / sound-it-out steal
@@ -546,7 +820,7 @@ function createGame(opts = {}) {
     stopTimer();
     c.stage = 'steal';
     c.stealPoints = Math.round(c.points / 2);
-    c.buzz = { open: false, armingUntil: null, eligibleTeamIds: [], lockedTeamIds: [], winner: null, attempts: 0 };
+    c.buzz = { open: false, armingUntil: null, eligibleTeamIds: [], lockedTeamIds: [], winner: null, attempts: 0, misses: [] };
     armSteal();
   }
   function armSteal() {
@@ -564,6 +838,9 @@ function createGame(opts = {}) {
       cc.buzz.open = true; cc.buzz.armingUntil = null;
       prepareTimer('steal', T.stealMs, true);
       fx('armed', { eligibleTeamIds: cc.buzz.eligibleTeamIds });
+      // Silent Night: everyone online on an eligible team could have buzzed this time
+      S.stats.chances[`${cc.id}:${cc.buzz.attempts}`] = Object.values(S.players).filter((p) => p.connected && cc.buzz.eligibleTeamIds.includes(p.teamId)).map((p) => p.id);
+      moment('stealOpen', {});
       changed();
     });
   }
@@ -589,11 +866,23 @@ function createGame(opts = {}) {
     const c = ch();
     const act = activeTeamId();
     const base = PTS.dare[result] + (bonus ? PTS.dareBonus : 0);
+    const prev = c.dareResult ? c.dareResult.result : null;
     c.dareResult = { result, bonus: !!bonus };
     group(`${teamName(act)} \u00B7 Dare: ${result}`, () => settle(c.awarded, act, base * multFor(act, base), 'Dare'));
     if (c.stage !== 'done') finish(result);
     else { c.result.kind = result; refreshResult(c); }
     fx(result === 'fail' ? 'wrong' : 'correct', { teamId: act });
+    if (prev !== result) { // a new verdict (not just the +50 crowd-favourite toggle)
+      const key = 'dare' + result.charAt(0).toUpperCase() + result.slice(1);
+      const pts = c.awarded[act] || 0;
+      moment(doubled(act) && pts > 0 ? [key, 'doubleDown'] : [key], { player: castName(c), team: teamName(act), points: pts }, { teamId: act });
+    }
+  }
+  /** Room vote: a too-close-to-call tally gets one "voteClose" line while the vote is still open. */
+  function voteCloseQuip(c) {
+    if (!c.vote || !c.vote.open || c.vote.closeQuipped) return;
+    const t = voteTally(c);
+    if (t.voters >= 2 && Math.abs(t.nailed - t.good) <= (t.voters >= 4 ? 1 : 0)) { c.vote.closeQuipped = true; moment('voteClose', {}); }
   }
 
   function settleList() {
@@ -638,6 +927,7 @@ function createGame(opts = {}) {
 
   function endTurn() {
     sched.bump();
+    if (S.challenge) recordChallengeStats(S.challenge); // a turn skipped mid-challenge still counts its misses
     S.timer = null; S.spin = null; S.challenge = null; S.turn = null;
     S.turnIndex++;
     if (S.turnIndex < S.teams.length) { beginTurn(); return; }
@@ -647,10 +937,13 @@ function createGame(opts = {}) {
       const ranks = rankNow();
       S.roundBreak = { round: S.round, nextRound: S.round + 1, finalNext: S.round + 1 === S.settings.rounds, bonusDone: false, prevRanks: S.prevRanks ? { ...S.prevRanks } : null };
       S.prevRanks = ranks;
+      checkpoint();
       fx('roundBreak', { round: S.round });
+      roundBreakQuip();
     } else enterFinal();
   }
   function nextRound() {
+    if (S.challenge) recordChallengeStats(S.challenge);
     S.challenge = null; S.timer = null; S.roundBreak = null;
     if (S.round >= S.settings.rounds) { enterFinal(); return; }
     S.round++;
@@ -662,6 +955,8 @@ function createGame(opts = {}) {
   // final chaos
   function enterFinal() {
     sched.bump();
+    if (S.challenge) recordChallengeStats(S.challenge);
+    checkpoint(); // standings at the end of the last round
     S.phase = 'finalIntro';
     S.roundBreak = null; S.challenge = null; S.timer = null; S.turn = null;
     const q = draw('finals');
@@ -671,6 +966,8 @@ function createGame(opts = {}) {
       wagers: {}, subs: {}, order: [], rows: {}, current: null, awarded: {}, done: false,
     };
     fx('final', {});
+    const lead = soleLeader();
+    moment('finalIntro', { leader: lead ? teamName(lead) : null, last: soleLast() ? teamName(soleLast()) : null });
   }
   function maxWager(teamId) { const t = team(teamId); return Math.max(t ? t.score : 0, 300); }
   function startFinalAnswering() {
@@ -700,45 +997,152 @@ function createGame(opts = {}) {
     row.judged = true; row.correct = ok; row.delta = S.final.awarded[teamId] || 0; row.after = team(teamId).score;
     fx(ok ? 'correct' : 'wrong', { teamId });
     S.final.done = S.final.order.every((id) => S.final.rows[id].judged);
+    // {answer}: the official answer once every row is judged (public then), before that this team's own revealed text
+    const answer = ok ? (S.final.done ? S.final.q.answer : row.text) : null;
+    moment(ok ? 'finalCorrect' : 'finalWrong', { team: teamName(teamId), answer, points: Math.abs(row.delta) || null }, { teamId });
   }
   /** Step the reveal: judge the current row (auto/host mark) if unjudged, else reveal the next team, else podium. */
   function finalRevealNext() {
     const F = S.final;
     if (F.current && !F.rows[F.current].judged) { judgeFinalRow(F.current); return; }
     const next = F.order.find((id) => !F.rows[id].revealed);
-    if (next) { F.rows[next].revealed = true; F.current = next; fx('reveal', { teamId: next }); return; }
+    if (next) {
+      F.rows[next].revealed = true; F.current = next; fx('reveal', { teamId: next });
+      // the wager is public from this moment (never earlier: wagers stay secret until the reveal)
+      const r = F.rows[next];
+      if (r.wager > 0 && r.wager >= (r.before > 0 ? r.before : 300)) moment('finalAllIn', { team: teamName(next), points: r.wager }, { teamId: next });
+      else if (r.wager === 0) moment('finalZeroBet', { team: teamName(next) }, { teamId: next });
+      return;
+    }
     enterPodium();
   }
   function computePodium() {
     const sorted = S.teams.map((t, i) => ({ t, i })).sort((a, b) => b.t.score - a.t.score || a.i - b.i).map((x) => x.t);
     const standings = sorted.map((t) => ({ teamId: t.id, score: t.score, place: 1 + S.teams.filter((o) => o.score > t.score).length }));
-    return { standings, awards: computeAwards() };
+    const stats = computeStats(standings);
+    return { standings, awards: computeAwards(stats), stats };
   }
-  function computeAwards() {
-    const awards = [];
-    const fast = {};
-    for (const pid of S.stats.buzzes) { fast[pid] = fast[pid] || { buzz: 0, first: 0 }; fast[pid].buzz++; }
-    for (const pid of Object.values(S.stats.firsts)) { if (!pid) continue; fast[pid] = fast[pid] || { buzz: 0, first: 0 }; fast[pid].first++; }
-    const fastest = Object.entries(fast).filter(([pid]) => player(pid)).sort((a, b) => (b[1].buzz + b[1].first) - (a[1].buzz + a[1].first) || b[1].buzz - a[1].buzz)[0];
-    if (fastest) {
-      const [pid, f] = fastest;
+  /**
+   * Award stats (COMEDY.md \u00A72). Players: buzzWins, firsts (All Play first-correct), wrongAnswers (missed steals, wrong
+   * All Play / bonus / Final answers they typed, Hot Seat misses), steals, performances, perfectHotSeat, buzzChances.
+   * Teams: steals (points stolen: steals + Grinch Steal), stealCount, wrong, timesLed (rounds ended in first), worstRank,
+   * place, climb (worst end-of-round rank -> final place).
+   */
+  function computeStats(standings) {
+    const P = {};
+    const TM = {};
+    const pRow = (pid) => P[pid] || (P[pid] = { buzzWins: 0, firsts: 0, wrongAnswers: 0, steals: 0, performances: 0, perfPoints: 0, dares: 0, perfectHotSeat: 0, buzzChances: 0 });
+    const tRow = (tid) => TM[tid] || (TM[tid] = { steals: 0, stealCount: 0, wrong: 0, timesLed: 0, worstRank: null, place: null, climb: 0 });
+    for (const p of Object.values(S.players)) pRow(p.id);
+    for (const t of S.teams) tRow(t.id);
+    const st = S.stats;
+    for (const pid of st.buzzes || []) pRow(pid).buzzWins++;
+    for (const pid of Object.values(st.firsts || {})) if (pid) pRow(pid).firsts++;
+    for (const pf of Object.values(st.perf || {})) {
+      for (const pid of pf.cast || pf.playerIds) { const r = pRow(pid); r.performances++; if (pf.kind === 'dare') r.dares++; }
+      for (const pid of pf.playerIds) pRow(pid).perfPoints += pf.points;
+    }
+    for (const r of Object.values(st.ch || {})) {
+      for (const [tid, n] of Object.entries(r.wrongTeams)) tRow(tid).wrong += n;
+      for (const [pid, n] of Object.entries(r.wrongPlayers)) pRow(pid).wrongAnswers += n;
+      for (const [tid, n] of Object.entries(r.stolen)) { tRow(tid).steals += n; tRow(tid).stealCount++; }
+      for (const [pid, n] of Object.entries(r.stealPlayers)) pRow(pid).steals += n;
+      if (r.perfect) pRow(r.perfect).perfectHotSeat++;
+    }
+    if (S.final) {
+      for (const [tid, row] of Object.entries(S.final.rows || {})) {
+        if (!row.judged || row.correct) continue;
+        tRow(tid).wrong++;
+        const sub = S.final.subs[tid];
+        if (sub && sub.by) pRow(sub.by).wrongAnswers++;
+      }
+    }
+    for (const ids of Object.values(st.chances || {})) for (const pid of ids) pRow(pid).buzzChances++;
+    const cps = Object.keys(st.checkpoints || {}).map(Number).sort((a, b) => a - b).map((k) => st.checkpoints[k]);
+    for (const cp of cps) {
+      const top = Math.max(0, ...Object.values(cp.scores));
+      for (const [tid, rank] of Object.entries(cp.ranks)) {
+        const r = tRow(tid);
+        if (rank === 1 && top > 0) r.timesLed++;
+        if (r.worstRank == null || rank > r.worstRank) r.worstRank = rank;
+      }
+    }
+    for (const s of standings) { const r = tRow(s.teamId); r.place = s.place; r.climb = r.worstRank ? Math.max(0, r.worstRank - s.place) : 0; }
+    return { players: P, teams: TM, rounds: cps.length };
+  }
+  /** The funny awards: only when earned, max 6; a two-way tie is shared, a bigger tie means nobody stood out (no award). */
+  function computeAwards(stats) {
+    const earned = {};
+    const given = new Set(); // players who already have an award (no Silent Night for them)
+    const tops = (list, cmp) => {
+      if (!list.length) return null;
+      const sorted = list.slice().sort(cmp);
+      const tied = sorted.filter((x) => cmp(x, sorted[0]) === 0);
+      return tied.length > 2 ? null : tied;
+    };
+    const make = (key, who, detail) => {
+      const info = AWARD_INFO[key];
+      const teams = [...new Set(who.map((w) => w.teamId))];
+      for (const w of who) if (w.playerId) given.add(w.playerId);
+      earned[key] = {
+        key, title: info.title, playerId: who.length === 1 && who[0].playerId ? who[0].playerId : null,
+        name: joinNames(who.map((w) => (w.playerId ? player(w.playerId).name : teamName(w.teamId)))),
+        teamId: teams.length === 1 ? teams[0] : null, detail, art: info.art, ...(who.length > 1 ? { tie: true } : {}),
+      };
+    };
+    const players = Object.entries(stats.players).filter(([pid]) => player(pid) && team(player(pid).teamId))
+      .map(([pid, s]) => ({ ...s, playerId: pid, teamId: player(pid).teamId, joined: player(pid).joinedAt || 0 }));
+    const teams = S.teams.map((t) => ({ ...stats.teams[t.id], teamId: t.id }));
+    const each = (w) => (w.length > 1 ? ' each' : '');
+
+    // Fastest Finger: steal buzzes won + All Play first-correct answers
+    let w = tops(players.filter((p) => p.buzzWins + p.firsts > 0), (a, b) => (b.buzzWins + b.firsts) - (a.buzzWins + a.firsts) || b.buzzWins - a.buzzWins);
+    if (w) {
+      const f = w[0];
       const parts = [];
-      if (f.buzz) parts.push(`${f.buzz} buzz${f.buzz === 1 ? '' : 'es'} won`);
-      if (f.first) parts.push(`${f.first} first answer${f.first === 1 ? '' : 's'}`);
-      awards.push({ key: 'fastestFinger', title: 'Fastest Finger', playerId: pid, name: player(pid).name, teamId: player(pid).teamId, detail: parts.join(' \u00B7 ') });
+      if (f.buzzWins) parts.push(`${f.buzzWins} buzz${f.buzzWins === 1 ? '' : 'es'} won`);
+      if (f.firsts) parts.push(`${plural(f.firsts, 'first answer')}`);
+      make('fastestFinger', w, `${parts.join(' \u00B7 ')}${each(w)} \u2014 thumbs faster than Santa\u2019s sleigh`);
     }
-    const perf = {};
-    for (const p of Object.values(S.stats.perf)) for (const pid of p.playerIds) {
-      perf[pid] = perf[pid] || { count: 0, points: 0, dares: 0 };
-      perf[pid].count++; perf[pid].points += p.points; if (p.kind === 'dare') perf[pid].dares++;
+    // Star Performer: the most performances (dares, songs, Hot Seats, showdowns), points as the tie-break
+    w = tops(players.filter((p) => p.performances > 0 && (p.perfPoints > 0 || p.performances >= 2)), (a, b) => b.performances - a.performances || b.perfPoints - a.perfPoints);
+    if (w && w.length > 1 && w[0].performances < 2) w = null; // two people with one turn each: nobody stood out yet
+    if (w) {
+      const s = w[0];
+      const what = s.dares === s.performances ? plural(s.performances, 'dare') : plural(s.performances, 'performance');
+      make('starPerformer', w, `${what}${s.perfPoints ? ` \u00B7 ${fmtNum(s.perfPoints)} pts` : ''}${s.perfectHotSeat ? ' \u00B7 a perfect Hot Seat' : ''}${each(w)} \u2014 the elves want an encore`);
     }
-    const star = Object.entries(perf).filter(([pid, v]) => player(pid) && v.points > 0).sort((a, b) => b[1].points - a[1].points || b[1].count - a[1].count)[0];
-    if (star) {
-      const [pid, v] = star;
-      const what = v.dares === v.count ? `${v.count} dare${v.count === 1 ? '' : 's'}` : `${v.count} performance${v.count === 1 ? '' : 's'}`;
-      awards.push({ key: 'starPerformer', title: 'Star Performer', playerId: pid, name: player(pid).name, teamId: player(pid).teamId, detail: `${what} \u00B7 ${v.points} pts` });
+    // Lump of Coal: the most wrong answers (a player with 3+, else a team with 2+), played for laughs
+    w = tops(players.filter((p) => p.wrongAnswers >= 3), (a, b) => b.wrongAnswers - a.wrongAnswers);
+    if (w) make('lumpOfCoal', w, `${plural(w[0].wrongAnswers, 'wrong answer')}${each(w)} \u2014 Santa noticed`);
+    else {
+      w = tops(teams.filter((t) => t.wrong >= 2), (a, b) => b.wrong - a.wrong);
+      if (w) make('lumpOfCoal', w, `${plural(w[0].wrong, 'wrong answer')} between them${each(w)} \u2014 Santa checked his list twice`);
     }
-    return awards;
+    // Grinch of the Year: the most points stolen (steals + Grinch Steal)
+    w = tops(teams.filter((t) => t.steals > 0), (a, b) => b.steals - a.steals || b.stealCount - a.stealCount);
+    if (w) make('grinchOfTheYear', w, `Stole ${fmtNum(w[0].steals)} points${w[0].stealCount > 1 ? ` in ${w[0].stealCount} heists` : ''}${each(w)} \u2014 heart still two sizes too small`);
+    // Comeback Kid: the biggest climb from the worst end-of-round rank to the final place
+    w = tops(teams.filter((t) => t.climb >= 2 || (t.climb >= 1 && t.place === 1)), (a, b) => b.climb - a.climb || a.place - b.place);
+    if (w) {
+      const c = w[0];
+      make('comebackKid', w, `From ${ordinal(c.worstRank)} to ${ordinal(c.place)} \u2014 ${c.place === 1 ? 'and won the whole thing!' : 'a Christmas miracle'}`);
+    }
+    // Silent Night: the fewest buzzes among players who could buzz (3+ chances, buzzed in at most 1 of 4)
+    w = tops(players.filter((p) => !given.has(p.playerId) && p.buzzChances >= 3 && p.buzzWins * 4 <= p.buzzChances),
+      (a, b) => a.buzzWins - b.buzzWins || b.buzzChances - a.buzzChances || a.performances - b.performances);
+    if (w) {
+      const s = w[0];
+      make('silentNight', w, `${s.buzzWins ? plural(s.buzzWins, 'buzz', 'buzzes') : 'Not one buzz'} in ${s.buzzChances} steal chances${each(w)} \u2014 all is calm, all is bright`);
+    }
+    // Rudolph Award: led the most rounds (at least 2)
+    w = tops(teams.filter((t) => t.timesLed >= 2), (a, b) => b.timesLed - a.timesLed || a.place - b.place);
+    if (w) make('rudolph', w, `Led ${w[0].timesLed} of ${stats.rounds} rounds${each(w)} \u2014 guided the sleigh all night`);
+
+    // more than 6 earned: shared (tied) awards drop out first, then the last in AWARD_PICK order
+    const keep = AWARD_PICK.filter((k) => earned[k])
+      .sort((a, b) => (earned[a].tie ? 1 : 0) - (earned[b].tie ? 1 : 0) || AWARD_PICK.indexOf(a) - AWARD_PICK.indexOf(b)).slice(0, AWARD_MAX);
+    return AWARD_ORDER.filter((k) => keep.includes(k)).map((k) => earned[k]);
   }
   function enterPodium() {
     sched.bump();
@@ -746,6 +1150,8 @@ function createGame(opts = {}) {
     S.phase = 'podium';
     S.podium = computePodium();
     fx('podium', {});
+    const winners = S.podium.standings.filter((s) => s.place === 1 && s.score > 0).map((s) => s.teamId);
+    moment('podium', { leader: winners.length ? joinNames(winners.map(teamName)) : null }, { teamId: winners.length === 1 ? winners[0] : null });
   }
 
   function resetGame(keepTeams) {
@@ -758,9 +1164,11 @@ function createGame(opts = {}) {
     S.settings = { ...old.settings };
     S.players = old.players; S.clients = old.clients;
     S.lastSegmentIndex = old.lastSegmentIndex;
+    S.quipNight = Array.isArray(old.quipNight) ? old.quipNight.slice() : [];
     if (keepTeams) S.teams = old.teams.map((t) => ({ ...t, score: 0 }));
     else for (const p of Object.values(S.players)) p.teamId = null;
     recomputeAuto();
+    moment('lobbyIdle', {}, { recycle: true });
   }
 
   // ---------------------------------------------------------------- action table
@@ -798,6 +1206,7 @@ function createGame(opts = {}) {
           pl = { id, name, teamId: p.teamId, connected: true, joinedAt: now() };
           S.players[id] = pl;
           S.clients[clientKey(ctx.actor.clientId)] = id;
+          if (S.phase === 'lobby') moment('lobbyIdle', {}, { recycle: true }); // the lobby gift tag rotates as people arrive
         } else {
           pl.name = name; pl.teamId = p.teamId; pl.connected = true;
         }
@@ -884,6 +1293,7 @@ function createGame(opts = {}) {
         c.vote.votes[ctx.player.id] = p.choice;
         fx('vote', { ...voteTally(c), choice: p.choice, changed: changedVote });
         if (!changedVote && Object.keys(c.vote.votes).length >= eligibleVoters()) closeVote();
+        else voteCloseQuip(c);
         return { changed: changedVote };
       },
     },
@@ -1035,7 +1445,7 @@ function createGame(opts = {}) {
       run: () => {
         const c = ch();
         if (c.stage === 'steal') armSteal();
-        else { fx('wrong', { teamId: activeTeamId() }); openSteal(); }
+        else { fx('wrong', { teamId: activeTeamId() }); activeMiss(c, 'wrong'); openSteal(); }
       },
     },
     'host:reveal': {
@@ -1052,8 +1462,10 @@ function createGame(opts = {}) {
         const c = ch();
         if (c.type === 'dare') { c.revealed = true; return; }
         if (c.type === 'rapidlist') { c.listRevealed = true; if (c.stage !== 'done') finish('list'); return; }
+        const silent = c.stage === 'steal' && c.buzz && !c.buzz.winner && !c.buzz.lockedTeamIds.length && (c.buzz.open || c.buzz.armingUntil);
         finish('missed');
         fx('reveal', {});
+        if (silent) moment('nobodyBuzzed', {}); // the host gave up waiting for a buzz
       },
     },
     'host:showHint': {
@@ -1195,6 +1607,13 @@ function createGame(opts = {}) {
         });
         finish(p.winner === 'tie' ? 'tie' : 'win');
         fx('correct', { teamId: p.winner === 'rival' ? c.rival.teamId : act });
+        if (p.winner === 'tie') moment('showdownTie', { team: teamName(act), other: teamName(c.rival.teamId) });
+        else {
+          const [win, lose, who] = p.winner === 'rival' ? [c.rival.teamId, act, c.rival] : [act, c.rival.teamId, c.performer];
+          const pts = c.awarded[win] || 0;
+          moment(doubled(win) && pts > 0 ? ['showdownWin', 'doubleDown'] : ['showdownWin'],
+            { player: who && who.name ? who.name : null, team: teamName(win), other: teamName(lose), points: pts }, { teamId: win });
+        }
       },
     },
     'host:listTick': {
@@ -1272,7 +1691,7 @@ function createGame(opts = {}) {
     },
     'host:undo': {
       guard: () => (S.undo.length ? ok : 'nothing-to-undo'),
-      run: () => { undo(); },
+      run: () => { if (undo()) moment('undo', {}); },
     },
     'host:nextTurn': {
       guard: () => (IN_TURN.has(S.phase) ? ok : 'not-now'),
@@ -1298,6 +1717,8 @@ function createGame(opts = {}) {
     c.pickedBy = by;
     c.stage = 'question';
     prepareTimer('trivia', T.triviaMs, true);
+    const act = activeTeamId();
+    moment('pick' + level.charAt(0).toUpperCase() + level.slice(1), { team: teamName(act), points: c.points * (S.turn ? S.turn.multiplier : 1) }, { teamId: act });
   }
   function pickTarget(targetId) {
     const c = ch();
@@ -1313,6 +1734,7 @@ function createGame(opts = {}) {
       c.steal = { from: victim.id, to: act, amount };
       fx('steal', { from: victim.id, to: act, amount });
       finish('steal');
+      moment('grinchSteal', { team: teamName(act), other: victim.name, points: amount }, { teamId: act });
     } else {
       c.rival = pickPlayer(targetId) || { teamId: targetId, playerId: null, name: null };
       c.performer = pickPlayer(act);
@@ -1332,12 +1754,17 @@ function createGame(opts = {}) {
         cAward(w.teamId, c.stealPoints, 'Steal');
         fx('correct', { teamId: w.teamId, steal: true });
         finish('stolen');
+        // {team} = the stealing team, {other} = the team that missed
+        moment('stealWon', { team: teamName(w.teamId), other: teamName(act), player: w.name, points: c.awarded[w.teamId] || c.stealPoints }, { teamId: w.teamId });
       } else {
         c.buzz.lockedTeamIds.push(w.teamId);
+        if (!Array.isArray(c.buzz.misses)) c.buzz.misses = [];
+        c.buzz.misses.push({ playerId: w.playerId, teamId: w.teamId });
         c.buzz.winner = null;
         c.buzz.eligibleTeamIds = c.buzz.eligibleTeamIds.filter((id) => id !== w.teamId);
         fx('wrong', { teamId: w.teamId, steal: true });
         if (!otherTeamIds().some((id) => !c.buzz.lockedTeamIds.includes(id))) finish('missed');
+        moment('stealMissed', { team: teamName(w.teamId), player: w.name, other: teamName(act) }, { teamId: w.teamId });
       }
       return;
     }
@@ -1345,8 +1772,13 @@ function createGame(opts = {}) {
       cAward(act, c.points, c.type === 'trivia' ? (TRIVIA_LABELS[c.category] || 'Trivia') : 'Sound It Out');
       fx('correct', { teamId: act });
       finish('correct');
+      // the answer is public now (finish revealed it), so {answer} may be used
+      const pts = c.awarded[act] || 0;
+      const keys = [...(doubled(act) && pts > 0 ? ['doubleDown'] : []), ...(c.difficulty === 'hard' ? ['correctHard'] : []), 'correct'];
+      moment(keys, { team: teamName(act), points: pts, answer: c.type === 'trivia' ? c.q.answer : c.song.title }, { teamId: act });
     } else {
       fx('wrong', { teamId: act });
+      activeMiss(c, 'wrong');
       openSteal();
     }
   }
@@ -1358,6 +1790,7 @@ function createGame(opts = {}) {
     finish(c.type === 'bonus' ? 'bonus' : 'allplay');
     if (c.type === 'bonus' && S.roundBreak) S.roundBreak.bonusDone = true;
     fx('reveal', {});
+    allPlayQuip(c);
   }
   function swapQuestion() {
     const c = ch();
@@ -1506,6 +1939,7 @@ function createGame(opts = {}) {
     S = { ...fresh, ...JSON.parse(JSON.stringify(data)) };
     delete S.savedAt;
     S.stats = { ...fresh.stats, ...(S.stats || {}) };
+    if (!isObj(S.comedy)) S.comedy = { leader: null };
     used = new Set(Array.isArray(data.used) ? data.used : []);
     S.used = [];
     for (const p of Object.values(S.players)) p.connected = false;
@@ -1515,6 +1949,7 @@ function createGame(opts = {}) {
     const c = S.challenge;
     if (c && c.buzz && c.stage === 'steal' && !c.buzz.open && c.buzz.armingUntil) armSteal();
     if (c && c.vote && c.vote.open) c.vote.endsAt = null;
+    lastSig = null; // the restored quip stays on screen
     changed();
     return true;
   }
@@ -1531,6 +1966,8 @@ function createGame(opts = {}) {
     if (c.type === 'dare' && c.secretValue) return { label: c.dare.secret.label, value: c.secretValue, detail: '' };
     return null;
   }
+
+  moment('lobbyIdle', {}, { recycle: true }); // the lobby gift tag
 
   return {
     get state() { return S; },

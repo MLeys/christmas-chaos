@@ -217,11 +217,36 @@ function publicView(game, extra = {}) {
     lastAwards: S.lastAwards.map((a) => ({ id: a.id, teamId: a.teamId, delta: a.delta, reason: a.reason, doubled: !!a.doubled })),
     roundBreak: S.phase === 'roundBreak' && S.roundBreak ? publicRoundBreak(S, ranks) : null,
     final: publicFinal(game),
-    podium: S.phase === 'podium' && S.podium ? {
-      standings: S.podium.standings.map((s) => ({ teamId: s.teamId, score: s.score, place: s.place })),
-      awards: S.podium.awards.map((a) => ({ key: a.key, title: a.title, playerId: a.playerId, name: a.name, teamId: a.teamId, detail: a.detail })),
-    } : null,
+    podium: S.phase === 'podium' && S.podium ? publicPodium(S) : null,
+    // the TV quip for the current moment (placeholders filled server-side; {answer} only after the reveal)
+    quip: S.quip ? { id: S.quip.id, key: S.quip.key, text: S.quip.text, tone: S.quip.tone || null, teamId: S.quip.teamId || null } : null,
     savedGame: extra.savedGame ? { summary: extra.savedGame } : null,
+  };
+}
+
+/** Podium: standings, the funny awards (max 6, only when earned) and the per-player / per-team stats behind them. */
+function publicPodium(S) {
+  const P = S.podium;
+  const st = P.stats || { players: {}, teams: {} };
+  const num = (v) => (Number.isFinite(v) ? v : 0);
+  return {
+    standings: P.standings.map((s) => ({ teamId: s.teamId, score: s.score, place: s.place })),
+    awards: P.awards.map((a) => ({
+      key: a.key, title: a.title, playerId: a.playerId || null, name: a.name, teamId: a.teamId || null, detail: a.detail, art: a.art || null, tie: !!a.tie,
+    })),
+    stats: {
+      players: Object.keys(st.players).filter((id) => Object.prototype.hasOwnProperty.call(S.players, id)).map((id) => {
+        const p = st.players[id];
+        return {
+          playerId: id, teamId: S.players[id].teamId || null, buzzWins: num(p.buzzWins), firsts: num(p.firsts), wrongAnswers: num(p.wrongAnswers),
+          steals: num(p.steals), performances: num(p.performances), perfectHotSeat: num(p.perfectHotSeat), buzzChances: num(p.buzzChances),
+        };
+      }),
+      teams: S.teams.filter((t) => st.teams[t.id]).map((t) => {
+        const x = st.teams[t.id];
+        return { teamId: t.id, steals: num(x.steals), stealCount: num(x.stealCount), wrong: num(x.wrong), timesLed: num(x.timesLed), worstRank: x.worstRank || null, climb: num(x.climb) };
+      }),
+    },
   };
 }
 

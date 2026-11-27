@@ -612,6 +612,21 @@ test('17. full 6-team game over real sockets reaches the podium; every segment t
       for (const a of st.host.coach.actions) if (!a.disabled && a.event) assert.ok(a.event === 'host:' + a.event.slice(5) && st.host.can[a.event.slice(5)] !== false, `coach action ${a.id} enabled while host.can.${a.event.slice(5)} is false (${st.phase})`);
     }
     assert.ok(h.states.some((st) => st.challenge && st.challenge.type === 'trivia' && st.challenge.category === 'movies' && st.challenge.movie), 'a Christmas Movies question with its film chip');
+    // comedy layer: TV quips (placeholders filled, never the same line twice in the game), react cues, coach punchlines
+    const tvQuips = [];
+    let prevQuip = null;
+    for (const st of tv.states) {
+      if (st.quip && st.phase !== 'lobby' && st.quip.id !== prevQuip) tvQuips.push(st.quip);
+      prevQuip = st.quip ? st.quip.id : null;
+    }
+    assert.ok(tvQuips.length > 30, `quips on the TV (${tvQuips.length})`);
+    assert.equal(new Set(tvQuips.map((q) => q.id)).size, tvQuips.length, 'no quip repeats within a game');
+    for (const q of tvQuips) assert.ok(q.key && q.text && !/\{[a-zA-Z]+\}/.test(q.text), 'placeholders filled: ' + q.text);
+    const reacts = tv.fx.filter((e) => e.type === 'react');
+    assert.ok(reacts.length > 10, 'react cues');
+    for (const e of reacts) assert.ok(['cheer', 'groan', 'gasp', 'laugh'].includes(e.mood) && typeof e.key === 'string', JSON.stringify(e));
+    assert.ok(h.states.some((st) => st.quip && st.host.coach.punchline && st.host.coach.punchline.id === st.quip.id && st.host.coach.say.includes(st.quip.text)), 'the coach suggests the punchline');
+    assert.ok(pod.podium.awards.length <= 6 && pod.podium.awards.every((a) => a.title && a.name && a.detail && a.art), 'funny awards');
     // every phone ends on the podium with its own team
     for (const p of Object.values(L.players).flat()) await p.waitFor((s) => s.phase === 'podium' && s.myTeam, 4000);
     const lines = pod.podium.standings.map((s) => `${s.place}. ${pod.teams.find((t) => t.id === s.teamId).name} ${s.score}`);
@@ -738,8 +753,8 @@ test('server: http routes, QR colours, fonts, join IP switching, hello validatio
     assert.equal(qr.status, 200);
     assert.match(qr.headers.get('content-type'), /image\/svg\+xml/);
     const svg = await qr.text();
-    assert.ok(svg.includes('#FFF7EA') && svg.includes('#0B1430'));
-    for (const f of ['/fonts/fraunces/fraunces-latin-full-normal.woff2', '/fonts/fraunces/fraunces-latin-full-italic.woff2', '/fonts/figtree/figtree-latin-wght-normal.woff2', '/fonts/big-shoulders-display/big-shoulders-display-latin-wght-normal.woff2', '/fonts/lilita-one/lilita-one-latin-400-normal.woff2', '/fonts/fredoka/fredoka-latin-400-normal.woff2', '/fonts/fredoka/fredoka-latin-500-normal.woff2', '/fonts/fredoka/fredoka-latin-600-normal.woff2', '/fonts/fredoka/fredoka-latin-700-normal.woff2']) {
+    assert.ok(svg.includes('#FFFFFF') && svg.includes('#1C2333'), 'ink QR on a white gift tag');
+    for (const f of ['/fonts/bagel-fat-one/bagel-fat-one-latin-400-normal.woff2', '/fonts/bagel-fat-one/bagel-fat-one-latin-ext-400-normal.woff2', '/fonts/fraunces/fraunces-latin-full-normal.woff2', '/fonts/fraunces/fraunces-latin-full-italic.woff2', '/fonts/figtree/figtree-latin-wght-normal.woff2', '/fonts/big-shoulders-display/big-shoulders-display-latin-wght-normal.woff2', '/fonts/lilita-one/lilita-one-latin-400-normal.woff2', '/fonts/fredoka/fredoka-latin-400-normal.woff2', '/fonts/fredoka/fredoka-latin-500-normal.woff2', '/fonts/fredoka/fredoka-latin-600-normal.woff2', '/fonts/fredoka/fredoka-latin-700-normal.woff2']) {
       const r = await fetch(srv.url + f);
       assert.equal(r.status, 200, f);
       assert.match(r.headers.get('content-type') || '', /font\/woff2/, f);
