@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone — Pick difficulty</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&amp;family=Lilita+One&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#FFC93C}a:hover{color:#FFE08A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0B1F17; color: #FFF6E5; font-family: 'Fredoka', sans-serif; display: flex; flex-direction: column; overflow: hidden; position: relative; box-sizing: border-box">
+
+  <header style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px; box-sizing: border-box; border-bottom: 2px solid rgba(255,246,229,0.08)">
+    <div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+      <span style="width: 36px; height: 36px; border-radius: 50%; background: #FF5A4E; display: flex; align-items: center; justify-content: center; flex: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B1F17" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"></path></svg></span>
+      <span style="font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Team Rudolph</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 7px; flex: none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="In the lead"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"></path><path d="M5 21h14"></path></svg>
+      <span style="font-family: 'Lilita One', sans-serif; font-size: 28px; line-height: 1">1,150</span>
+      <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.12em; color: #B8CCBF">PTS</span>
+    </div>
+  </header>
+
+  <main style="flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 22px 20px 20px; box-sizing: border-box">
+
+    <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; background: #C8232C; color: #FFF6E5; font-weight: 600; font-size: 15px; letter-spacing: 0.08em; padding: 8px 16px 8px 11px; border-radius: 999px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFF6E5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z"></path><path d="M12 22v-3"></path></svg>
+      CHRISTMAS TRIVIA
+    </span>
+    <h1 style="margin: 14px 0 0; font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 42px; line-height: 1.02">Pick your risk</h1>
+    <p style="margin: 8px 0 0; font-size: 18px; line-height: 1.35; color: #B8CCBF">Answer out loud as a team. Miss it and the other teams can steal.</p>
+
+    <div role="group" aria-label="Difficulty" style="margin-top: 22px; display: flex; flex-direction: column; gap: 18px">
+
+      <button type="button" style="height: 128px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 22px 6px; border: none; border-radius: 24px; background: #2FB36B; color: #0B1F17; box-shadow: 0 6px 0 #1B7A45; font-family: 'Fredoka', sans-serif; text-align: left; cursor: pointer; box-sizing: border-box">
+        <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+          <span style="display: flex; align-items: center; gap: 12px">
+            <span style="font-family: 'Lilita One', sans-serif; font-size: 36px; line-height: 1">Easy</span>
+            <span style="display: flex; gap: 4px" aria-hidden="true"><span style="width: 16px; height: 8px; border-radius: 4px; background: #0B1F17"></span><span style="width: 16px; height: 8px; border-radius: 4px; background: rgba(11,31,23,0.22)"></span><span style="width: 16px; height: 8px; border-radius: 4px; background: rgba(11,31,23,0.22)"></span></span>
+          </span>
+          <span style="font-size: 17px; font-weight: 600">A friendly warm-up</span>
+          <span style="font-size: 15px; font-weight: 500">Miss it? Others steal 50</span>
+        </span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end; flex: none">
+          <span style="font-family: 'Lilita One', sans-serif; font-size: 56px; line-height: 0.95">100</span>
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.14em">POINTS</span>
+        </span>
+      </button>
+
+      <button type="button" style="height: 128px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 22px 6px; border: none; border-radius: 24px; background: #FFC93C; color: #0B1F17; box-shadow: 0 6px 0 #C99418; font-family: 'Fredoka', sans-serif; text-align: left; cursor: pointer; box-sizing: border-box">
+        <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+          <span style="display: flex; align-items: center; gap: 12px">
+            <span style="font-family: 'Lilita One', sans-serif; font-size: 36px; line-height: 1">Medium</span>
+            <span style="display: flex; gap: 4px" aria-hidden="true"><span style="width: 16px; height: 8px; border-radius: 4px; background: #0B1F17"></span><span style="width: 16px; height: 8px; border-radius: 4px; background: #0B1F17"></span><span style="width: 16px; height: 8px; border-radius: 4px; background: rgba(11,31,23,0.22)"></span></span>
+          </span>
+          <span style="font-size: 17px; font-weight: 600">Know your carols</span>
+          <span style="font-size: 15px; font-weight: 500">Miss it? Others steal 100</span>
+        </span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end; flex: none">
+          <span style="font-family: 'Lilita One', sans-serif; font-size: 56px; line-height: 0.95">200</span>
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.14em">POINTS</span>
+        </span>
+      </button>
+
+      <button type="button" style="height: 128px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 22px 6px; border: none; border-radius: 24px; background: #D42F2F; color: #FFF6E5; box-shadow: 0 6px 0 #8E1C1C; font-family: 'Fredoka', sans-serif; text-align: left; cursor: pointer; box-sizing: border-box">
+        <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+          <span style="display: flex; align-items: center; gap: 12px">
+            <span style="font-family: 'Lilita One', sans-serif; font-size: 36px; line-height: 1">Hard</span>
+            <span style="display: flex; gap: 4px" aria-hidden="true"><span style="width: 16px; height: 8px; border-radius: 4px; background: #FFF6E5"></span><span style="width: 16px; height: 8px; border-radius: 4px; background: #FFF6E5"></span><span style="width: 16px; height: 8px; border-radius: 4px; background: #FFF6E5"></span></span>
+          </span>
+          <span style="font-size: 17px; font-weight: 600">Superfans only</span>
+          <span style="font-size: 15px; font-weight: 500">Miss it? Others steal 150</span>
+        </span>
+        <span style="display: flex; flex-direction: column; align-items: flex-end; flex: none">
+          <span style="font-family: 'Lilita One', sans-serif; font-size: 56px; line-height: 0.95">300</span>
+          <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.14em">POINTS</span>
+        </span>
+      </button>
+
+    </div>
+
+    <div style="margin-top: auto; display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 20px; background: #123326; border: 2px solid rgba(255,246,229,0.10)">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#FFC93C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex: none"><path d="M22 14a8 8 0 0 1-8 8"></path><path d="M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2"></path><path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1"></path><path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10"></path><path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"></path></svg>
+      <p style="margin: 0; font-size: 16px; line-height: 1.4; color: #B8CCBF"><strong style="color: #FFF6E5; font-weight: 600">First tap on your team decides.</strong> Sam, Noah and Max see these buttons too.</p>
+    </div>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

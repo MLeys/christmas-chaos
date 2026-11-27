@@ -1,381 +1,384 @@
 'use strict';
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
+/**
+ * Christmas Chaos v2 \u2014 server entry.
+ * Express (pages, fonts, QR, /api/info) + socket.io (hello / player events / host:* events / state + fx pushes),
+ * host authorisation (loopback or PIN), autosave/resume, LAN address picking and the startup banner.
+ * The game rules live in src/game.js; what each screen may see lives in src/views.js.
+ */
 const fs = require('fs');
-const os = require('os');
+const path = require('path');
+const http = require('http');
+const express = require('express');
+const { Server } = require('socket.io');
+const QRCode = require('qrcode');
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+const { createGame } = require('./src/game');
+const { loadContent } = require('./src/content');
+const { publicView, hostView, playerView } = require('./src/views');
+const { pickLanAddress } = require('./src/net');
+const { createScheduler } = require('./src/scheduler');
 
-app.use(express.static(path.join(__dirname, 'public')));
+const PLAYER_EVENTS = ['join', 'spin', 'pickDifficulty', 'buzz', 'pickTarget', 'submitAnswer', 'wager', 'vote'];
+const HOST_GAME_EVENTS = [
+  'createTeam', 'updateTeam', 'removeTeam', 'movePlayer', 'kickPlayer', 'setRounds', 'setOption', 'start', 'spin',
+  'forceSegment', 'pickDifficulty', 'pickTarget', 'judge', 'openSteal', 'reveal', 'showHint', 'timer', 'rerollPerformer',
+  'swapQuestion', 'endChallenge', 'dareResult', 'openVote', 'closeVote', 'showdownResult', 'listTick', 'listUntick',
+  'listOther', 'hotseatMark', 'markAnswer', 'revealAnswers', 'finalStartAnswering', 'finalRevealNext', 'adjustScore',
+  'undo', 'nextTurn', 'continue', 'resetGame',
+].map((e) => 'host:' + e);
+const HOST_SERVER_EVENTS = ['host:resume', 'host:discardSave'];
+const ROLES = ['player', 'tv', 'host'];
+const CLIENT_ID_RE = /^[A-Za-z0-9_-]{6,64}$/;
 
-const questions = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/questions.json'), 'utf8'));
-const dares = JSON.parse(fs.readFileSync(path.join(__dirname, 'data/dares.json'), 'utf8'));
+const isLoopback = (addr) => typeof addr === 'string' && (addr === '::1' || addr === '127.0.0.1' || addr.startsWith('127.') || addr === '::ffff:127.0.0.1' || addr.startsWith('::ffff:127.'));
+const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-const WHEEL_SEGMENTS = [
-  { id: 'w0',  label: 'Christmas\nTrivia',  color: '#9b1e1e', emoji: '🎄', type: 'trivia',    category: 'christmas',  points: 100 },
-  { id: 'w1',  label: 'Pop Culture',        color: '#1a6e3c', emoji: '🎬', type: 'trivia',    category: 'popculture', points: 100 },
-  { id: 'w2',  label: 'Dare Card',          color: '#c0392b', emoji: '😱', type: 'dare',      category: null,         points: 150 },
-  { id: 'w3',  label: 'Christmas\nTrivia',  color: '#7a1515', emoji: '🎅', type: 'trivia',    category: 'christmas',  points: 100 },
-  { id: 'w4',  label: 'Sound It Out',       color: '#5b3486', emoji: '🎵', type: 'sounditout',category: 'sounditout', points: 100 },
-  { id: 'w5',  label: 'Pop Culture',        color: '#145a32', emoji: '⭐', type: 'trivia',    category: 'popculture', points: 100 },
-  { id: 'w6',  label: 'Dare Card',          color: '#a93226', emoji: '🤪', type: 'dare',      category: null,         points: 150 },
-  { id: 'w7',  label: 'ALL PLAY!',          color: '#b7950b', emoji: '⚡', type: 'allplay',   category: 'christmas',  points: 150 },
-  { id: 'w8',  label: 'Christmas\nTrivia',  color: '#6e1515', emoji: '🦌', type: 'trivia',    category: 'christmas',  points: 100 },
-  { id: 'w9',  label: 'Hot Seat',           color: '#a04000', emoji: '🔥', type: 'hotseat',   category: null,         points: 25  },
-  { id: 'w10', label: 'Double Down!',       color: '#1a5276', emoji: '💫', type: 'special',   effect: 'doubledown',   points: 0   },
-  { id: 'w11', label: 'STEAL!',             color: '#0e6655', emoji: '🎁', type: 'special',   effect: 'steal',        points: 100 },
-];
+function makePin() { return String(Math.floor(1000 + Math.random() * 9000)); }
 
-const TEAM_COLORS = ['#c0392b','#1a7a3c','#2471a3','#8e44ad','#d35400','#117a65','#7D6608','#1a5276'];
+function fontDir(pkg) {
+  try { return path.join(path.dirname(require.resolve(pkg + '/package.json')), 'files'); } catch { return null; }
+}
 
-function makeState() {
-  return {
-    phase: 'lobby',
-    teams: [],
-    players: {},
-    currentTeamIndex: 0,
-    round: 1,
-    totalRounds: 3,
-    turnsInRound: 0,
-    currentChallenge: null,
-    currentSegment: null,
-    usedQuestionIds: [],
-    usedDareIds: [],
-    doubleDownActive: false,
-    buzzerOpen: false,
-    buzzerWinner: null,
-    hotSeatQuestions: [],
-    hotSeatIndex: 0,
-    answerRevealed: false,
+/**
+ * Start the server. Resolves with a handle once listening.
+ * @param {object} o
+ *   port (env PORT || 3000; 0 = random), host ('0.0.0.0'), dataDir, saveDir, publicDir, pin (env HOST_PIN or random),
+ *   trustLoopback (true), timing (game timing overrides), rng, autosave (true), saveDebounceMs (1000),
+ *   coalesceMs (30), rateLimit (events/sec/socket, 60; 0 = off), quiet (false), env (process.env)
+ */
+function startServer(o = {}) {
+  const env = o.env || process.env;
+  const log = o.quiet ? () => {} : (...a) => console.log(...a);
+  const warn = (...a) => console.warn(...a);
+  const dataDir = o.dataDir || path.join(__dirname, 'data');
+  const saveDir = o.saveDir || env.CC_SAVE_DIR || path.join(__dirname, 'saves');
+  const publicDir = o.publicDir || path.join(__dirname, 'public');
+  const savePath = path.join(saveDir, 'autosave.json');
+  const pin = String(o.pin || env.HOST_PIN || makePin());
+  const trustLoopback = o.trustLoopback !== false;
+  const coalesceMs = o.coalesceMs != null ? o.coalesceMs : 30;
+  const rateLimit = o.rateLimit != null ? o.rateLimit : 60;
+  const autosave = o.autosave !== false;
+  const saveDebounceMs = o.saveDebounceMs != null ? o.saveDebounceMs : 1000;
+  let port = o.port != null ? Number(o.port) : Number(env.PORT || 3000);
+
+  const content = loadContent(dataDir);
+  if (content.problems.length) {
+    warn(`[content] ${content.problems.length} problem(s) in data/*.json (bad items are skipped):`);
+    for (const p of content.problems.slice(0, 15)) warn(`  - ${p.file}${p.id ? ' ' + p.id : ''}: ${p.error}`);
+  }
+
+  // ------------------------------------------------------------- LAN address
+  const lan = pickLanAddress(undefined, env);
+  let joinIp = lan.address;
+  const joinUrlFor = (ip) => `http://${ip}:${port}/`;
+
+  // ------------------------------------------------------------- game
+  const fxQueue = [];
+  let flushTimer = null;
+  let io = null;
+  const scheduler = createScheduler({ onError: (e) => console.error('[timer]', e) });
+  const game = createGame({
+    content,
+    rng: o.rng,
+    timing: o.timing,
+    scheduler,
+    onChange: () => scheduleFlush(),
+    onFx: (e) => { fxQueue.push(e); scheduleFlush(); },
+  });
+
+  // ------------------------------------------------------------- autosave / resume
+  let pendingSave = null; // { data, summary }
+  let saveTimer = null;
+  function readSave() {
+    try {
+      const data = JSON.parse(fs.readFileSync(savePath, 'utf8'));
+      return game.isValidSave(data) ? data : null;
+    } catch { return null; }
+  }
+  function writeSaveNow() {
+    if (!autosave) return;
+    if (pendingSave && game.state.phase === 'lobby') return; // don't clobber a resumable game with an empty lobby
+    try {
+      fs.mkdirSync(saveDir, { recursive: true });
+      const tmp = savePath + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify(game.serialize()));
+      fs.renameSync(tmp, savePath);
+    } catch (e) { warn('[autosave] failed:', e.message); }
+  }
+  function scheduleSave() {
+    if (!autosave || saveTimer) return;
+    saveTimer = setTimeout(() => { saveTimer = null; writeSaveNow(); }, saveDebounceMs);
+  }
+  if (autosave) {
+    const saved = readSave();
+    if (saved && saved.phase !== 'lobby') pendingSave = { data: saved, summary: game.summary(saved) };
+    else if (saved && saved.phase === 'lobby') game.restore(saved); // lobby setup survives a restart silently
+  }
+
+  // ------------------------------------------------------------- views / broadcast
+  const clientSockets = new Map(); // clientId -> Set(socket.id)
+  function extra() {
+    return { savedGame: pendingSave ? pendingSave.summary : null, pin, candidates: lan.candidates, joinIp };
+  }
+  function scheduleFlush() {
+    if (flushTimer) return;
+    flushTimer = setTimeout(flush, coalesceMs);
+  }
+  function viewFor(s, pv, cache) {
+    const role = s.data.role;
+    if (role === 'tv') return pv;
+    if (role === 'host') return cache.hv || (cache.hv = hostView(game, extra(), pv));
+    if (role === 'player') return playerView(game, game.playerIdForClient(s.data.clientId), pv);
+    return null;
+  }
+  function flush() {
+    flushTimer = null;
+    if (!io) return;
+    try {
+      const pv = publicView(game, extra());
+      const cache = {};
+      const fxs = fxQueue.splice(0, fxQueue.length);
+      for (const s of io.of('/').sockets.values()) {
+        const v = viewFor(s, pv, cache);
+        if (!v) continue;
+        s.emit('state', v);
+        for (const e of fxs) s.emit('fx', e);
+      }
+    } catch (e) { console.error('[broadcast]', e); }
+    scheduleSave();
+  }
+  function pushTo(s) {
+    try { const v = viewFor(s, publicView(game, extra()), {}); if (v) s.emit('state', v); } catch (e) { console.error('[push]', e); }
+  }
+
+  // ------------------------------------------------------------- http
+  const app = express();
+  app.disable('x-powered-by');
+  const noCache = (res) => res.set('Cache-Control', 'no-cache');
+  const page = (file) => (req, res) => {
+    const fp = path.join(publicDir, file);
+    noCache(res);
+    if (fs.existsSync(fp)) return res.sendFile(fp);
+    res.status(200).type('html').send(`<!doctype html><meta charset="utf-8"><title>Christmas Chaos</title><body style="background:#0B1F17;color:#FFF6E5;font-family:sans-serif;padding:40px"><h1>Christmas Chaos</h1><p>${file} is not built yet.</p>`);
   };
-}
-
-let state = makeState();
-
-function recommendedRounds(teamCount) {
-  if (teamCount <= 3) return 4;
-  if (teamCount <= 5) return 3;
-  return 3;
-}
-
-function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function pickQuestion(category) {
-  let pool = questions.filter(q => q.category === category && !state.usedQuestionIds.includes(q.id));
-  if (!pool.length) {
-    state.usedQuestionIds = state.usedQuestionIds.filter(id =>
-      !questions.find(q => q.id === id && q.category === category)
-    );
-    pool = questions.filter(q => q.category === category);
-  }
-  const q = pickRandom(pool);
-  state.usedQuestionIds.push(q.id);
-  return q;
-}
-
-function pickDare() {
-  let pool = dares.filter(d => !state.usedDareIds.includes(d.id));
-  if (!pool.length) {
-    state.usedDareIds = [];
-    pool = [...dares];
-  }
-  const d = pickRandom(pool);
-  state.usedDareIds.push(d.id);
-  return d;
-}
-
-function pickHotSeat(count) {
-  const pool = questions.filter(q =>
-    (q.category === 'christmas' || q.category === 'popculture') &&
-    !state.usedQuestionIds.includes(q.id)
-  );
-  const picked = [];
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  for (let i = 0; i < Math.min(count, shuffled.length); i++) {
-    picked.push(shuffled[i]);
-    state.usedQuestionIds.push(shuffled[i].id);
-  }
-  return picked;
-}
-
-function publicState() {
-  return {
-    phase: state.phase,
-    teams: state.teams,
-    players: Object.values(state.players),
-    currentTeamIndex: state.currentTeamIndex,
-    round: state.round,
-    totalRounds: state.totalRounds,
-    turnsInRound: state.turnsInRound,
-    currentChallenge: state.currentChallenge,
-    currentSegment: state.currentSegment,
-    doubleDownActive: state.doubleDownActive,
-    buzzerOpen: state.buzzerOpen,
-    buzzerWinner: state.buzzerWinner,
-    hotSeatIndex: state.hotSeatIndex,
-    hotSeatTotal: state.hotSeatQuestions.length,
-    answerRevealed: state.answerRevealed,
-  };
-}
-
-function processSegment(seg) {
-  state.answerRevealed = false;
-
-  if (seg.type === 'trivia' || seg.type === 'allplay') {
-    const q = pickQuestion(seg.category || 'christmas');
-    state.currentChallenge = q;
-    state.phase = 'challenge';
-    state.buzzerOpen = true;
-    state.buzzerWinner = null;
-    io.emit('spin-result', { segment: seg, challenge: q });
-
-  } else if (seg.type === 'dare') {
-    const d = pickDare();
-    state.currentChallenge = d;
-    state.phase = 'challenge';
-    io.emit('spin-result', { segment: seg, challenge: d });
-
-  } else if (seg.type === 'sounditout') {
-    const q = pickQuestion('sounditout');
-    state.currentChallenge = q;
-    state.phase = 'challenge';
-    io.emit('spin-result', { segment: seg, challenge: q });
-
-  } else if (seg.type === 'hotseat') {
-    const qs = pickHotSeat(5);
-    state.hotSeatQuestions = qs;
-    state.hotSeatIndex = 0;
-    state.currentChallenge = qs[0] || null;
-    state.phase = 'hotseat';
-    io.emit('spin-result', { segment: seg, challenge: state.currentChallenge, hotSeatTotal: qs.length });
-
-  } else if (seg.type === 'special') {
-    if (seg.effect === 'doubledown') {
-      state.doubleDownActive = true;
-      state.phase = 'playing';
-      state.currentChallenge = null;
-      io.emit('spin-result', { segment: seg, challenge: null });
-    } else if (seg.effect === 'steal') {
-      state.currentChallenge = { type: 'steal', title: 'STEAL!', description: 'Pick a team to steal 100 points from.' };
-      state.phase = 'challenge';
-      io.emit('spin-result', { segment: seg, challenge: state.currentChallenge });
-    }
-  }
-
-  io.emit('state-update', publicState());
-}
-
-io.on('connection', (socket) => {
-  socket.emit('state-update', publicState());
-  socket.emit('wheel-segments', WHEEL_SEGMENTS);
-
-  socket.on('join-game', ({ name, teamIndex }) => {
-    state.players[socket.id] = { id: socket.id, name, teamIndex };
-    io.emit('state-update', publicState());
+  app.get('/', page('index.html'));
+  app.get('/index.html', page('index.html'));
+  app.get('/tv', page('tv.html'));
+  app.get('/host', page('host.html'));
+  app.get(['/player', '/player.html'], (req, res) => res.redirect(302, '/'));
+  const lilita = fontDir('@fontsource/lilita-one');
+  const fredoka = fontDir('@fontsource/fredoka');
+  if (lilita) app.use('/fonts/lilita-one', express.static(lilita, { maxAge: '30d', immutable: true, fallthrough: false }));
+  if (fredoka) app.use('/fonts/fredoka', express.static(fredoka, { maxAge: '30d', immutable: true, fallthrough: false }));
+  app.get('/api/info', (req, res) => {
+    noCache(res);
+    res.json({ joinUrl: joinUrlFor(joinIp), candidates: lan.candidates.map((c) => ({ address: c.address, iface: c.iface, joinUrl: joinUrlFor(c.address) })), port, tvUrl: `http://localhost:${port}/tv`, hostUrl: `http://localhost:${port}/host` });
   });
-
-  socket.on('create-team', ({ teamName }) => {
-    if (state.phase !== 'lobby') return;
-    const idx = state.teams.length;
-    state.teams.push({ name: teamName, score: 0, color: TEAM_COLORS[idx % TEAM_COLORS.length], index: idx });
-    state.totalRounds = recommendedRounds(state.teams.length);
-    io.emit('state-update', publicState());
+  let qrCache = { url: null, svg: null };
+  app.get('/api/qr.svg', async (req, res) => {
+    try {
+      const url = joinUrlFor(joinIp);
+      if (qrCache.url !== url) qrCache = { url, svg: await QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0B1F17', light: '#FFF6E5' } }) };
+      res.set('Cache-Control', 'no-store').type('image/svg+xml').send(qrCache.svg);
+    } catch (e) { res.status(500).type('text').send('qr failed'); }
   });
+  app.use(express.static(publicDir, { index: false, setHeaders: (res) => res.set('Cache-Control', 'no-cache') }));
+  app.use((req, res) => res.status(404).type('text').send('Not found'));
+  // eslint-disable-next-line no-unused-vars
+  app.use((err, req, res, next) => { if (err && err.status === 404) return res.status(404).type('text').send('Not found'); console.error('[http]', err && err.message); res.status(500).type('text').send('Server error'); });
 
-  socket.on('remove-team', ({ teamIndex }) => {
-    if (state.phase !== 'lobby') return;
-    state.teams.splice(teamIndex, 1);
-    state.teams.forEach((t, i) => { t.index = i; t.color = TEAM_COLORS[i % TEAM_COLORS.length]; });
-    Object.entries(state.players).forEach(([id, p]) => {
-      if (p.teamIndex === teamIndex) delete state.players[id];
-      else if (p.teamIndex > teamIndex) p.teamIndex--;
-    });
-    state.totalRounds = recommendedRounds(state.teams.length);
-    io.emit('state-update', publicState());
-  });
+  const server = http.createServer(app);
+  io = new Server(server, { maxHttpBufferSize: 64 * 1024, pingInterval: 10000, pingTimeout: 8000, serveClient: true });
 
-  socket.on('set-rounds', ({ rounds }) => {
-    state.totalRounds = Math.max(1, Math.min(6, rounds));
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('start-game', () => {
-    if (state.teams.length < 2) return;
-    state.phase = 'playing';
-    state.round = 1;
-    state.currentTeamIndex = 0;
-    state.turnsInRound = 0;
-    io.emit('state-update', publicState());
-    io.emit('game-started', { teamIndex: 0, teamName: state.teams[0].name });
-  });
-
-  socket.on('spin-wheel', () => {
-    if (state.phase !== 'playing') return;
-    const player = state.players[socket.id];
-    if (!player || player.teamIndex !== state.currentTeamIndex) return;
-
-    const segIndex = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
-    state.currentSegment = WHEEL_SEGMENTS[segIndex];
-    state.phase = 'spinning';
-    io.emit('spin-start', { segmentIndex: segIndex });
-    io.emit('state-update', publicState());
-
-    setTimeout(() => processSegment(WHEEL_SEGMENTS[segIndex]), 5500);
-  });
-
-  socket.on('host-spin', () => {
-    if (state.phase !== 'playing') return;
-    const segIndex = Math.floor(Math.random() * WHEEL_SEGMENTS.length);
-    state.currentSegment = WHEEL_SEGMENTS[segIndex];
-    state.phase = 'spinning';
-    io.emit('spin-start', { segmentIndex: segIndex });
-    io.emit('state-update', publicState());
-    setTimeout(() => processSegment(WHEEL_SEGMENTS[segIndex]), 5500);
-  });
-
-  socket.on('buzzer-press', () => {
-    if (!state.buzzerOpen || state.buzzerWinner) return;
-    const player = state.players[socket.id];
-    if (!player) return;
-    state.buzzerWinner = {
-      playerId: socket.id,
-      playerName: player.name,
-      teamIndex: player.teamIndex,
-      teamName: state.teams[player.teamIndex]?.name || 'Unknown',
+  // ------------------------------------------------------------- sockets
+  const pinFailures = new Map(); // ip -> {count, until}
+  io.on('connection', (socket) => {
+    socket.data = { role: null, clientId: null, isHost: false };
+    const addr = socket.handshake.address || (socket.conn && socket.conn.remoteAddress) || '';
+    const loopback = isLoopback(addr);
+    let bucket = { t: 0, n: 0 };
+    const limited = () => {
+      if (!rateLimit) return false;
+      const sec = Math.floor(Date.now() / 1000);
+      if (bucket.t !== sec) bucket = { t: sec, n: 0 };
+      return ++bucket.n > rateLimit;
     };
-    state.buzzerOpen = false;
-    io.emit('buzzer-winner', state.buzzerWinner);
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('reveal-answer', () => {
-    state.answerRevealed = true;
-    io.emit('answer-revealed', {
-      answer: state.currentChallenge?.answer || state.currentChallenge?.songTitle || '—',
+    /** Wrap a handler: never throws, always acks {ok, error?} when an ack callback was given. */
+    const handle = (name, fn) => socket.on(name, (...args) => {
+      const ack = typeof args[args.length - 1] === 'function' ? args.pop() : null;
+      let res;
+      try {
+        if (limited()) res = { ok: false, error: 'slow-down' };
+        else res = fn(args[0]);
+      } catch (e) {
+        console.error(`[socket] ${name} failed:`, e && e.stack || e);
+        res = { ok: false, error: 'server-error' };
+      }
+      if (ack) { try { ack(res || { ok: true }); } catch { /* ignore */ } }
     });
-    io.emit('state-update', publicState());
-  });
 
-  socket.on('award-points', ({ teamIndex, points }) => {
-    if (!state.teams[teamIndex]) return;
-    let pts = Number(points);
-    if (state.doubleDownActive) { pts *= 2; state.doubleDownActive = false; }
-    state.teams[teamIndex].score = Math.max(0, state.teams[teamIndex].score + pts);
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('steal-execute', ({ fromTeamIndex, toTeamIndex }) => {
-    const amount = 100;
-    state.teams[fromTeamIndex].score = Math.max(0, state.teams[fromTeamIndex].score - amount);
-    state.teams[toTeamIndex].score += amount;
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('hotseat-next', () => {
-    if (state.phase !== 'hotseat') return;
-    state.hotSeatIndex++;
-    state.answerRevealed = false;
-    if (state.hotSeatIndex >= state.hotSeatQuestions.length) {
-      state.phase = 'challenge';
-      state.currentChallenge = null;
-      io.emit('hotseat-complete');
-    } else {
-      state.currentChallenge = state.hotSeatQuestions[state.hotSeatIndex];
-      io.emit('hotseat-question', { question: state.currentChallenge, index: state.hotSeatIndex, total: state.hotSeatQuestions.length });
+    function unbindPlayer() {
+      const cid = socket.data.clientId;
+      if (socket.data.role !== 'player' || !cid) return;
+      const set = clientSockets.get(cid);
+      if (set) { set.delete(socket.id); if (!set.size) { clientSockets.delete(cid); game.setClientConnected(cid, false); } }
     }
-    io.emit('state-update', publicState());
-  });
 
-  socket.on('open-buzzer', () => {
-    state.buzzerOpen = true;
-    state.buzzerWinner = null;
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('close-buzzer', () => {
-    state.buzzerOpen = false;
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('next-turn', () => {
-    state.turnsInRound++;
-
-    if (state.turnsInRound >= state.teams.length) {
-      state.round++;
-      state.turnsInRound = 0;
-      if (state.round > state.totalRounds) {
-        state.phase = 'gameend';
-        const sorted = [...state.teams].sort((a, b) => b.score - a.score);
-        io.emit('game-end', { teams: sorted });
-        io.emit('state-update', publicState());
-        return;
+    handle('hello', (p) => {
+      if (!isObj(p) || !ROLES.includes(p.role)) return { ok: false, error: 'bad-role' };
+      if (p.role === 'host' && !(trustLoopback && loopback)) {
+        // Not on the laptop itself: needs the PIN. 8 wrong PINs from one address lock it out for 5 minutes.
+        const f = pinFailures.get(addr) || { count: 0, until: 0 };
+        if (f.until > Date.now()) return { ok: false, error: 'pin-locked', needPin: true };
+        const viaPin = typeof p.hostKey === 'string' && p.hostKey.length <= 12 && p.hostKey === pin;
+        if (!viaPin) {
+          if (p.hostKey !== undefined && p.hostKey !== null && p.hostKey !== '') {
+            f.count++;
+            if (f.count >= 8) { f.until = Date.now() + 5 * 60 * 1000; f.count = 0; }
+            pinFailures.set(addr, f);
+          }
+          return { ok: false, error: p.hostKey ? 'bad-pin' : 'need-pin', needPin: true };
+        }
+        pinFailures.delete(addr);
       }
-      io.emit('round-start', { round: state.round, totalRounds: state.totalRounds });
-    }
-
-    state.currentTeamIndex = (state.currentTeamIndex + 1) % state.teams.length;
-    state.phase = 'playing';
-    state.currentChallenge = null;
-    state.currentSegment = null;
-    state.buzzerOpen = false;
-    state.buzzerWinner = null;
-    state.hotSeatQuestions = [];
-    state.hotSeatIndex = 0;
-    state.answerRevealed = false;
-
-    io.emit('state-update', publicState());
-    io.emit('turn-start', { teamIndex: state.currentTeamIndex, teamName: state.teams[state.currentTeamIndex]?.name });
-  });
-
-  socket.on('override-score', ({ teamIndex, score }) => {
-    if (!state.teams[teamIndex]) return;
-    state.teams[teamIndex].score = Math.max(0, Number(score));
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('reset-game', () => {
-    const savedTeams = state.teams.map(t => ({ ...t, score: 0 }));
-    state = makeState();
-    state.teams = savedTeams;
-    state.totalRounds = recommendedRounds(savedTeams.length);
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('full-reset', () => {
-    state = makeState();
-    io.emit('state-update', publicState());
-  });
-
-  socket.on('disconnect', () => {
-    delete state.players[socket.id];
-    io.emit('state-update', publicState());
-  });
-});
-
-app.get('/tv', (req, res) => res.sendFile(path.join(__dirname, 'public', 'tv.html')));
-app.get('/host', (req, res) => res.sendFile(path.join(__dirname, 'public', 'host.html')));
-app.get('/player', (req, res) => res.sendFile(path.join(__dirname, 'public', 'player.html')));
-app.get('/', (req, res) => res.redirect('/host'));
-
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log('\n🎄 Christmas Chaos is running!\n');
-  const nets = os.networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    for (const net of nets[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        console.log(`   Network: http://${net.address}:${PORT}`);
+      if (p.role === 'player' && (typeof p.clientId !== 'string' || !CLIENT_ID_RE.test(p.clientId))) return { ok: false, error: 'bad-client-id' };
+      unbindPlayer();
+      for (const r of ROLES) socket.leave(r);
+      socket.data.role = p.role;
+      socket.data.isHost = p.role === 'host';
+      socket.data.clientId = p.role === 'player' ? p.clientId : null;
+      socket.join(p.role);
+      if (p.role === 'player') {
+        if (!clientSockets.has(p.clientId)) clientSockets.set(p.clientId, new Set());
+        clientSockets.get(p.clientId).add(socket.id);
+        game.setClientConnected(p.clientId, true);
       }
+      const pid = p.role === 'player' ? game.playerIdForClient(p.clientId) : null;
+      const pl = pid ? game.state.players[pid] : null;
+      setImmediate(() => pushTo(socket));
+      return { ok: true, role: p.role, isHost: socket.data.isHost, me: pl ? { playerId: pl.id, name: pl.name, teamId: pl.teamId || null } : null, serverNow: Date.now() };
+    });
+
+    for (const ev of PLAYER_EVENTS) {
+      handle(ev, (p) => {
+        if (socket.data.role !== 'player') return { ok: false, error: socket.data.role ? 'not-player' : 'hello-first' };
+        const res = game.dispatch({ role: 'player', clientId: socket.data.clientId }, ev, p);
+        if (ev === 'join' && res.ok) game.setClientConnected(socket.data.clientId, true);
+        return res;
+      });
     }
-  }
-  console.log(`   Local:   http://localhost:${PORT}\n`);
-  console.log(`   TV Screen  → /tv`);
-  console.log(`   Host View  → /host`);
-  console.log(`   Players    → /player\n`);
-});
+    for (const ev of HOST_GAME_EVENTS) {
+      handle(ev, (p) => {
+        if (!socket.data.isHost) return { ok: false, error: 'not-host' };
+        if (ev === 'host:setOption' && isObj(p) && p.key === 'joinIp') {
+          if (typeof p.value !== 'string' || !lan.candidates.some((c) => c.address === p.value)) return { ok: false, error: 'bad-ip' };
+          joinIp = p.value;
+          game.setJoinUrl(joinUrlFor(joinIp));
+          return { ok: true };
+        }
+        if (ev === 'host:start' && pendingSave) {
+          const r = game.dispatch({ role: 'host' }, ev, p);
+          if (r.ok) { pendingSave = null; scheduleFlush(); }
+          return r;
+        }
+        return game.dispatch({ role: 'host' }, ev, p);
+      });
+    }
+    handle('host:resume', () => {
+      if (!socket.data.isHost) return { ok: false, error: 'not-host' };
+      if (!pendingSave) return { ok: false, error: 'no-save' };
+      if (!game.restore(pendingSave.data)) return { ok: false, error: 'bad-save' };
+      pendingSave = null;
+      for (const cid of clientSockets.keys()) game.setClientConnected(cid, true);
+      game.setJoinUrl(joinUrlFor(joinIp));
+      scheduleFlush();
+      return { ok: true };
+    });
+    handle('host:discardSave', () => {
+      if (!socket.data.isHost) return { ok: false, error: 'not-host' };
+      if (!pendingSave) return { ok: false, error: 'no-save' };
+      pendingSave = null;
+      scheduleFlush();
+      writeSaveNow();
+      return { ok: true };
+    });
+    socket.onAny((name, ...args) => {
+      if (name === 'hello' || PLAYER_EVENTS.includes(name) || HOST_GAME_EVENTS.includes(name) || HOST_SERVER_EVENTS.includes(name)) return;
+      const ack = typeof args[args.length - 1] === 'function' ? args[args.length - 1] : null;
+      if (ack) { try { ack({ ok: false, error: 'unknown-event' }); } catch { /* ignore */ } }
+    });
+    socket.on('disconnect', () => { try { unbindPlayer(); } catch (e) { console.error('[socket] disconnect', e); } });
+    socket.on('error', (e) => console.error('[socket] error', e && e.message));
+  });
+
+  // ------------------------------------------------------------- listen
+  return new Promise((resolve, reject) => {
+    server.once('error', (e) => {
+      if (e.code === 'EADDRINUSE') e.friendly = `Port ${port} is already in use. Close the other Christmas Chaos window, or start with a different port:  set PORT=3001 && npm start`;
+      reject(e);
+    });
+    server.listen(port, o.host || '0.0.0.0', () => {
+      port = server.address().port;
+      game.setJoinUrl(joinUrlFor(joinIp));
+      const handleObj = {
+        app, io, server, game, pin, scheduler,
+        get port() { return port; },
+        get joinUrl() { return joinUrlFor(joinIp); },
+        candidates: lan.candidates,
+        get pendingSave() { return pendingSave; },
+        flushNow: () => { if (flushTimer) { clearTimeout(flushTimer); flush(); } },
+        saveNow: writeSaveNow,
+        close: () => new Promise((res) => {
+          scheduler.bump();
+          if (flushTimer) clearTimeout(flushTimer);
+          if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; writeSaveNow(); }
+          io.close(() => res());
+          server.close();
+          setTimeout(res, 500);
+        }),
+      };
+      if (!o.quiet) printBanner(handleObj, log);
+      resolve(handleObj);
+    });
+  });
+}
+
+function printBanner(h, log) {
+  const line = '-'.repeat(64);
+  const others = h.candidates.slice(1).map((c) => `http://${c.address}:${h.port}/  (${c.iface})`);
+  log('');
+  log(line);
+  log('  CHRISTMAS CHAOS is running!');
+  log(line);
+  log(`  Phones join at:  ${h.joinUrl}`);
+  log(`  TV screen:       http://localhost:${h.port}/tv   (on this laptop)  or  ${h.joinUrl}tv`);
+  log(`  Host screen:     http://localhost:${h.port}/host`);
+  log(`  Host PIN:        ${h.pin}   (to run the host screen from a second device)`);
+  if (others.length) log(`  Other addresses: ${others.join('\n                   ')}`);
+  if (h.pendingSave) log(`  Saved game found (round ${h.pendingSave.summary.round}) - open the host screen to resume it.`);
+  log('');
+  log('  Phones can\'t connect?');
+  log('   1. Phones must be on the SAME Wi-Fi as this laptop (not a guest network).');
+  log('   2. Run "npm run firewall" once (it asks for admin) to allow the game through Windows Firewall.');
+  log('   3. Turn off any VPN on this laptop. Pick another address in the host lobby if there are several.');
+  log(line);
+  log('');
+}
+
+module.exports = { startServer, isLoopback };
+
+if (require.main === module) {
+  process.on('uncaughtException', (e) => console.error('[uncaughtException] (still running)', e && e.stack || e));
+  process.on('unhandledRejection', (e) => console.error('[unhandledRejection] (still running)', e && e.stack || e));
+  startServer().then((h) => {
+    const bye = () => { try { h.saveNow(); } catch { /* ignore */ } process.exit(0); };
+    process.on('SIGINT', bye);
+    process.on('SIGTERM', bye);
+  }).catch((e) => {
+    console.error('');
+    console.error(e.friendly || ('Could not start the server: ' + (e && e.message)));
+    console.error('');
+    process.exit(1);
+  });
+}

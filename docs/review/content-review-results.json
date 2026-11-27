@@ -1,0 +1,1085 @@
+{
+  "summary": "Full review of Christmas Chaos: live playtest, code review, content fact-check, dares, game design, visual audit",
+  "agentCount": 8,
+  "logs": [
+    "[review:client-code] failed: API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+    "[review:server-code] failed: API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+    "[review:playtest] failed: API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+    "[review:visual] failed: API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+    "[review:game-design] failed: API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)"
+  ],
+  "result": [
+    {
+      "key": "playtest"
+    },
+    {
+      "key": "visual"
+    },
+    {
+      "key": "server-code"
+    },
+    {
+      "key": "client-code"
+    },
+    {
+      "key": "content-christmas",
+      "summary": "I fact-checked all 40 \"christmas\" questions in C:/Users/mleys/code_user/christmas-chaos/data/questions.json. Each xmas-NNN sits on line NNN+1. I did not edit any project file. I web-checked the doubtful facts: the Elf spaghetti scene, Clark Griswold's job, the Love Actually cue-card scene, the Jingle Bells Thanksgiving claim, snowflake symmetry, Tickle Me Elmo, where the Christmas tree started, and the 1870 holiday act.\n\nVerdicts: 21 good, 6 weak, 4 giveaway, 4 disputed, 3 duplicate, 1 malformed, 1 wrong. The one \"wrong\" is xmas-025, where the answer is right but the hint shown on the TV is factually wrong. No answer is plainly wrong. The real problems are these:\n\n(1) Giveaways. xmas-020 asks for Scrooge's first name and names him \"Ebenezer\" in the question. xmas-029 says \"made with eggs\" and the answer is Eggnog. The hints for xmas-019 and xmas-037 contain the answer.\n\n(2) Hints shown up front. Hints appear on the TV straight away (tv.html:460-463), which makes about a third of the easy and medium questions free points. Examples: 010 \"not about the sport\" (Boxing Day), 013 BB gun, 017 forests and Christmas markets (Germany), 018 late 80s/early 90s, 021 Oliver Twist, 026 modern retelling of A Christmas Carol.\n- **Fix:** take the hint out of the TV render by default. The host already sees the hint (host.html:631 and 635).\n- Add a 'reveal-hint' socket event modelled on 'reveal-answer' (server.js:257-263), plus a state.hintRevealed flag that resets wherever answerRevealed resets (server.js:128 and 330). Give the host a \"Show hint\" button, and optionally halve the points once the hint is shown.\n- Exception: xmas-016's \"hint\" explains how to count the gifts. Move that text into the question.\n\n(3) Too many questions on the same topics.\n- **Rudolph** appears in 4 questions (001, 006, 014, 039) plus sound-004. 001 even gives away 006's answer (\"red-nosed\").\n- **A Christmas Carol** appears in 4 (008, 020, 021, 026). Christmas Vacation appears in 2 (023, 030).\n\n(4) Duplicates with other categories. Hot Seat (server.js:93-105) draws from christmas and popculture together, so both copies can come up in one game.\n- xmas-033 = pop-023 (Jingle Bells played in space).\n- xmas-040 = pop-017 (the Tickle Me Elmo craze). pop-017 is itself broken: it has two \"answer\" keys and a garbled question.\n- xmas-031's hint repeats pop-025's answer (the Thanksgiving claim, which is itself disputed).\n- pop-001's hint (\"Kevin McCallister...\") gives away xmas-002.\n- xmas-026's question text says \"1988\", which gives away xmas-028.\n\n(5) Difficulty labels.\n- Several \"hard\" questions play as medium for adults: 031, 033, 034, 035, 040.\n- Several \"medium\" questions are easy: 019, 021, 022, 024, 027, 029.\n- 008 and 014 are labelled easy but play as medium. 016, 023 and 030 play as hard.\n- The `difficulty` field isn't used anywhere in the code. A search outside data/ finds no reference, and points are a flat 100 or 150 per wheel segment (server.js:19-28). Either use it (for example easy 100, medium 150, hard 200, or a badge on the TV) or drop it.\n\n(6) Text that shows badly on the TV. xmas-038's text displays a double apostrophe (\"''Twas...\"). xmas-028's answer displays \"1988 — and yes, the debate continues!\" when the answer is revealed.\n\nSide notes outside my category:\n- pop-001 is wrong: The Grinch (2018, about $515-540M worldwide) out-grossed Home Alone (about $477M). Home Alone still leads in North America.\n- Every phone receives the full question object, answer included, through spin-result and state-update (server.js:133 and publicState). Anyone could read answers in the browser's developer tools. That is minor at a family party.\n\nSources used: snopes.com/fact-check/jingle-bells-thanksgiving-carol; bu.edu/today/2016/jingle-bells-history; npr.org/2016/12/25/506898876; its.caltech.edu/~atomic/snowcrystals/unusual/unusual.htm; snopes.com/articles/465745/first-christmas-tree; eng.lsm.lv (Baltic tree claims); everycrsreport.com/reports/98-301.html (1870 act); en.wikipedia.org/wiki/Tickle_Me_Elmo; en.wikipedia.org/wiki/Love_Actually and the Fox News piece on the cue-card scene; mashed.com Buddy the Elf spaghetti recipe; catalog.afi.com/Catalog/moviedetails/58204 (Christmas Vacation); guinnessworldrecords.com/world-records/102409-highest-grossing-christmas-movie; en.wikipedia.org/wiki/List_of_highest-grossing_Christmas_films.",
+      "items": [
+        {
+          "id": "xmas-001",
+          "verdict": "weak",
+          "issue": "questions.json:2. Far too easy for adults: 'red-nosed reindeer' is the song title, and the hint shown on the TV makes it easier still. The question text also gives away xmas-006 (red nose). Rudolph comes up 4 times in this category (001, 006, 014, 039). The 'easy' label is right but the question is worth almost nothing.",
+          "correctAnswer": "Rudolph",
+          "suggestion": "Keep it only as a deliberate kids' freebie. Otherwise replace it with: 'Which of Santa's reindeer shares a name with the Roman god of love?' Answer: Cupid (easy). Hide the hint."
+        },
+        {
+          "id": "xmas-002",
+          "verdict": "good",
+          "issue": "questions.json:3. Correct, and 'easy' is right. The hint ('His last name is McCallister') is a strong second clue. pop-001's hint ('Kevin McCallister vs. the Wet Bandits', questions.json:43) gives this answer away if pop-001 comes up first.",
+          "correctAnswer": "Kevin (McCallister)",
+          "suggestion": "Keep it, and change pop-001's hint. Harder alternative: 'What do the two burglars in Home Alone call themselves?' Answer: The Wet Bandits (Harry and Marv), medium."
+        },
+        {
+          "id": "xmas-003",
+          "verdict": "good",
+          "issue": "questions.json:4. Correct, a fine easy freebie for the younger players. The hint is harmless.",
+          "correctAnswer": "Stockings",
+          "suggestion": "Keep it as easy."
+        },
+        {
+          "id": "xmas-004",
+          "verdict": "good",
+          "issue": "questions.json:5. Correct and easy, but read aloud the wording sounds like the plant wants the kiss. The parasitic-plant hint is a nice fun fact.",
+          "correctAnswer": "Mistletoe",
+          "suggestion": "Reword: 'Tradition says that if you're caught standing under which plant, you owe someone a kiss?'"
+        },
+        {
+          "id": "xmas-005",
+          "verdict": "good",
+          "issue": "questions.json:6. Correct, and 'easy' is right.",
+          "correctAnswer": "A partridge in a pear tree",
+          "suggestion": "Keep it. A harder companion for variety: 'In The Twelve Days of Christmas, how many lords are a-leaping?' Answer: 10 (medium)."
+        },
+        {
+          "id": "xmas-006",
+          "verdict": "duplicate",
+          "issue": "questions.json:7. Repeats xmas-001, whose question text says 'red-nosed', and asks the single most famous fact about Rudolph, so there is no challenge. It is the 4th Rudolph item.",
+          "correctAnswer": "Red",
+          "suggestion": "Delete it or replace it. Option 1 (all-play): 'Name as many of Santa's eight original reindeer as you can (6+ scores).' Answer: Dasher, Dancer, Prancer, Vixen, Comet, Cupid, Donner (Donder), Blitzen. Option 2 (hard): 'In the 1823 poem, Donner and Blitzen had Dutch names meaning thunder and lightning. What were they?' Answer: Dunder and Blixem."
+        },
+        {
+          "id": "xmas-007",
+          "verdict": "weak",
+          "issue": "questions.json:8. No challenge for anyone over 4, and the hint adds nothing.",
+          "correctAnswer": "Ho ho ho",
+          "suggestion": "Replace with: 'Canada Post gives Santa his own postal code, a pun on his laugh. What is it?' Answer: H0H 0H0 (medium)."
+        },
+        {
+          "id": "xmas-008",
+          "verdict": "good",
+          "issue": "questions.json:9. Correct. The full name is medium rather than easy for a mixed-age group. This is one of 4 A Christmas Carol items (008, 020, 021, 026).",
+          "correctAnswer": "Jacob Marley (accept 'Marley')",
+          "suggestion": "Relabel it medium. Keep the hint, but show it only on the host's request."
+        },
+        {
+          "id": "xmas-009",
+          "verdict": "good",
+          "issue": "questions.json:10. Fun question, but the answer field 'Syrup and candy (sugar)' is vague for the host to judge and looks sloppy when revealed on the TV. In the scene Buddy covers the spaghetti in maple syrup, then M&Ms, mini marshmallows, chocolate syrup and crumbled Pop-Tarts.",
+          "correctAnswer": "Maple syrup (plus M&Ms, mini marshmallows, chocolate syrup and crumbled Pop-Tarts)",
+          "suggestion": "Change the answer to 'Maple syrup (accept candy: M&Ms, marshmallows, chocolate syrup, Pop-Tarts)'. Hint option: 'The elf food groups are candy, candy canes, candy corn and ___.' Keep it as easy."
+        },
+        {
+          "id": "xmas-010",
+          "verdict": "good",
+          "issue": "questions.json:11. Correct. Easy in the UK, Canada and Australia, nearer medium for a US family. With the question on screen, the hint 'No, it's not about the sport' as good as says 'Boxing'.",
+          "correctAnswer": "Boxing Day",
+          "suggestion": "Reword: 'What is the holiday on December 26 in the UK, Canada and Australia called?' Change the hint to 'Traditionally the day servants and tradespeople received gift boxes', or hide it."
+        },
+        {
+          "id": "xmas-011",
+          "verdict": "good",
+          "issue": "questions.json:12. Correct and easy. Fun fact: the red 'petals' are actually leaves (bracts).",
+          "correctAnswer": "Poinsettia",
+          "suggestion": "Keep it. A better hint: 'Named after Joel Poinsett, the first US ambassador to Mexico.'"
+        },
+        {
+          "id": "xmas-012",
+          "verdict": "good",
+          "issue": "questions.json:13. Correct and easy. The 'Pumpkin King' hint is a strong giveaway if shown up front.",
+          "correctAnswer": "Jack Skellington (accept 'Jack')",
+          "suggestion": "Keep it, with the hint hidden by default."
+        },
+        {
+          "id": "xmas-013",
+          "verdict": "good",
+          "issue": "questions.json:14. Correct and easy. The BB-gun hint gives it away to anyone who has seen the film.",
+          "correctAnswer": "A Christmas Story (1983)",
+          "suggestion": "Keep it, with the hint hidden."
+        },
+        {
+          "id": "xmas-014",
+          "verdict": "good",
+          "issue": "questions.json:15. Correct: the 1964 Rankin/Bass special, song by Johnny Marks, sung by Burl Ives as Sam the Snowman. Medium rather than easy for adults. It adds to the Rudolph overload and overlaps sound-017 (Holly Jolly Christmas).",
+          "correctAnswer": "Rudolph the Red-Nosed Reindeer (1964 Rankin/Bass special)",
+          "suggestion": "Relabel it medium. Or, to cut the Rudolph overlap: 'Which folk singer voices Sam the Snowman and sings \"A Holly Jolly Christmas\" in the 1964 Rudolph special?' Answer: Burl Ives (hard)."
+        },
+        {
+          "id": "xmas-015",
+          "verdict": "good",
+          "issue": "questions.json:16. Correct per the song ('a button nose and two eyes made out of coal'). It's a nice trap, because people answer 'carrot'.",
+          "correctAnswer": "A button",
+          "suggestion": "Keep it. Reveal line: 'Not a carrot! The song says a button nose.'"
+        },
+        {
+          "id": "xmas-016",
+          "verdict": "good",
+          "issue": "questions.json:17. 364 is correct (1+3+6+...+78). The 'hint' explains how to count, so it belongs in the question. Without it this plays as hard for anyone who doesn't already know the number.",
+          "correctAnswer": "364",
+          "suggestion": "Put the method in the question: 'Add up every gift in all 12 verses of The Twelve Days of Christmas (day 1 = 1 gift, day 2 = 3 gifts...). What's the total?' Good as an ALL PLAY 'closest wins'. Reveal: 'One for every day of the year but one.' Relabel it hard."
+        },
+        {
+          "id": "xmas-017",
+          "verdict": "disputed",
+          "issue": "questions.json:18. Germany is the textbook answer (the modern tree tradition spread from 16th-century German lands). But Tallinn, Estonia (1441) and Riga, Latvia (1510) both claim the first decorated tree, and the earliest mainland record is Sélestat, Alsace (1521, now France). Someone at the party may well push back. The hint ('forests and Christmas markets') also gives it away.",
+          "correctAnswer": "Germany (accept Estonia or Latvia with explanation)",
+          "suggestion": "Ask about something nobody disputes: 'Prince Albert helped make the Christmas tree popular in Britain in the 1840s. From which country did he bring the custom?' Answer: Germany (medium). Hide or drop the hint."
+        },
+        {
+          "id": "xmas-018",
+          "verdict": "good",
+          "issue": "questions.json:19. Correct (released Nov 16, 1990). The hint 'late 80s / early 90s' narrows it to about four choices.",
+          "correctAnswer": "1990",
+          "suggestion": "Keep it as medium with the hint hidden, or run it as 'closest year wins'."
+        },
+        {
+          "id": "xmas-019",
+          "verdict": "giveaway",
+          "issue": "questions.json:20. The hint 'Clarence earns his wings this way' appears on the TV with the question and contains the key word of the answer ('wings'). It's also easy, not medium; it's one of the most quoted lines in film.",
+          "correctAnswer": "An angel gets his wings (Zuzu's line: 'Every time a bell rings, an angel gets his wings')",
+          "suggestion": "Change the hint to 'Little Zuzu says the line in the final scene', or remove it. Relabel it easy."
+        },
+        {
+          "id": "xmas-020",
+          "verdict": "giveaway",
+          "issue": "questions.json:21. The question names 'Ebenezer Scrooge' and asks for his first name, so the answer is in the question. The hint is useless.",
+          "correctAnswer": "Ebenezer",
+          "suggestion": "Replace with: 'What two-word phrase does Scrooge use to dismiss Christmas?' Answer: 'Bah! Humbug!' (easy). Or: 'What is the name of Bob Cratchit's sick young son?' Answer: Tiny Tim (easy)."
+        },
+        {
+          "id": "xmas-021",
+          "verdict": "good",
+          "issue": "questions.json:22. Correct, but easy rather than medium, and the hint (Oliver Twist, Great Expectations) gives it away when shown. It's the 3rd A Christmas Carol item.",
+          "correctAnswer": "Charles Dickens",
+          "suggestion": "Relabel it easy and hide the hint. Harder alternative: 'In which decade was A Christmas Carol first published?' Answer: the 1840s (1843), medium."
+        },
+        {
+          "id": "xmas-022",
+          "verdict": "good",
+          "issue": "questions.json:23. Correct. Easy rather than medium (Max is in the 1966, 2000 and 2018 versions).",
+          "correctAnswer": "Max",
+          "suggestion": "Relabel it easy."
+        },
+        {
+          "id": "xmas-023",
+          "verdict": "weak",
+          "issue": "questions.json:24. The film never gives Clark a clear job title, so the answer is hard to judge. Sources variously say food additive designer, chemist, a 'non-nutritive cereal varnish', or a cereal 'crunch enhancer' (AFI). Plays as hard, not medium.",
+          "correctAnswer": "He develops food additives for a food company (accept chemist / food additives)",
+          "suggestion": "Replace with: 'Instead of his Christmas bonus, Clark Griswold gets a membership to what?' Answer: The Jelly of the Month Club (medium, very quotable)."
+        },
+        {
+          "id": "xmas-024",
+          "verdict": "good",
+          "issue": "questions.json:25. Correct (Van Allsburg book 1985, film 2004). Easy rather than medium.",
+          "correctAnswer": "The Polar Express",
+          "suggestion": "Relabel it easy."
+        },
+        {
+          "id": "xmas-025",
+          "verdict": "wrong",
+          "issue": "questions.json:26. The answer is right; the HINT is wrong. Mark doesn't turn up with carol singers. He brings a boombox playing 'Silent Night', and his first card reads 'Say it's carol singers.' The hint is shown on the TV, so it puts misinformation on screen.",
+          "correctAnswer": "Juliet (Keira Knightley); accept either",
+          "suggestion": "Change the hint to: 'His first card reads \"Say it's carol singers.\"' Keep it as medium."
+        },
+        {
+          "id": "xmas-026",
+          "verdict": "good",
+          "issue": "questions.json:27. Correct (Nov 1988; Murray plays TV president Frank Cross). The '1988' in the question gives away xmas-028 (Die Hard, 1988) if both come up. The hint ('modern retelling of A Christmas Carol') practically spells the title.",
+          "correctAnswer": "Scrooged",
+          "suggestion": "Take '1988' out: 'Which Bill Murray comedy has a cynical TV executive visited by three ghosts?' Hide the hint."
+        },
+        {
+          "id": "xmas-027",
+          "verdict": "weak",
+          "issue": "questions.json:28. Too easy for adults and mislabelled medium. The hint 'It's Spanish' adds nothing.",
+          "correctAnswer": "Merry Christmas",
+          "suggestion": "Replace with: 'Bing Crosby sang \"Mele Kalikimaka\". What does it mean, and in what language?' Answer: Merry Christmas, in Hawaiian (medium). Or keep it as an easy freebie."
+        },
+        {
+          "id": "xmas-028",
+          "verdict": "malformed",
+          "issue": "questions.json:29. Two parts, one of them an opinion ('is it a Christmas movie?') that can't be judged. The answer text '1988 — and yes, the debate continues!' is what shows on the TV when revealed. xmas-026's question text also contains 1988.",
+          "correctAnswer": "1988 (released July 1988)",
+          "suggestion": "Replace with: 'In Die Hard, what does John McClane write on a dead henchman's sweatshirt?' Answer: 'Now I have a machine gun. Ho-ho-ho.' (medium). Or ask only 'What year was Die Hard released?' with answer '1988', and remove the year from xmas-026."
+        },
+        {
+          "id": "xmas-029",
+          "verdict": "giveaway",
+          "issue": "questions.json:30. 'Made with eggs' gives away 'Eggnog'. Easy, not medium.",
+          "correctAnswer": "Eggnog",
+          "suggestion": "Replace with: 'What hot spiced wine is sold at German Christmas markets?' Answer: Glühwein (medium). Or reword to drop 'eggs' and relabel it easy."
+        },
+        {
+          "id": "xmas-030",
+          "verdict": "weak",
+          "issue": "questions.json:31. Too obscure: a minor character's full name plus the actor. The hint is generic. Plays as hard. It's the 2nd Christmas Vacation item.",
+          "correctAnswer": "Todd Chester (played by Nicholas Guest); his wife Margo is Julia Louis-Dreyfus",
+          "suggestion": "Replace with: 'Which future Seinfeld and Veep star plays the Griswolds' snooty neighbour Margo?' Answer: Julia Louis-Dreyfus (medium)."
+        },
+        {
+          "id": "xmas-031",
+          "verdict": "disputed",
+          "issue": "questions.json:32. The answer is correct (James Lord Pierpont published it as 'One Horse Open Sleigh' in 1857 and re-titled it 'Jingle Bells' in 1859). The hint states as fact that it was written for Thanksgiving. That claim is unproven: Snopes and BU historian Kyna Hamill trace the first known performance to a Boston minstrel show in Sept 1857. pop-025 makes the same Thanksgiving claim its answer. Plays as medium, because the title is in the chorus.",
+          "correctAnswer": "One Horse Open Sleigh",
+          "suggestion": "Change the hint to 'The answer is hiding in the song's own chorus' or 'Published by James Lord Pierpont in 1857'. Relabel it medium. Fix or delete pop-025 as well."
+        },
+        {
+          "id": "xmas-032",
+          "verdict": "good",
+          "issue": "questions.json:33. Correct: Act of June 28, 1870, signed by Grant. At first it covered federal workers in D.C., and was extended to all federal employees in 1885. The hint narrows it to 1869-77, which is fine for a hard question. A bit dry.",
+          "correctAnswer": "1870",
+          "suggestion": "Keep it as hard. Better as 'closest year wins' in ALL PLAY."
+        },
+        {
+          "id": "xmas-033",
+          "verdict": "duplicate",
+          "issue": "questions.json:34. Same fact as pop-023 (questions.json:65), whose question text names 'Jingle Bells'. Hot Seat (server.js:93-105) draws from both categories, so both can come up in one game. The facts are correct: Gemini 6A, 16 Dec 1965, Schirra and Stafford on harmonica and bells. Plays as medium.",
+          "correctAnswer": "Jingle Bells",
+          "suggestion": "Keep this one and delete or replace pop-023. Or reword this one to: 'What instrument did the Gemini 6 astronauts smuggle aboard to play Jingle Bells in 1965?' Answer: a harmonica (with sleigh bells), medium."
+        },
+        {
+          "id": "xmas-034",
+          "verdict": "good",
+          "issue": "questions.json:35. Correct (KFC's 1974 'Kentucky for Christmas' campaign). It's widely shared now, so medium rather than hard.",
+          "correctAnswer": "Japan",
+          "suggestion": "Relabel it medium."
+        },
+        {
+          "id": "xmas-035",
+          "verdict": "disputed",
+          "issue": "questions.json:36. 'Always' and 'law of nature' go too far. Six-fold symmetry is the norm because ice forms a hexagonal crystal, but rare 12-sided (twinned) and 3-sided (triangular) snowflakes exist (Libbrecht, SnowCrystals.com), and most real snowflakes are irregular. 'Traditional snowflake' is odd wording. Easy or medium, not hard, and more winter than Christmas.",
+          "correctAnswer": "Six",
+          "suggestion": "Reword: 'Because of the way ice crystals form, almost every snowflake has how many arms?' Answer: six (easy or medium). Hint: 'It comes from the hexagonal shape of ice crystals.'"
+        },
+        {
+          "id": "xmas-036",
+          "verdict": "good",
+          "issue": "questions.json:37. Correct. La Befana flies on the night of Jan 5, the eve of Epiphany. 'Hard' is right.",
+          "correctAnswer": "La Befana (accept 'Befana')",
+          "suggestion": "Keep it. Tweak the hint to 'She brings gifts on the eve of Epiphany (January 5-6)'."
+        },
+        {
+          "id": "xmas-037",
+          "verdict": "giveaway",
+          "issue": "questions.json:38. The hint translates both halves of the word ('Weihe' = holy, 'Nacht' = night) on the TV with the question. Without the hint it's an obscure language question that's dull read aloud. The answer is correct: Middle High German 'ze wīhen nahten', 'in the holy nights'.",
+          "correctAnswer": "Holy night(s) / consecrated nights",
+          "suggestion": "Replace with: 'In Alpine folklore, what horned, half-goat creature punishes naughty children at Christmas time?' Answer: Krampus (medium)."
+        },
+        {
+          "id": "xmas-038",
+          "verdict": "disputed",
+          "issue": "questions.json:39. Who wrote it is genuinely contested (Moore vs Henry Livingston Jr.), though the answer already says so. The JSON string displays as \"''Twas the Night Before Christmas'\" with a doubled apostrophe on the TV and phones.",
+          "correctAnswer": "Clement Clarke Moore (traditionally credited; Henry Livingston Jr. also claimed). First published anonymously as 'A Visit from St. Nicholas', Troy Sentinel, 23 Dec 1823.",
+          "suggestion": "Ask something undisputed instead: 'Under what title was \"'Twas the Night Before Christmas\" first published in 1823?' Answer: 'A Visit from St. Nicholas' (hard). In the JSON, put the title in escaped double quotes (\\\"'Twas the Night Before Christmas\\\") so it displays correctly."
+        },
+        {
+          "id": "xmas-039",
+          "verdict": "weak",
+          "issue": "questions.json:40. A two-part question (year AND creator) is awkward to judge after a buzz. It's the 4th Rudolph item. The facts are correct: 1939, Robert L. May, a copywriter at Montgomery Ward.",
+          "correctAnswer": "1939, Robert L. May, for Montgomery Ward",
+          "suggestion": "Make it one part: 'Rudolph was created in 1939 as a free giveaway booklet for which department store chain?' Answer: Montgomery Ward (hard). Fun fact for the reveal: May almost named him Rollo or Reginald."
+        },
+        {
+          "id": "xmas-040",
+          "verdict": "duplicate",
+          "issue": "questions.json:41. Same fact as pop-017 (questions.json:59), which is itself broken (two 'answer' keys and a garbled question). 'Best-selling' isn't backed up: sources call it the hottest, must-have toy of 1996 (Tyco sold about 1M against 400K planned). The hint 'Parents fought over this one' also fits Cabbage Patch Kids (pop-015). Plays as medium for adults.",
+          "correctAnswer": "Tickle Me Elmo",
+          "suggestion": "Reword: 'What was the must-have toy that caused store stampedes at Christmas 1996?' Hint: 'Squeeze it and it giggles.' Relabel it medium. Delete or rewrite pop-017."
+        }
+      ],
+      "gaps": [
+        "Christmas around the world: Sinterklaas/St Nicholas Day (Netherlands, Dec 5-6), Krampus (Austria), Iceland's 13 Yule Lads, Catalonia's Caga Tió, Mexico's Las Posadas, the Philippines' Simbang Gabi, Sweden watching Donald Duck on Christmas Eve, Ukraine's spider-web ornaments, Australia's beach Christmas, Venezuela roller-skating to Mass. The set has only La Befana and KFC in Japan.",
+        "Food and drink: mince pies, Christmas pudding and figgy pudding, panettone, stollen, bûche de Noël, tamales, Feast of the Seven Fishes, Glühwein/wassail, where candy canes come from, gingerbread houses, Christmas crackers, leaving cookies and milk for Santa and carrots for the reindeer.",
+        "Finish-the-lyric rounds for carols and songs: 'Deck the Halls' ('don we now our gay apparel'), 'Good King Wenceslas' (feast of Stephen), how many of each gift in the Twelve Days, 'Silent Night' first written in German (1818, Austria), 'Let It Snow' written during a heatwave, and mondegreens. Nothing in the set tests lyrics.",
+        "Movies by decade. 1940s-50s: Miracle on 34th Street, White Christmas, It's a Wonderful Life beyond the bell line. 1960s-70s TV specials: A Charlie Brown Christmas (1965), the Grinch cartoon (1966). 1990s: The Muppet Christmas Carol, The Santa Clause, Jingle All the Way. 2000s: The Holiday, Bad Santa. 2010s+: Arthur Christmas, Klaus, The Grinch (2018), Spirited. Also guess-the-movie-from-the-quote, and cast questions.",
+        "Christmas music charts and artists: Bing Crosby's 'White Christmas' as the best-selling single, the UK Christmas No. 1 race, 'Fairytale of New York', Mariah Carey's chart records, who sang which version, and Christmas albums.",
+        "History: Saturnalia and why December 25 was chosen, the Puritan bans on Christmas in England and Massachusetts, the 1914 Christmas Truce, the first commercial Christmas card (Henry Cole, 1843), the first electric tree lights (Edward Johnson, 1882), the real St Nicholas of Myra (modern Turkey), the 'X' in Xmas (Greek chi), and the Rockefeller Center tree (since 1931/1933).",
+        "Myth-busting true/false round: 'Coca-Cola made Santa red' (false), 'poinsettias are deadly to pets' (largely false), 'the Bible says there were three wise men' (it doesn't give a number), 'Jingle Bells was a Thanksgiving song' (unproven). This turns the set's current disputed items into a deliberate feature.",
+        "Science and numbers fun facts: female reindeer keep their antlers in winter, so Santa's team is probably female; reindeer eyes change from gold to blue in winter; Santa's required sleigh speed; how many trees are sold per year. Number questions can run as ALL PLAY 'closest wins', since ALL PLAY (server.js:26) also draws from the christmas pool.",
+        "The Nativity story and religious traditions: the Magi's gifts (gold, frankincense, myrrh), Bethlehem, Advent calendars and wreaths, Epiphany and Twelfth Night, Midnight Mass, Orthodox Christmas on January 7.",
+        "Christmas books and other origins: The Nutcracker (E.T.A. Hoffmann), The Gift of the Magi (O. Henry), How the Grinch Stole Christmas (book 1957), 'Yes, Virginia, there is a Santa Claus' (1897), Elf on the Shelf (2005), and NORAD's Santa Tracker (1955, from a misprinted Sears ad).",
+        "Hot toys and shopping by year: Cabbage Patch Kids 1983, Teddy Ruxpin, Furby 1998, Zhu Zhu Pets, Hatchimals 2016. Pick ones that adults across generations remember, and keep them from repeating facts already in popculture.",
+        "Christmas TV episodes: Friends' 'Holiday Armadillo', The Office's Christmas parties, Doctor Who Christmas specials, Mr. Bean's Christmas, The Simpsons' first episode (a Christmas special, 1989).",
+        "Easy kid-friendly tier and team-friendly formats: picture or emoji puzzles (e.g. snowman + ball emojis), 'name 5 in 30 seconds' lists (reindeer, items in the 12 Days song, Christmas movies), and family-specific custom questions. The set has no question types other than single-answer buzzer questions, and only about a dozen genuine easy ones for the youngest players.",
+        "Balance and spread: there are too many questions on Rudolph (4) and A Christmas Carol (4) and almost none on carols, food, world customs or recent (post-2010) movies. Writers should also check new questions against the popculture pool, because Hot Seat draws from both categories."
+      ]
+    },
+    {
+      "key": "content-pop",
+      "summary": "I checked all 25 popculture questions and all 25 sounditout songs in C:/Users/mleys/code_user/christmas-chaos/data/questions.json. Facts were checked online (Wikipedia list of highest-grossing Christmas films, Snopes, BU/NPR research on Jingle Bells, Smithsonian/Guinness on Gemini 6A, Billboard). Display behaviour was confirmed by reading the code, and the pop-017 parse result by running node. No project files were changed.\n\nFive popculture questions have real errors:\n- pop-001 is wrong. The Grinch (2018) made $552,976,825 worldwide; Home Alone made $476,684,675.\n- pop-016 is a muddled question. The SpongeBob Movie is not a holiday special.\n- pop-017 has two \"answer\" keys. JSON.parse keeps the last one, so the game shows 'What 1990s toy was at the center of a Hanukkah miracle story in A Very Rugrats Hanukkah?' and gives \"Tickle Me Elmo\" as the answer. That answer is wrong, and the intended question repeats xmas-040.\n- pop-022 is made up (\"first country to legalize Christmas trees in schools\"). What actually happened: the USSR brought the tree back in 1935, but as a New Year tree.\n- pop-025 states the Thanksgiving myth as fact. Snopes and BU's Kyna Hamill reject it.\n\nOther problems:\n- pop-006: the answer is right but the hint is false. Steve Jobs bought Pixar himself in 1986, not Apple.\n- pop-009: the answer is written in the question.\n- Hints on pop-001, pop-004 and pop-010 give the answer away. This matters because tv.html:460-463 shows the hint on the TV at the same moment as the question.\n- pop-023 repeats xmas-033, and pop-025 repeats xmas-031 (whose hint even prints pop-025's answer). The Hot Seat draws Christmas and pop questions together (server.js:93-96), so these pairs can come up in the same round.\n\nBreadth: the set does NOT meet the brief. 14 of the 25 popculture questions are Christmas questions, which overlap the 40-question christmas category. Of the 11 general ones, 6 are tech or business (iPhone, Netflix and YouTube launch years, PlayStation, Pixar, Amazon), and pop-005 and pop-011 both have the answer 2007. There are no sports questions, no music outside Christmas, nothing about games beyond PlayStation, no internet memes, nothing from the 2020s, and nothing for grandparents before 1980 apart from Brenda Lee and Tchaikovsky. Movies and TV only cover about 1990–2018.\n\nSound It Out has a bigger problem than its song list, confirmed by reading the code. The TV puts the song title and artist on screen for the whole room (tv.html:443-445: soundTitle.textContent = songTitle — artist, then classList.remove('hidden')). Every phone on the current team also shows the title, because isMyTurn is set per team (player.html:429, 481-483). The prompt says 'for your team to guess', yet the guessers can already read the answer, so every song is a giveaway until this is fixed.\n- Fix for the TV: in tv.html:442-445, show soundTitle only when state.answerRevealed is true.\n- Fix for the phones: in player.html:481, show the title only to one hummer. Either record the spinning player's socket id in server.js and compare it to the phone's socket.id, or have the host pick a hummer.\n- The sounditout \"hint\" fields are never shown anywhere. host.html:620 puts the song title in the hint slot instead.\n- The \"difficulty\" field is not used anywhere in server.js or the HTML.\n\nSong quality: 13 songs are very easy to hum and recognise (001, 002, 004, 005, 006, 008, 009, 013, 015, 016, 021, 023, 025). 6 are medium (003, 007, 010, 017, 020, 024). 6 are weak (011, 012, 014, 018, 019, 022).\n- Pairs that will sound alike: Silent Night / O Holy Night; Have Yourself a Merry Little Christmas / The Christmas Song / White Christmas; Rockin' Around the Christmas Tree / A Holly Jolly Christmas (both Johnny Marks songs).\n- Nothing is newer than 1994, so young adults only have Mariah.\n- Metadata fixes: Frosty is not \"Traditional\" (it was written in 1950 and Gene Autry recorded it); the title is spelled \"Rockin'\"; the full title is \"A Holly Jolly Christmas\".",
+      "items": [
+        {
+          "id": "pop-001",
+          "verdict": "wrong",
+          "issue": "Not true in unadjusted dollars. Wikipedia's List of highest-grossing Christmas films puts The Grinch (2018) first at $552,976,825 and Home Alone second at $476,684,675; Guinness also lists The Grinch. Home Alone leads only after adjusting for inflation. The hint 'Kevin McCallister vs. the Wet Bandits' gives the answer away, and the TV shows it next to the question (tv.html:461-463). Home Alone already appears in xmas-002 and xmas-018.",
+          "correctAnswer": "The Grinch (Illumination's 2018 'Dr. Seuss' The Grinch'); Home Alone only if adjusted for inflation",
+          "suggestion": "Q: 'Which 2018 animated movie overtook Home Alone as the highest-grossing Christmas film worldwide?' A: 'The Grinch (2018)'. Hint: 'Benedict Cumberbatch voices the green title character.'"
+        },
+        {
+          "id": "pop-002",
+          "verdict": "good",
+          "issue": "Correct and easy, with a fair hint. One of the few broad (non-Christmas) movie questions.",
+          "correctAnswer": "Robert Downey Jr.",
+          "suggestion": "Keep as is."
+        },
+        {
+          "id": "pop-003",
+          "verdict": "good",
+          "issue": "Correct (Joey; in the show he plays Dr. Drake Ramoray on Days of Our Lives). The hint is fine.",
+          "correctAnswer": "Joey Tribbiani",
+          "suggestion": "Keep as is."
+        },
+        {
+          "id": "pop-004",
+          "verdict": "giveaway",
+          "issue": "The fact is correct, but the hint 'All I Want for Christmas Is You' names her signature song, and the TV shows the hint with the question, so anyone gets it. It also overlaps pop-019 and sound-002 (both Mariah).",
+          "correctAnswer": "Mariah Carey",
+          "suggestion": "Keep the question, change the hint to: 'She tried (and failed) to trademark the title in 2022.'"
+        },
+        {
+          "id": "pop-005",
+          "verdict": "good",
+          "issue": "Correct: announced January 2007, released June 29, 2007. Jobs said 'the internet in your pocket' in a CNBC interview right after the keynote; on stage he said 'an iPod, a phone, and an internet communicator'. Same answer (2007) as pop-011, and it is one of three tech 'what year' questions, which is repetitive.",
+          "correctAnswer": "2007",
+          "suggestion": "Keep. Optionally change the hint to: 'Jobs introduced it as an iPod, a phone and an internet communicator.' Change pop-011 so both questions don't have the answer 2007."
+        },
+        {
+          "id": "pop-006",
+          "verdict": "wrong",
+          "issue": "The ANSWER is correct (Toy Story, 1995, Pixar). The HINT is false, and the TV shows it: Apple never bought Pixar. Steve Jobs bought the Lucasfilm Graphics Group himself in 1986, after leaving Apple, and Disney bought Pixar in 2006.",
+          "correctAnswer": "Pixar",
+          "suggestion": "Change the hint to: 'Steve Jobs bought it from Lucasfilm in 1986; Disney bought it in 2006.' Or: 'Its logo features a hopping desk lamp.'"
+        },
+        {
+          "id": "pop-007",
+          "verdict": "good",
+          "issue": "Correct, broad and easy, with a fair hint.",
+          "correctAnswer": "Wakanda",
+          "suggestion": "Keep as is."
+        },
+        {
+          "id": "pop-008",
+          "verdict": "good",
+          "issue": "Correct: Gary meows. Fine as an easy question.",
+          "correctAnswer": "Gary",
+          "suggestion": "Keep. (If you keep a SpongeBob question, don't also keep pop-016.)"
+        },
+        {
+          "id": "pop-009",
+          "verdict": "giveaway",
+          "issue": "The answer 'Michael Scott Paper Company' is written in the question ('Michael Scott's paper company'), and the hint gives away the other obvious answer (Dunder Mifflin).",
+          "correctAnswer": "Michael Scott Paper Company (as written: answer is in the question)",
+          "suggestion": "Q: 'In the US version of The Office, which Pennsylvania city is the Dunder Mifflin branch in?' A: 'Scranton'. Hint: 'It's also President Joe Biden's birthplace.'"
+        },
+        {
+          "id": "pop-010",
+          "verdict": "giveaway",
+          "issue": "Correct, but the hint 'George Michael was one half of this duo' is shown on the TV with the question, so it amounts to naming the band. It also overlaps sound-009 (Last Christmas).",
+          "correctAnswer": "Wham!",
+          "suggestion": "Keep the question, change the hint to: 'This duo also sang Wake Me Up Before You Go-Go.' Better still, swap it for a non-Christmas music question (see gaps) because the pop set is already heavy on Christmas."
+        },
+        {
+          "id": "pop-011",
+          "verdict": "weak",
+          "issue": "Correct ('Watch Now' launched January 16, 2007), but it has the same answer as pop-005 and is another dry tech 'what year' question (with pop-005 and pop-013). If both come up in one game, the second is free.",
+          "correctAnswer": "2007",
+          "suggestion": "Q: 'Before streaming, how did Netflix get movies to customers?' A: 'By mailing DVDs (in red envelopes)'. Or replace with a 2020s TV question: 'What 2021 Korean Netflix drama has players compete in deadly versions of children's games?' A: 'Squid Game'."
+        },
+        {
+          "id": "pop-012",
+          "verdict": "good",
+          "issue": "Correct (Japan, December 1994; North America, September 1995). The only video-game question in the set.",
+          "correctAnswer": "PlayStation (PS1)",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "pop-013",
+          "verdict": "good",
+          "issue": "Correct: launched 2005, bought by Google in 2006 for $1.65B. Third tech 'year' question, but it's fine on its own.",
+          "correctAnswer": "2005",
+          "suggestion": "Keep, but cut the number of 'what year did company X launch' questions to one or two."
+        },
+        {
+          "id": "pop-014",
+          "verdict": "good",
+          "issue": "Correct: Lee was 13 when she recorded it in 1958 (Billboard). Christmas-themed, and its hint repeats sound-008's hint.",
+          "correctAnswer": "Brenda Lee",
+          "suggestion": "Keep, with a fresher hint: 'In 2023, at 78, she became the oldest artist ever to top the Billboard Hot 100 with it.'"
+        },
+        {
+          "id": "pop-015",
+          "verdict": "good",
+          "issue": "Correct: the 1983 Cabbage Patch riots, with adoption papers. One of the few questions that reaches older players.",
+          "correctAnswer": "Cabbage Patch Kids",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "pop-016",
+          "verdict": "malformed",
+          "issue": "The question makes no sense. The SpongeBob SquarePants Movie (2004) is a feature film, not a holiday special, and SpongeBob and Patrick go to Shell City to get King Neptune's crown back; they aren't 'stranded' in a special. SpongeBob's actual Christmas special is 'Christmas Who?' (2000). It also repeats the SpongeBob topic of pop-008.",
+          "correctAnswer": "(as worded, none) — the film is 'The SpongeBob SquarePants Movie' (2004)",
+          "suggestion": "Either Q: 'In The SpongeBob SquarePants Movie (2004), which Baywatch star carries SpongeBob and Patrick home on his back?' A: 'David Hasselhoff'. Or, better for breadth, replace it with a pre-1980 TV question: 'What classic 1950s sitcom starred Lucille Ball and Desi Arnaz?' A: 'I Love Lucy'."
+        },
+        {
+          "id": "pop-017",
+          "verdict": "malformed",
+          "issue": "The JSON has two \"answer\" keys (questions.json:59). JSON.parse keeps the last one, so the game shows 'What 1990s toy was at the center of a Hanukkah miracle story in A Very Rugrats Hanukkah?' with the answer 'Tickle Me Elmo'. That answer is wrong (the Rugrats special has nothing to do with Elmo). The intended question (the 1996 toy craze) repeats xmas-040 word for word.",
+          "correctAnswer": "Intended: Tickle Me Elmo — but that duplicates xmas-040",
+          "suggestion": "Replace the whole entry: {\"question\":\"What furry, gibberish-talking electronic toy was the must-have Christmas gift of 1998?\",\"answer\":\"Furby\",\"hint\":\"It had big eyes and 'learned' English over time\"}. Remove the stray second answer key."
+        },
+        {
+          "id": "pop-018",
+          "verdict": "good",
+          "issue": "Correct (Band Aid, 1984, organised by Geldof and Ure for Ethiopian famine relief). Overlaps sound-019 but asks something different.",
+          "correctAnswer": "Band Aid",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "pop-019",
+          "verdict": "good",
+          "issue": "Correct: it first hit #1 on the Hot 100 in December 2019, 25 years after its 1994 release. The quotation mark is in the wrong place ('Mariah Carey's All I Want...' puts the artist inside the title). Third Mariah item (with pop-004 and sound-002).",
+          "correctAnswer": "2019",
+          "suggestion": "Reword: \"In what year did Mariah Carey's 'All I Want for Christmas Is You' first reach #1 on the Billboard Hot 100?\" If pop-004 stays, consider dropping this one to cut down on Mariah."
+        },
+        {
+          "id": "pop-020",
+          "verdict": "good",
+          "issue": "Correct: Cadabra was changed because it sounded like 'cadaver'. The hint is strong but fair for a hard question.",
+          "correctAnswer": "Cadabra",
+          "suggestion": "Keep. Optional gentler hint: 'It came from a magician's magic word.'"
+        },
+        {
+          "id": "pop-021",
+          "verdict": "good",
+          "issue": "The answer is correct. The hint 'It's a real building in Century City' is a bit misleading: Nakatomi Plaza is fictional, and Fox Plaza (2121 Avenue of the Stars), then 20th Century Fox's headquarters, played it. Die Hard is also the subject of xmas-028.",
+          "correctAnswer": "Nakatomi Plaza",
+          "suggestion": "Change the hint to: 'Fox Plaza in Century City played this fictional tower.'"
+        },
+        {
+          "id": "pop-022",
+          "verdict": "wrong",
+          "issue": "There's no factual basis for 'first country to legalize Christmas trees in schools after banning them'. What actually happened: the Soviet Union banned the tree under its anti-religion campaign (about 1928–1935), then Postyshev's Pravda letter of 28 December 1935 brought it back for schools and children's clubs, but as a New Year tree (yolka), not a Christmas tree. The answer 'Russia' is also wrong, because it was the USSR. This is Christmas history, not pop culture.",
+          "correctAnswer": "No valid answer as worded; the real fact: USSR, 1935, brought back as a New Year tree",
+          "suggestion": "Delete it from popculture. If you want the fact, put it in christmas: 'When the Soviet Union brought back the banned tree in 1935, which holiday was it decorated for instead of Christmas?' A: 'New Year's'. Hint: 'Grandfather Frost (Ded Moroz) brings the gifts.'"
+        },
+        {
+          "id": "pop-023",
+          "verdict": "duplicate",
+          "issue": "Same fact as xmas-033 (Jingle Bells, Gemini 6A, harmonica and bells). The fact itself is correct (December 16, 1965, Schirra and Stafford, per Smithsonian and Guinness). The Hot Seat draws Christmas and pop together (server.js:93-96), so both can come up in one round, and each gives away the other.",
+          "correctAnswer": "1965 (Gemini 6A)",
+          "suggestion": "Delete and replace with a games question: 'What 1985 Nintendo game has Mario rescue a princess from Bowser?' A: 'Super Mario Bros.'"
+        },
+        {
+          "id": "pop-024",
+          "verdict": "weak",
+          "issue": "Correct (Tchaikovsky, 1892), but it's a classical-music Christmas question, not pop culture, and it uses up a pop slot.",
+          "correctAnswer": "Pyotr Ilyich Tchaikovsky",
+          "suggestion": "Move to the christmas category. Replace in pop with a cross-generation film question: 'In The Wizard of Oz (1939), what color are Dorothy's magic slippers?' A: 'Ruby red'."
+        },
+        {
+          "id": "pop-025",
+          "verdict": "wrong",
+          "issue": "States a popular myth as fact. Snopes concludes Jingle Bells was written as a Christmas/winter song. BU historian Kyna Hamill traced its first performance to a Boston minstrel show on September 15, 1857, as 'One Horse Open Sleigh', and found no evidence for the Medford-Thanksgiving or Savannah-Thanksgiving stories (Pierpont was in California in 1850, the year on Medford's plaque). It also repeats xmas-031, whose hint 'It was written for Thanksgiving' prints this question's answer.",
+          "correctAnswer": "No reliable answer; the song was first performed in September 1857 and copyrighted as 'One Horse Open Sleigh'",
+          "suggestion": "Delete it. Also change xmas-031's hint to: 'James Lord Pierpont published it in 1857.' Replace with sports-lite: 'The 2026 FIFA World Cup was co-hosted by the USA, Canada and which other country?' A: 'Mexico'."
+        },
+        {
+          "id": "sound-001",
+          "verdict": "good",
+          "issue": "The easiest song to hum. Everyone knows it.",
+          "correctAnswer": "Jingle Bells",
+          "suggestion": "Keep. (The artist could be 'James Lord Pierpont' rather than 'Traditional', but that's cosmetic.)"
+        },
+        {
+          "id": "sound-002",
+          "verdict": "good",
+          "issue": "The chorus is very recognisable to every generation and is the best modern pick for young adults.",
+          "correctAnswer": "All I Want for Christmas Is You",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-003",
+          "verdict": "good",
+          "issue": "An iconic but slow crooner ballad; older players will get it fastest. It can be confused with sound-012 and sound-022 if those stay. The unused hint says 'best-selling single for many years'; Guinness still lists it as the best-selling single.",
+          "correctAnswer": "White Christmas",
+          "suggestion": "Keep (medium). Change the hint to 'Still Guinness's best-selling single ever'."
+        },
+        {
+          "id": "sound-004",
+          "verdict": "good",
+          "issue": "Very easy to hum and known by every age group.",
+          "correctAnswer": "Rudolph the Red-Nosed Reindeer",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-005",
+          "verdict": "good",
+          "issue": "Very easy to hum. The metadata is wrong: artist 'Traditional', but it was written in 1950 by Jack Rollins and Steve Nelson and first recorded by Gene Autry (1950).",
+          "correctAnswer": "Frosty the Snowman",
+          "suggestion": "Change artist to 'Gene Autry' (or 'Jimmy Durante (1969 special)')."
+        },
+        {
+          "id": "sound-006",
+          "verdict": "good",
+          "issue": "Very easy to hum; the 'fa la la' line is unmistakable.",
+          "correctAnswer": "Deck the Halls",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-007",
+          "verdict": "good",
+          "issue": "Well known but a slow lullaby. Hummed, it can be confused with sound-014 (O Holy Night), another slow 'holy night' carol.",
+          "correctAnswer": "Silent Night",
+          "suggestion": "Keep, and drop or replace sound-014 so the two can't be mixed up."
+        },
+        {
+          "id": "sound-008",
+          "verdict": "good",
+          "issue": "Easy to hum and recognisable (and #1 in 2023). The title is misspelled: the song is 'Rockin' Around the Christmas Tree', not 'Rocking'. Same composer and feel as sound-017 (Johnny Marks).",
+          "correctAnswer": "Rockin' Around the Christmas Tree",
+          "suggestion": "Change songTitle/answer to \"Rockin' Around the Christmas Tree\"."
+        },
+        {
+          "id": "sound-009",
+          "verdict": "good",
+          "issue": "The chorus is very easy to hum and known to all ages. Also asked about in pop-010, which is fine.",
+          "correctAnswer": "Last Christmas",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-010",
+          "verdict": "good",
+          "issue": "A distinctive waltz melody that hums well; medium difficulty.",
+          "correctAnswer": "It's the Most Wonderful Time of the Year",
+          "suggestion": "Keep (official title begins \"It's the\")."
+        },
+        {
+          "id": "sound-011",
+          "verdict": "weak",
+          "issue": "A conversational call-and-response duet with a winding, talky melody that doesn't hum well. Its lyrics never mention Christmas, and it has been controversial since 2018 (some radio stations pulled it), which can sour a family party.",
+          "correctAnswer": "Baby, It's Cold Outside",
+          "suggestion": "Replace with 'Jingle Bell Rock' (Bobby Helms, 1957): very easy to hum and known by every age group."
+        },
+        {
+          "id": "sound-012",
+          "verdict": "weak",
+          "issue": "A slow, wistful, meandering melody. Hummed, it is easily mistaken for sound-022 (The Christmas Song) or sound-003 (White Christmas). Hard for under-40s.",
+          "correctAnswer": "Have Yourself a Merry Little Christmas",
+          "suggestion": "Replace with 'Sleigh Ride' (Leroy Anderson / The Ronettes), whose trotting melody is instantly recognisable."
+        },
+        {
+          "id": "sound-013",
+          "verdict": "good",
+          "issue": "Very easy to hum and known by every age group.",
+          "correctAnswer": "Santa Claus Is Coming to Town",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-014",
+          "verdict": "weak",
+          "issue": "Very hard to hum: a huge vocal range, and only the high 'Fall on your knees' climax is recognisable. The quiet opening sounds like sound-007 (Silent Night). It was composed by Adolphe Adam (1847), not 'Traditional'.",
+          "correctAnswer": "O Holy Night",
+          "suggestion": "Replace with 'You're a Mean One, Mr. Grinch' (Thurl Ravenscroft, 1966): distinctive, funny, and known across generations thanks to the films."
+        },
+        {
+          "id": "sound-015",
+          "verdict": "good",
+          "issue": "Repetitive and very easy to hum.",
+          "correctAnswer": "Feliz Navidad",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-016",
+          "verdict": "good",
+          "issue": "The descending-scale opening is unmistakable.",
+          "correctAnswer": "Joy to the World",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-017",
+          "verdict": "good",
+          "issue": "The chorus is fairly recognisable, but the official title is 'A Holly Jolly Christmas'. Same composer (Johnny Marks) and bouncy style as sound-008 and sound-004, so a hummed version can be mistaken for Rockin' Around the Christmas Tree.",
+          "correctAnswer": "A Holly Jolly Christmas",
+          "suggestion": "Change title/answer to 'A Holly Jolly Christmas'. Accept 'Holly Jolly Christmas'."
+        },
+        {
+          "id": "sound-018",
+          "verdict": "weak",
+          "issue": "A slow folk melody (based on 'Stewball') that loses its identity without the words. Mostly known to boomers and Gen X; younger players rarely know it. Credited to John & Yoko/Plastic Ono Band with the Harlem Community Choir.",
+          "correctAnswer": "Happy Xmas (War Is Over)",
+          "suggestion": "Replace with 'The Little Drummer Boy' (the 'pa-rum-pum-pum-pum' line hums well) or 'Here Comes Santa Claus' (Gene Autry)."
+        },
+        {
+          "id": "sound-019",
+          "verdict": "weak",
+          "issue": "Verses are half-spoken solos, and the famous 'Feed the world' ending is a chant, not a tune. Well known in the UK but much less in the US. The unused hint 'to end world hunger' is wrong; it was for Ethiopian famine relief.",
+          "correctAnswer": "Do They Know It's Christmas?",
+          "suggestion": "US party: replace with 'Let It Snow! Let It Snow! Let It Snow!' (Dean Martin). UK party: keep it, but fix the hint to 'Ethiopian famine relief, 1984'."
+        },
+        {
+          "id": "sound-020",
+          "verdict": "good",
+          "issue": "The synth riff and 'simply having a wonderful Christmastime' chorus hum well. Medium for younger players.",
+          "correctAnswer": "Wonderful Christmastime",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-021",
+          "verdict": "good",
+          "issue": "Easy to hum and widely known.",
+          "correctAnswer": "Winter Wonderland",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-022",
+          "verdict": "weak",
+          "issue": "A slow jazz ballad with a long, meandering line that doesn't hum well and gets mixed up with sound-012 and sound-003. The hint repeats the title.",
+          "correctAnswer": "The Christmas Song (Chestnuts Roasting on an Open Fire)",
+          "suggestion": "Replace with 'Linus and Lucy' (A Charlie Brown Christmas, 1965) or 'Dance of the Sugar Plum Fairy': both instantly recognisable when hummed, and known to grandparents and kids alike."
+        },
+        {
+          "id": "sound-023",
+          "verdict": "good",
+          "issue": "Very easy to hum. Good as an easy one.",
+          "correctAnswer": "We Wish You a Merry Christmas",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-024",
+          "verdict": "good",
+          "issue": "Well known and easy to hum, though slower; older players will get it faster. Medium difficulty.",
+          "correctAnswer": "O Christmas Tree (O Tannenbaum)",
+          "suggestion": "Keep."
+        },
+        {
+          "id": "sound-025",
+          "verdict": "good",
+          "issue": "A recognisable melody across generations (Perry Como, Bing Crosby, Michael Bublé).",
+          "correctAnswer": "It's Beginning to Look a Lot Like Christmas",
+          "suggestion": "Keep (optionally artist 'Perry Como / Michael Bublé')."
+        }
+      ],
+      "gaps": [
+        "Sound It Out shows the answer to the guessers (verified in code). tv.html:443-445 puts '🎵 {songTitle} — {artist}' on the TV, and player.html:429/481-483 shows the title to every phone on the current team, yet the prompt says 'for your team to guess'. Fix: hide soundTitle on the TV until state.answerRevealed is true, and show the title only to one hummer (record the spinner's socket.id in server.js, or let the host pick).",
+        "pop-017's JSON has two 'answer' keys (questions.json:59). Add a load-time check in server.js that rejects duplicate keys, missing ids, or a question with no answer.",
+        "The popculture category is mostly Christmas: 14 of 25 items (001, 004, 010, 014, 015, 016, 017, 018, 019, 021, 022, 023, 024, 025). That overlaps the 40-question christmas category and produces duplicates (pop-023/xmas-033, pop-017/xmas-040, pop-025/xmas-031, and Home Alone and Die Hard each appearing twice). Aim for at most 4–5 Christmas-themed pop questions.",
+        "Too much tech/business: 6 of the 11 non-Christmas pop questions (005, 006, 011, 012, 013, 020), including two with the answer 2007. Keep one or two 'what year' questions at most; they are the least fun to answer out loud.",
+        "Sports-lite: none at all. Examples: 'Which basketball star was nicknamed His Airness?' (Michael Jordan); 'Which city hosted the 2024 Summer Olympics?' (Paris); 'How many players does a soccer team have on the field?' (11); 'Which Kansas City Chiefs tight end started dating Taylor Swift in 2023?' (Travis Kelce).",
+        "Music outside Christmas: none. Examples: 'Which band played The Ed Sullivan Show in February 1964?' (The Beatles); 'What was Elvis Presley's Memphis mansion called?' (Graceland); 'What 1982 Michael Jackson album is the best-selling album ever?' (Thriller); 'What was Taylor Swift's record-breaking 2023–24 tour called?' (The Eras Tour); ABBA, Queen, Beyoncé.",
+        "Pre-1980 film/TV for grandparents: nothing except Brenda Lee and Tchaikovsky. Examples: The Wizard of Oz, The Sound of Music, I Love Lucy, Star Trek, M*A*S*H, Johnny Carson, Gilligan's Island, Jaws (1975), Star Wars (1977: 'Name Han Solo's ship' → Millennium Falcon).",
+        "Game shows (good across generations): 'On which show do contestants hear Come on down!?' (The Price Is Right); 'On Jeopardy!, answers must be phrased as what?' (a question); Wheel of Fortune.",
+        "Video games beyond PlayStation: Pac-Man, Super Mario Bros., Tetris, Pokémon, Minecraft (best-selling video game ever), Fortnite, Mario Kart.",
+        "Internet/memes: none. Examples: Wordle (bought by the NYT in 2022), Rickrolling, Grumpy Cat, the Ice Bucket Challenge, TikTok.",
+        "2020s pop culture: none. Examples: Squid Game (2021), 'Barbenheimer' (Barbie + Oppenheimer, 2023), Wednesday, Bluey, Stranger Things, KPop Demon Hunters (2025, girl group HUNTR/X; check its record claims before using).",
+        "Disney/animation hits: Frozen ('Let It Go', 2013), The Lion King, Shrek.",
+        "Classic sitcoms/dramas from the '90s–2010s besides Friends and The Office: Seinfeld, The Simpsons, Breaking Bad, Game of Thrones.",
+        "Sound It Out has nothing after 1994. Add 1–3 modern songs for young adults: 'Mistletoe' (Justin Bieber, 2011), 'Underneath the Tree' (Kelly Clarkson, 2013), 'Santa Tell Me' (Ariana Grande, 2014).",
+        "Sound It Out is missing several very easy-to-hum songs: Jingle Bell Rock, Sleigh Ride, Let It Snow!, Here Comes Santa Claus, The Little Drummer Boy, Carol of the Bells (Home Alone), You're a Mean One Mr. Grinch, Linus and Lucy, Dance of the Sugar Plum Fairy, Grandma Got Run Over by a Reindeer, Silver Bells, Blue Christmas (Elvis).",
+        "Sound It Out songs that sound too alike: Silent Night/O Holy Night; Have Yourself a Merry Little Christmas/The Christmas Song/White Christmas; Rockin' Around the Christmas Tree/A Holly Jolly Christmas (both Johnny Marks). Keep at most one from each group.",
+        "The sounditout 'hint' fields are never shown (host.html:620 puts the song title in the hint slot). Either show the hint to the host as a lyric clue if nobody can guess, or remove the field.",
+        "The 'difficulty' field is not read anywhere in server.js or the HTML, so the easy/medium/hard balance has no effect. Either use it (e.g. easy questions in early rounds, hard ones for ALL PLAY or Hot Seat) or drop it.",
+        "Trivia hints appear on the TV at the same time as the question (tv.html:460-463), so every hint is effectively part of the question. Either hide hints until the host reveals them, or rewrite hints so none of them name or strongly imply the answer (pop-001, pop-004, pop-010 currently do)."
+      ]
+    },
+    {
+      "key": "dares",
+      "summary": "I reviewed all 25 dares in C:/Users/mleys/code_user/christmas-chaos/data/dares.json against the code that shows them (server.js, tv.html, host.html, player.html). I also rendered every dare on tv.html in headless Edge at 1920x1080 and 1280x720. To avoid starting the server, the script intercepts the page's requests and fakes socket.io. No text gets cut off on screen, but the render did confirm several readability problems. Scratch script, results and screenshots are in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/dares/ (render.js, render-results.json, dare-0xx-1920.png). No project files were changed.\n\nHow I used the verdicts: \"good\" means it can be used as is. \"weak\" means it works but needs a tweak to be fun or clear. \"wrong\" means it must be rewritten or cut before the party: it gives away its own answer, can't be judged, its scoring is broken, or it is unsafe. \"duplicate\" means it repeats the trivia or Sound It Out segments. \"malformed\" means the data itself is broken.\n\nTotals: good 5 (001, 004, 009, 013, 016); weak 8 (002, 003, 005, 006, 007, 008, 011, 020); wrong 9 (010, 012, 014, 015, 019, 021, 022, 023, 024); duplicate 2 (017, 018); malformed 1 (025). Only about a third of the deck can be used without changes.\n\nProblems that affect the whole deck, all confirmed in the code:\n\n1. **No way to show a secret prompt.** Every dare's full title and description appears on the TV (tv.html:436-441), on the host screen (host.html:614-617) and on EVERY player's phone (player.html:478-479). Unlike Sound It Out (player.html:481-483), there is no check for whose turn it is. So any dare with a secret (010 movie list, 021 word list, 022 \"Silent Night\" in its own title, plus future charades or describe-the-gift dares) shows the answer to everyone. The screenshot dare-022-1920.png shows the answer in both the title and the description. Fix: add an optional `secret: [...]` list to the dare data. Have pickDare pick one item from it. Send that item only to the host and to the one socket that taps \"I'm performing\" (io.to(socketId)). The TV shows \"Secret is on <name>'s phone\".\n\n2. **The `time` field is never used.** No code reads challenge.time or ch.time, and there is no countdown anywhere. Every \"You have 60 seconds\" depends on the host finding a stopwatch while also running the host screen. Fix: a host \"Start timer\" button sends `timer-start {seconds: ch.time}`, and the TV shows a large countdown.\n\n3. **Partial scores can't be entered.** For a dare the award panel only offers +150, +50, −50 and −100 (host.html:563-569). Dares 005, 017, 018, 023, 024 and 025 ask for −10, 20 per line, −25, +25 per 10, or half points. The host can only enter those by typing a new score in the Override tab. Rule for the whole deck: every dare is pass/fail for 150, with an optional +50 crowd bonus. Also, server.js:268 doubles negative awards too, and a −50 uses up an active Double Down.\n\n4. **Too much text to read in 5 seconds.** Descriptions run 27–47 words, which takes about 10–14 seconds to read. They sit in 20.8px text inside a 480px-wide box. The props line is 14.4px muted italic (tv.html:216-221), which can't be read from a couch. Fix: a title, one rule line of 15 words or fewer, and a \"PASS:\" line. Add a WHO badge (ONE PLAYER / WHOLE TEAM / WHOLE ROOM). The `type` field exists but is never used.\n\n5. **Props.** Props are only shown once a dare comes up, so the host can't set them out ahead of time. The deck needs about 10 different prop kits (Oreos, marshmallows, a wrapping kit with oven mitts, a pillow, a cup or box with balls, candy canes, a small wrapped box, a speaker). Fix: show a props checklist on the host lobby screen.\n\n6. **Repeats and frequency.** \"Play Again\" calls makeState() (server.js:343-344), which clears usedDareIds, so the second game can repeat dares from the first. Only 2 of the 12 wheel segments are dares. With 12–18 turns per game, that is only about 2–3 dares per game, so every dare has to be a strong one.\n\n7. **Safety.** Food dares (Oreo; marshmallows contain gelatin) need an allergy or diet substitute. Jumping jacks, crawling on all fours and standing on one leg need a seated or \"hold a chair\" option for older relatives. Never add Chubby Bunny (a choking hazard).",
+      "items": [
+        {
+          "id": "dare-001",
+          "verdict": "good",
+          "issue": "Cookie Face (dares.json:5). A classic Minute to Win It game that is funny every time; crumbs on the face are good-natured embarrassment. It is easy to judge and 60s fits. It doesn't say what happens if the cookie falls, and only one person is involved. Oreos are a prop the host must have ready.",
+          "correctAnswer": "PASS = the cookie gets from forehead into the mouth within 60s without using hands. If it drops, put it back on the forehead and keep going.",
+          "suggestion": "Rule line: \"Cookie on forehead → into your mouth. Face only, no hands. Dropped it? Put it back. 60s.\" Optional way to involve more people: \"Whole team plays at once, one success = pass.\" Add a gluten-free option in props."
+        },
+        {
+          "id": "dare-002",
+          "verdict": "weak",
+          "issue": "Marshmallow Stack (dares.json:13). 'As many as possible' gives no target, so the host can't rule pass/fail. A forehead is vertical unless the person tips their head back or lies down, and the text doesn't say so. The 3-second hold rule is good.",
+          "correctAnswer": "PASS = 3 marshmallows stacked on the teammate's face, held for 3 seconds, within 45s.",
+          "suggestion": "\"Teammate tips their head back. Stack 3 marshmallows on their forehead/nose and hold for 3 seconds. 45s.\" Props: 'Mini or regular marshmallows'. Never turn this into Chubby Bunny."
+        },
+        {
+          "id": "dare-003",
+          "verdict": "weak",
+          "issue": "Present Wrap with oven mitts (dares.json:21). One of the funniest ideas in the deck, but the scoring is broken: 'Fastest team to wrap it neatly wins the bonus' compares teams when only the active team plays a dare, and 'neatly' is subjective. Tearing tape in oven mitts is nearly impossible, so it needs pre-torn strips. It needs 4 props set out ahead of time.",
+          "correctAnswer": "PASS = no cardboard visible and the paper stays on when the host lifts it, within 90s.",
+          "suggestion": "\"Wrap this box wearing oven mitts. No cardboard showing at 90s = pass.\" Props: 'shoebox-sized box, pre-cut wrapping paper, 4 pre-torn tape strips on the table edge, oven mitts'. Better as a face-off: 'vs a player from another team, first to finish wins 150'."
+        },
+        {
+          "id": "dare-004",
+          "verdict": "good",
+          "issue": "Santa Belly Jumping Jacks (dares.json:29). Silly, visual, easy to judge, and needs only a cushion. Jumping jacks may not suit older relatives.",
+          "correctAnswer": "PASS = 10 jumping jacks in a row without the pillow falling, within 60s (it falls = count restarts).",
+          "suggestion": "Add '(or 10 squats / 10 star jumps in place)' as a lower-impact option. Shorter rule line: \"Pillow up your shirt. 10 jumping jacks. Pillow drops = start over. 60s.\""
+        },
+        {
+          "id": "dare-005",
+          "verdict": "weak",
+          "issue": "Reindeer Antler Freeze (dares.json:37). Holding your hands on your head for 30s is trivial, so nobody ever fails, there is no tension, and nothing about it is embarrassing. The '−25 points' penalty can't be entered with the award buttons (host.html:563-569).",
+          "correctAnswer": "PASS = whole team holds antlers (hands on head) for 30s without laughing or dropping their hands while the other teams try to make them laugh.",
+          "suggestion": "Turn it into a whole-room dare: \"WHOLE TEAM: antlers up, straight face, 30s. Other teams get 1 metre away and try to make you laugh (no touching). Anyone laughs or drops = fail.\" Remove the 25-point penalty."
+        },
+        {
+          "id": "dare-006",
+          "verdict": "weak",
+          "issue": "Jingle Bell Shake (dares.json:45). Exactly the right kind of embarrassing (the classic 'Junk in the Trunk'), but the setup won't work: tape doesn't hold a cup to trousers, and a deep narrow cup won't throw balls out. Jingle bells are a prop people rarely have. 30s is too short (the original game is 60s). 40 words.",
+          "correctAnswer": "PASS = all 5 items shaken out of the box using hips only, within 60s.",
+          "suggestion": "\"Box tied to your back. Shake out all 5 balls with your hips only. No hands. 60s.\" Props: 'empty tissue box, a belt/scarf to tie it on, 5 ping-pong balls or wrapped candies'. Set time to 60."
+        },
+        {
+          "id": "dare-007",
+          "verdict": "weak",
+          "issue": "Candy Cane Hook (dares.json:53). The mechanics are wrong: candy canes can't be 'stacked' with a hook. 'Most stacked wins' compares teams when only one plays. 30s is too short.",
+          "correctAnswer": "PASS = 3 candy canes hooked off the table and dropped into the bowl, using only the cane held in the mouth, within 60s.",
+          "suggestion": "\"Candy cane in your mouth, hook end out. Hook 3 candy canes off the table into a bowl. No hands. 60s.\" Props: '4 wrapped candy canes, a bowl'. Time 60."
+        },
+        {
+          "id": "dare-008",
+          "verdict": "weak",
+          "issue": "'Noodle the Gift' (dares.json:61). The title means nothing ('Noodle'?). 'First person on the team to do it wins the points' makes it unclear whether one player or a race between teammates. The 60s limit appears only in the time field, not in the text. Tables at a party have food and drinks on them.",
+          "correctAnswer": "PASS = one player pushes the box with their nose to the far end of a cleared table and back within 60s, no hands.",
+          "suggestion": "Title 'Nose the Present'. \"ONE player: push this present with your NOSE to the end of the table and back. No hands. 60s.\" Props: 'small wrapped box, a cleared table or the floor'."
+        },
+        {
+          "id": "dare-009",
+          "verdict": "good",
+          "issue": "Opera carol (dares.json:69). Very funny, needs no props, and anyone can do it. The host has to come up with a carol (none are listed), and few people know a whole 'first verse'. 'Convincing' voting will be generous, which is fine for a performance dare.",
+          "correctAnswer": "PASS = sings the full chorus/first verse in an operatic voice without breaking character (host's call, crowd cheer).",
+          "suggestion": "Put the options on the card (no secret needed): \"Sing Jingle Bells / Deck the Halls / We Wish You a Merry Christmas like an OPERA STAR. Break character = fail.\" Way to involve the room: \"The room hums the orchestra.\""
+        },
+        {
+          "id": "dare-010",
+          "verdict": "wrong",
+          "issue": "Mime the Christmas Movie (dares.json:77). The answer is visible: the 5-movie list is shown on the TV and on every teammate's phone (player.html:478-479), so the team just picks from 5 options as soon as the miming starts. 'Host picks' means saying it out loud, which everyone hears. 45 words.",
+          "correctAnswer": "PASS = team names the secret movie within 60s with no words, sounds or mouthing from the performer.",
+          "suggestion": "Add `secret: [\"Home Alone\",\"Elf\",\"The Grinch\",\"A Christmas Story\",\"Die Hard\",\"Frosty the Snowman\",\"The Polar Express\",\"Love Actually\",\"Jingle All the Way\",\"National Lampoon's Christmas Vacation\",\"Miracle on 34th Street\",\"It's a Wonderful Life\"]`. Send one movie only to the performer's phone and the host. TV text: \"Mime the movie on <name>'s phone. No sounds. 60s.\""
+        },
+        {
+          "id": "dare-011",
+          "verdict": "weak",
+          "issue": "Movie Quote Accent (dares.json:85). The performer has to remember a 'famous Christmas movie quote' on the spot, and many will freeze. 'Slow motion' is not an accent. A thumbs up/down vote at a family party always passes.",
+          "correctAnswer": "PASS = delivers the quote fully in the chosen accent without breaking (host's call).",
+          "suggestion": "Put both lists on the card: quotes \"Keep the change, ya filthy animal!\" / \"You'll shoot your eye out!\" / \"Son of a nutcracker!\" / \"Bah, humbug!\"; accents: pirate, robot, Shakespearean, sports commentator, Yoda. \"The other teams shout the accent.\" 30s."
+        },
+        {
+          "id": "dare-012",
+          "verdict": "wrong",
+          "issue": "Reindeer Impressions (dares.json:93). There is no goal or win condition. Everyone shouts reindeer names and the performer 'acts excited' at a 'secret' name, then nothing happens. The host can't judge it. Crawling on all fours is hard on knees and party clothes, and the secret name has no channel.",
+          "correctAnswer": "PASS = team names the performer's secret reindeer within 30s.",
+          "suggestion": "Rewrite as 'Which Reindeer Am I?': the performer gets a secret reindeer and a move on their phone (Dasher = sprint on the spot, Dancer = disco, Prancer = prance, Vixen = model pose, Comet = zoom around the room, Cupid = blow kisses, Donner/Blitzen = thunder & lightning, Rudolph = point at glowing nose). They act it out standing up, and the team guesses within 30s."
+        },
+        {
+          "id": "dare-013",
+          "verdict": "good",
+          "issue": "30-Second Commercial (dares.json:101). Good improv dare. The product list is fine to show (the room knowing it adds to the fun). 'Full points if the audience claps' is effectively an automatic pass.",
+          "correctAnswer": "PASS = a 30s pitch that includes a slogan and a price (host's call).",
+          "suggestion": "\"Sell this in 30 seconds: singing Christmas tree / inflatable lawn Santa / fruitcake / Christmas Snuggie. Must include a SLOGAN and a PRICE.\" Optional +50 if the room gives a standing ovation."
+        },
+        {
+          "id": "dare-014",
+          "verdict": "wrong",
+          "issue": "Christmas Rap Battle (dares.json:109). The scoring makes no sense: 'audience scores you 1–5. 30+ points = full dare points' (a 1–5 score can't reach 30, and nobody will add up the votes). It's called a 'battle' but there is no opponent. 45s of prep plus the verse goes past 90s.",
+          "correctAnswer": "PASS = active team's rapper wins the louder room cheer in a 20s-each face-off and uses 'Santa' and 'chimney'.",
+          "suggestion": "\"RAP BATTLE: host picks a rapper from another team. 20 seconds each, must say 'Santa' and 'chimney'. Room cheers, louder cheer wins 150.\" No prep time. Time 60."
+        },
+        {
+          "id": "dare-015",
+          "verdict": "wrong",
+          "issue": "Elf on the Shelf Pose (dares.json:117). 'The funniest pose (voted by other teams) wins the full 150' compares performances when only one person performs. Holding a pose for 15s is trivial, so there is no fail state.",
+          "correctAnswer": "PASS = holds the elf pose for 30s without laughing or moving while the other teams try to break them.",
+          "suggestion": "\"Freeze in an Elf-on-the-Shelf pose for 30s. Other teams get 1 metre away and try to make you laugh (no touching). Laugh or move = fail.\" Gets the whole room involved and is easy to judge."
+        },
+        {
+          "id": "dare-016",
+          "verdict": "good",
+          "issue": "White Elephant Reaction (dares.json:125). Funny, quick, needs no props, and the room seeing the gift is part of the joke. 'Other teams rate 1-5' has no pass threshold that matches the award buttons. 42 words; it could be shorter.",
+          "correctAnswer": "PASS = an over-the-top happy reaction for 20–30s without cracking (host's call).",
+          "suggestion": "\"You just unwrapped: an expired coupon book / a 1-lb block of Velveeta / a novelty toilet seat. Be OVERJOYED for 30s. Crack up = fail.\" The host rules; optional +50 for the room's favourite."
+        },
+        {
+          "id": "dare-017",
+          "verdict": "duplicate",
+          "issue": "Speed Reindeer (dares.json:133). This is a trivia question dressed up as a dare. Trivia already has 6 of the 12 wheel segments (w0, w1, w3, w5, w7, w8 in server.js:18-31), and nothing about this is silly or physical. 'All 9' is debatable (the poem has 8; Donner/Donder). 'Each wrong answer costs 10 points' can't be tracked when a team is shouting over each other, and there is no −10 button. Most adults pass easily.",
+          "correctAnswer": "Dasher, Dancer, Prancer, Vixen, Comet, Cupid, Donner (Donder), Blitzen + Rudolph.",
+          "suggestion": "Cut it, or make it physical: \"REINDEER ROLL CALL: teammates take turns, each says a reindeer name AND does a reindeer move. No repeats, no pauses over 3s. All 9 in 45s = pass.\" Drop the −10 rule."
+        },
+        {
+          "id": "dare-018",
+          "verdict": "duplicate",
+          "issue": "Carol First Lines (dares.json:141). Repeats Sound It Out: the same kind of song recall, and it would use the same carols (sound-001 Jingle Bells, sound-006 Deck the Halls, sound-007 Silent Night, sound-016 Joy to the World...). The host has no carol list on screen. '20 points per line' maxes out at 100, below the dare's 150, and can't be entered with the +150/+50 buttons. 5 carols plus announcements takes about 90s, not 60.",
+          "correctAnswer": "n/a (cut)",
+          "suggestion": "Cut it. If song content is wanted, add a whole-room 'Finish the Lyric' question to ALL PLAY instead of a dare."
+        },
+        {
+          "id": "dare-019",
+          "verdict": "wrong",
+          "issue": "Christmas Alphabet Blitz (dares.json:149). Impossible to judge live: the host would have to track 26 letters, 3 skips and repeats while several people shout at once. 90s is long, and it is a mental test rather than a silly one.",
+          "correctAnswer": "PASS = team reaches letter M in 60s.",
+          "suggestion": "\"A-TO-Z RELAY: line up. Each person in turn says a Christmas word starting with the next letter (A, B, C…). Pause 3 seconds = that letter is skipped. Reach M in 60s = pass.\" The host only has to track the current letter."
+        },
+        {
+          "id": "dare-020",
+          "verdict": "weak",
+          "issue": "Gift Description (dares.json:157). A Taboo-style dare that works, but 'Host picks the gift' means the host has to invent a gift and whisper it, because the app has no list. If a list were added to the description, it would show on the TV and every phone (player.html:478-479). Needs the secret prompt feature.",
+          "correctAnswer": "PASS = team guesses the secret gift within 30s; the describer must not say the gift name or any part of it, and no gestures.",
+          "suggestion": "`secret: [\"Ugly sweater\",\"Fruitcake\",\"Socks\",\"Snow globe\",\"Gift card\",\"Chia Pet\",\"Lava lamp\",\"Air fryer\",\"Foot spa\",\"Selfie stick\",\"Slippers\",\"Board game\"]`, sent to the performer's phone only. For more energy: \"Get 3 in 45s\"."
+        },
+        {
+          "id": "dare-021",
+          "verdict": "wrong",
+          "issue": "Spelling Bee Backwards (dares.json:165). The answer is on screen: all 5 words appear in large text on the TV (and on every phone), so the performer just reads one right-to-left. 'No writing it down!' while it's written on a TV. A spelling test is not a silly party dare, and the host has no reversed spelling to check against.",
+          "correctAnswer": "n/a (replace)",
+          "suggestion": "Replace with a tongue twister: \"Say 'Santa's short suit shrunk' 5 times fast without a slip. 20s.\" If kept, the word must be secret (performer's phone only) and the host screen must show the reversed spelling."
+        },
+        {
+          "id": "dare-022",
+          "verdict": "wrong",
+          "issue": "Silent Night Miming (dares.json:173). The answer appears in both the title and the description, as screenshot dare-022-1920.png shows, so teammates read it off the TV. 'Mime the entire song from start to finish' contradicts 'identify within 20 seconds'. It also repeats Sound It Out: same mechanic (perform a song without words, team guesses) and same song (sound-007 'Silent Night').",
+          "correctAnswer": "n/a (cut)",
+          "suggestion": "Cut it. Song-guessing already belongs to Sound It Out, and the deck needs physical or room-wide dares more."
+        },
+        {
+          "id": "dare-023",
+          "verdict": "wrong",
+          "issue": "Ho Ho How Many (dares.json:181). Can't be counted: a fast 'hohoho' runs about 5 per second, roughly 150 in 30s, and 'other teams count out loud' turns into noise. 'Every 10 Ho's = 25 bonus' is an open-ended bonus that can exceed the 150 base and can't be entered with the buttons. There is no pass threshold. Its type is 'physical' but it is a speaking dare.",
+          "correctAnswer": "PASS = 5+ full phrases in one breath, counted aloud by the room.",
+          "suggestion": "\"ONE BREATH: say 'Ho ho ho, Merry Christmas!' as many times as you can. The whole room counts out loud. 5 or more = pass.\" type 'performance', time 20."
+        },
+        {
+          "id": "dare-024",
+          "verdict": "wrong",
+          "issue": "Christmas Freeze Dance (dares.json:189). The scoring always punishes the team: 'Last one to freeze costs the team 25 points' (×3 rounds), and someone is always last, so the active team is guaranteed −75 with no way to earn the 150. Judging who froze last is subjective, there is no −25 button, and the host has to run music on another device while using the host screen. The concept itself is great.",
+          "correctAnswer": "PASS = at least one active-team member still standing after 3 rounds.",
+          "suggestion": "\"WHOLE ROOM FREEZE DANCE: everyone dances, host stops the music, anyone still moving sits down. 3 rounds of 15s. Anyone from the active team still standing = 150.\" Props: 'phone + speaker with a Christmas playlist ready'."
+        },
+        {
+          "id": "dare-025",
+          "verdict": "malformed",
+          "issue": "Santa's Voice Reading (dares.json:197-198). The poem is stored in `props`, so the TV shows '🎒 Props needed: This text: …' in 14.4px muted italic (tv.html:216-221, 438-440, see dare-025-1920.png), which can't be read from a couch, while the instructions get the large box. The doubled apostrophe `''Twas` (dares.json:197) shows as '\"Twas … Christmas''. Keeping a Santa voice for 30s is easy, so everyone passes. 'Lose half the points' (75) can't be entered with the buttons.",
+          "correctAnswer": "PASS = reads all 4 lines in character, switching each time the room shouts, without breaking.",
+          "suggestion": "Move the poem into a new `script` field and show it LARGE on the TV so the room reads along. Set `props: []` and fix it to \"'Twas\". Make it harder: \"Read it as Santa. Every time the room shouts 'SWITCH!' change character (Grinch → Buddy the Elf → Rudolph). Break character = fail.\" Drop the half-points rule."
+        }
+      ],
+      "gaps": [
+        "Whole-room participation (the biggest gap). Only 005 and 024 even involve more than the active team. Add 'other teams try to make you laugh' dares (fixed 005/015), room-counted or room-cheered dares (fixed 023/014), and whole-room freeze dance (fixed 024), so the 4–5 teams that are waiting stay involved during each dare.",
+        "Head-to-head face-offs: the active team's player vs a challenger from another team picked by the host (rap battle, oven-mitt wrap race, candy cane hook race, staring contest, 'who can hold a plank / one-leg flamingo longest'). This makes 'fastest/funniest' wording actually work and gives other teams a stake. Winner takes 150, or the challenger's team steals it.",
+        "Minute to Win It games with household props (needs a host props checklist on the lobby screen): Snowman wrap (team wraps a teammate in toilet paper as a snowman in 60s); Human Christmas Tree (decorate a teammate with tinsel/ornaments/bows); stack 6 plastic cups into a tree one-handed; flick or toss 3 marshmallows/cotton-ball 'snowballs' into a mug; carry a bauble on a spoon held in your mouth across the room; unwrap a present wearing oven mitts.",
+        "Quick-draw (needs a secret prompt): draw a Christmas thing with a paper plate on your head, or with eyes closed / your other hand, and the team guesses within 45s. Very funny and cheap: paper plates plus a marker.",
+        "Secret-prompt charades/Taboo/Heads Up dares (movie, gift, carol, reindeer, Christmas object, family tradition). They only work once the app can send a prompt to just the performer's phone and the host. Make sure each `secret` list has 12+ entries so repeats are rare.",
+        "Impressions: Santa stuck in a chimney, the Grinch discovering kindness, Buddy the Elf meeting Santa, a reindeer on its first day of flight school, 'your best impression of the host opening presents' (keep it affectionate). Short, needs no props, easy to judge.",
+        "Tongue twisters and speed-speaking to replace the spelling and alphabet dares ('Santa's short suit shrunk', 'Rudolph ran rings round red reindeer'): 5 times fast without a slip = pass. Takes about 20s and is easy to judge.",
+        "Low-mobility and seated options: every physical dare should list an option such as a seated version or 'hold a chair' for older relatives. Food dares should list an allergy/diet substitute.",
+        "Data fields every dare should have: `who` (ONE PLAYER / WHOLE TEAM / WHOLE ROOM / FACE-OFF), `rule` (15 words or fewer, shown large), `pass` (one line), optional `secret[]` and `script`, and props as a short list of real objects. Make every dare pass/fail for 150 (optional +50 crowd bonus) so it fits the award buttons at host.html:563-569. Use `type` to avoid two dares of the same type in a row.",
+        "Ideal deck size: right now about 2–3 dares come up per game (2 of 12 wheel segments × 12–18 turns), so 25 dares is plenty in quantity but full of weak ones. Aim for a curated deck of 30–40 (about 8–10 each of physical/Minute to Win It, performance/impressions, secret-prompt guessing, and whole-room/face-off). That covers 2–3 games per party without repeats and can be reused year after year. Keep usedDareIds across 'Play Again' (server.js:343-344 currently clears it) and ideally across server restarts. If the user wants silly physical moments to be a core part of the game, consider a third dare segment, or let ALL PLAY sometimes be a whole-room dare."
+      ]
+    },
+    {
+      "key": "game-design"
+    }
+  ],
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Review"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "review:playtest",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a80abd0dcd62f47e9",
+      "model": "claude-opus-5-5",
+      "state": "error",
+      "startedAt": 1795744197764,
+      "queuedAt": 1795744197662,
+      "attempt": 1,
+      "lastToolName": "Write",
+      "lastToolSummary": "C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795745258903,
+      "error": "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+      "tokens": 128552,
+      "toolCalls": 22,
+      "durationMs": 1061132
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "review:visual",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a1585b2f51ec3b3ab",
+      "model": "claude-opus-5-5",
+      "state": "error",
+      "startedAt": 1795744197765,
+      "queuedAt": 1795744197663,
+      "attempt": 1,
+      "lastToolName": "Read",
+      "lastToolSummary": "C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795745294216,
+      "error": "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+      "tokens": 186803,
+      "toolCalls": 41,
+      "durationMs": 1093509
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "review:server-code",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a439daaadeab29fc1",
+      "model": "claude-opus-5-5",
+      "state": "error",
+      "startedAt": 1795744197765,
+      "queuedAt": 1795744197664,
+      "attempt": 1,
+      "lastToolName": "PowerShell",
+      "lastToolSummary": "try { $r = Get-NetFirewallApplicationFilter -PolicyStore Ac…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795745252838,
+      "error": "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+      "tokens": 113666,
+      "toolCalls": 25,
+      "durationMs": 1052127
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "review:client-code",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a4d7c925268f3ac83",
+      "model": "claude-opus-5-5",
+      "state": "error",
+      "startedAt": 1795744197766,
+      "queuedAt": 1795744197665,
+      "attempt": 1,
+      "lastToolName": "Bash",
+      "lastToolSummary": "cd \"C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb53…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795745157891,
+      "error": "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+      "tokens": 145940,
+      "toolCalls": 23,
+      "durationMs": 957176
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "review:content-christmas",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "abc8ec0dc6f502aee",
+      "model": "claude-opus-5-5",
+      "state": "done",
+      "startedAt": 1795744197767,
+      "queuedAt": 1795744197666,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "I fact-checked all 40 \"christmas\" questions in C:/Users/mle…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795744807015,
+      "tokens": 109016,
+      "toolCalls": 18,
+      "durationMs": 609234,
+      "resultPreview": "{\"summary\":\"I fact-checked all 40 \\\"christmas\\\" questions in C:/Users/mleys/code_user/christmas-chaos/data/questions.json. Each xmas-NNN sits on line NNN+1. I did not edit any project file. I web-checked the doubtful facts: the Elf spaghetti scene, Clark Griswold's job, the Love Actually cue-card scene, the Jingle Bells Thanksgiving claim, snowflake symmetry, Tickle Me Elmo, where the Christmas tr…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "review:content-pop",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a9291c95b0aac0682",
+      "model": "claude-opus-5-5",
+      "state": "done",
+      "startedAt": 1795744197767,
+      "queuedAt": 1795744197667,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "I checked all 25 popculture questions and all 25 sounditout…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795744807725,
+      "tokens": 109708,
+      "toolCalls": 24,
+      "durationMs": 606900,
+      "resultPreview": "{\"summary\":\"I checked all 25 popculture questions and all 25 sounditout songs in C:/Users/mleys/code_user/christmas-chaos/data/questions.json. Facts were checked online (Wikipedia list of highest-grossing Christmas films, Snopes, BU/NPR research on Jingle Bells, Smithsonian/Guinness on Gemini 6A, Billboard). Display behaviour was confirmed by reading the code, and the pop-017 parse result by runni…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "review:dares",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a3ca5b3f31f4f0995",
+      "model": "claude-opus-5-5",
+      "state": "done",
+      "startedAt": 1795744197767,
+      "queuedAt": 1795744197668,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "I reviewed all 25 dares in C:/Users/mleys/code_user/christm…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795744888832,
+      "tokens": 105669,
+      "toolCalls": 19,
+      "durationMs": 688004,
+      "resultPreview": "{\"summary\":\"I reviewed all 25 dares in C:/Users/mleys/code_user/christmas-chaos/data/dares.json against the code that shows them (server.js, tv.html, host.html, player.html). I also rendered every dare on tv.html in headless Edge at 1920x1080 and 1280x720. To avoid starting the server, the script intercepts the page's requests and fakes socket.io. No text gets cut off on screen, but the render did…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 8,
+      "label": "review:game-design",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a7830fa49daec7f74",
+      "model": "claude-opus-5-5",
+      "state": "error",
+      "startedAt": 1795744197768,
+      "queuedAt": 1795744197669,
+      "attempt": 1,
+      "lastToolName": "Bash",
+      "lastToolSummary": "git status --short | head -20; echo \"---\"; netstat -ano | g…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795745317042,
+      "error": "API Error: Can't reach the API server — check your internet or DNS (ENOTFOUND)",
+      "tokens": 151800,
+      "toolCalls": 29,
+      "durationMs": 1116324
+    }
+  ],
+  "totalTokens": 1051154,
+  "totalToolCalls": 201
+}

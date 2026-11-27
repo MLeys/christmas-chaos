@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Phone · Room vote</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&amp;family=Lilita+One&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#FFC93C}a:hover{color:#FFE08A}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0B1F17; color: #FFF6E5; font-family: 'Fredoka', sans-serif; display: flex; flex-direction: column; overflow: hidden; position: relative; box-sizing: border-box">
+
+  <header style="height: 64px; flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px; box-sizing: border-box; border-bottom: 2px solid rgba(255,246,229,0.08)">
+    <div style="display: flex; align-items: center; gap: 10px; min-width: 0">
+      <span style="width: 36px; height: 36px; border-radius: 50%; background: #7EE081; display: flex; align-items: center; justify-content: center; flex: none"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0B1F17" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z"></path><path d="M12 22v-3"></path></svg></span>
+      <span style="min-width: 0; display: flex; flex-direction: column; gap: 1px">
+        <span style="font-size: 18px; font-weight: 600; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">The Grinches</span>
+        <span style="font-size: 13px; font-weight: 500; line-height: 1.2; color: #B8CCBF; white-space: nowrap">Playing as Priya</span>
+      </span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 7px; flex: none">
+      <span style="font-family: 'Lilita One', sans-serif; font-size: 28px; line-height: 1">900</span>
+      <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.12em; color: #B8CCBF">PTS</span>
+    </div>
+  </header>
+
+  <main style="flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 14px; padding: 18px 20px 22px; box-sizing: border-box">
+
+    <span style="align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; background: #F5B82E; color: #1A1206; font-weight: 600; font-size: 13px; letter-spacing: 0.1em; padding: 7px 14px 7px 10px; border-radius: 999px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1206" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 11h.01"></path><path d="M14 6h.01"></path><path d="M18 6h.01"></path><path d="M6.5 13.1h.01"></path><path d="M22 5c0 9-4 12-6 12s-6-3-6-12c0-2 2-3 6-3s6 1 6 3"></path><path d="M17.4 9.9c-.8.8-2 .8-2.8 0"></path><path d="M10.1 7.1C9 7.2 7.7 7.7 6 8.6c-3.5 2-4.7 3.9-3.7 5.6 4.5 7.8 9.5 8.4 11.2 7.4.9-.5 1.9-2.1 1.9-4.7"></path><path d="M9.1 16.5c.3-1.1 1.4-1.7 2.4-1.4"></path></svg>
+      DARE · SILENT MOVIE STAR
+    </span>
+
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+      <h1 style="margin: 0; min-width: 0; font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 36px; line-height: 1.02; letter-spacing: 0.3px">How did Aunt Linda do?</h1>
+      <span role="timer" aria-label="9 seconds left to vote" style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px 6px 8px; border-radius: 999px; background: #123326; border: 2px solid #FFC93C; flex: none">
+        <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+          <circle cx="15" cy="15" r="11" fill="none" stroke="rgba(255,246,229,0.12)" stroke-width="4"></circle>
+          <circle cx="15" cy="15" r="11" fill="none" stroke="#FFC93C" stroke-width="4" stroke-linecap="round" stroke-dasharray="69.12" stroke-dashoffset="27.65" transform="rotate(-90 15 15)"></circle>
+        </svg>
+        <span style="font-family: 'Lilita One', sans-serif; font-size: 26px; line-height: 1">0:09</span>
+      </span>
+    </div>
+
+    <p style="margin: 0; font-size: 17px; line-height: 1.35; color: #B8CCBF">Team Rudolph’s performer just took her bow. Be honest — and be kind!</p>
+
+    <sc-if value="{{ isVoting }}" hint-placeholder-val="{{ true }}">
+      <div role="group" aria-label="Vote on Aunt Linda’s dare" style="height: 400px; flex: none; margin-top: 4px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+        <button type="button" onClick="{{ voteNailed }}" style="width: 100%; height: 180px; flex: none; border: none; border-radius: 28px; background: #2FB36B; color: #0B1F17; box-shadow: inset 0 -8px 0 rgba(11,31,23,0.12), 0 8px 0 #1B7A45; display: flex; align-items: center; gap: 18px; padding: 0 22px; box-sizing: border-box; font-family: 'Fredoka', sans-serif; text-align: left; cursor: pointer">
+          <span style="width: 84px; height: 84px; border-radius: 50%; background: #0B1F17; display: flex; align-items: center; justify-content: center; flex: none">
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#2FB36B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path></svg>
+          </span>
+          <span style="min-width: 0; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-family: 'Lilita One', sans-serif; font-size: 46px; line-height: 0.95; letter-spacing: 0.3px">Nailed it</span>
+            <span style="font-size: 17px; font-weight: 600">Worth 200 points</span>
+          </span>
+        </button>
+        <button type="button" onClick="{{ voteGood }}" style="width: 100%; height: 180px; flex: none; border: none; border-radius: 28px; background: #FFC93C; color: #0B1F17; box-shadow: inset 0 -8px 0 rgba(11,31,23,0.10), 0 8px 0 #B8870F; display: flex; align-items: center; gap: 18px; padding: 0 22px; box-sizing: border-box; font-family: 'Fredoka', sans-serif; text-align: left; cursor: pointer">
+          <span style="width: 84px; height: 84px; border-radius: 50%; background: #0B1F17; display: flex; align-items: center; justify-content: center; flex: none">
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#FFC93C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 12.5V10a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1.4"></path><path d="M14 11V9a2 2 0 1 0-4 0v2"></path><path d="M10 10.5V5a2 2 0 1 0-4 0v9"></path><path d="m7 15-1.76-1.76a2 2 0 0 0-2.83 2.82l3.6 3.6C7.5 21.14 9.2 22 12 22h2a8 8 0 0 0 8-8V7a2 2 0 1 0-4 0v5"></path></svg>
+          </span>
+          <span style="min-width: 0; display: flex; flex-direction: column; gap: 6px">
+            <span style="font-family: 'Lilita One', sans-serif; font-size: 46px; line-height: 0.95; letter-spacing: 0.3px">Good try</span>
+            <span style="font-size: 17px; font-weight: 600">Worth 100 points</span>
+          </span>
+        </button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSent }}" hint-placeholder-val="{{ false }}">
+      <div role="status" aria-live="polite" style="height: 400px; flex: none; margin-top: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; border-radius: 28px; background: #123326; border: 2px solid rgba(255,246,229,0.10); box-sizing: border-box">
+        <span style="width: 112px; height: 112px; border-radius: 50%; background: {{ choice.bg }}; box-shadow: 0 0 0 10px {{ choice.glow }}; display: flex; align-items: center; justify-content: center; flex: none">
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#0B1F17" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>
+        </span>
+        <h2 style="margin: 4px 0 0; font-family: 'Lilita One', sans-serif; font-weight: 400; font-size: 34px; line-height: 1">Vote sent — thanks!</h2>
+        <div style="display: flex; align-items: center; gap: 14px; padding: 10px 22px 10px 10px; border-radius: 999px; background: #0B1F17; border: 3px solid {{ choice.bg }}">
+          <span style="width: 52px; height: 52px; border-radius: 50%; background: {{ choice.bg }}; display: flex; align-items: center; justify-content: center; flex: none">
+            <sc-if value="{{ isNailed }}" hint-placeholder-val="{{ true }}">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B1F17" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"></path></svg>
+            </sc-if>
+            <sc-if value="{{ isGood }}" hint-placeholder-val="{{ false }}">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0B1F17" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 12.5V10a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1.4"></path><path d="M14 11V9a2 2 0 1 0-4 0v2"></path><path d="M10 10.5V5a2 2 0 1 0-4 0v9"></path><path d="m7 15-1.76-1.76a2 2 0 0 0-2.83 2.82l3.6 3.6C7.5 21.14 9.2 22 12 22h2a8 8 0 0 0 8-8V7a2 2 0 1 0-4 0v5"></path></svg>
+            </sc-if>
+          </span>
+          <span style="display: flex; flex-direction: column; align-items: flex-start; gap: 2px">
+            <span style="font-size: 13px; font-weight: 600; letter-spacing: 0.14em; color: #B8CCBF">YOU VOTED</span>
+            <span style="font-family: 'Lilita One', sans-serif; font-size: 30px; line-height: 1">{{ choice.label }}</span>
+          </span>
+        </div>
+        <button type="button" onClick="{{ changeVote }}" style="min-height: 48px; padding: 0 16px; border: none; border-radius: 14px; background: transparent; color: #FFC93C; font-family: 'Fredoka', sans-serif; font-size: 18px; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; display: inline-flex; align-items: center; gap: 8px; cursor: pointer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFC93C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg>
+          Change vote
+        </button>
+      </div>
+    </sc-if>
+
+    <p style="margin: auto 0 0; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; color: #B8CCBF">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B8CCBF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      Majority wins — the host has the final say
+    </p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const vote = this.state?.vote ?? null;
+    const choices = {
+      nailed: { label: 'Nailed it', bg: '#2FB36B', glow: 'rgba(47,179,107,0.22)' },
+      good: { label: 'Good try', bg: '#FFC93C', glow: 'rgba(255,201,60,0.22)' },
+    };
+    const choice = vote === 'good' ? choices.good : choices.nailed;
+    return {
+      isVoting: vote === null,
+      isSent: vote !== null,
+      isNailed: vote !== 'good',
+      isGood: vote === 'good',
+      choice: choice,
+      voteNailed: () => this.setState({ vote: 'nailed' }),
+      voteGood: () => this.setState({ vote: 'good' }),
+      changeVote: () => this.setState({ vote: null }),
+    };
+  }
+}
+</script>
+</body>
+</html>

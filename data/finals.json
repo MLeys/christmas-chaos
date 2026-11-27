@@ -1,0 +1,98 @@
+[
+  {
+    "id": "final-001",
+    "category": "christmas",
+    "question": "Put the eight reindeer from the poem “’Twas the Night Before Christmas” in alphabetical order. Which name comes fourth?",
+    "answer": "Dancer",
+    "accept": [],
+    "difficulty": "medium"
+  },
+  {
+    "id": "final-002",
+    "category": "popculture",
+    "question": "In National Lampoon's Christmas Vacation, Clark Griswold proudly announces a grand total of how many 'imported Italian twinkle lights' on his house?",
+    "answer": "25,000",
+    "accept": ["25000", "25 000", "25.000", "25k", "25 thousand", "twenty-five thousand", "twenty five thousand", "25,000 lights", "25000 lights"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "final-003",
+    "category": "christmas",
+    "question": "Irving Berlin's 'White Christmas', sung by Bing Crosby, won the Oscar for Best Original Song. Which 1942 movie was it written for?",
+    "answer": "Holiday Inn",
+    "accept": ["Holiday Inn (1942)", "Holliday Inn"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "final-004",
+    "category": "mixed",
+    "question": "The deep-voiced singer of 'You're a Mean One, Mr. Grinch' in the 1966 cartoon also voiced which cereal mascot for over 50 years?",
+    "answer": "Tony the Tiger",
+    "accept": ["Tony", "Tony Tiger", "Tony the Tiger (Frosted Flakes)", "Tony the Tiger (Frosties)"],
+    "difficulty": "medium"
+  },
+  {
+    "id": "final-005",
+    "category": "christmas",
+    "question": "When 'Silent Night' was first performed, on Christmas Eve 1818, which musical instrument accompanied the singers?",
+    "answer": "Guitar",
+    "accept": ["a guitar", "acoustic guitar"],
+    "difficulty": "medium"
+  },
+  {
+    "id": "final-006",
+    "category": "christmas",
+    "question": "Handel's 'Messiah' is a Christmas concert favorite. In which city did it have its world premiere in 1742?",
+    "answer": "Dublin",
+    "accept": ["Dublin, Ireland"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "final-007",
+    "category": "popculture",
+    "question": "In 'It's a Wonderful Life', what is the name of George Bailey's hometown?",
+    "answer": "Bedford Falls",
+    "accept": ["Bedford Falls, New York", "Bedford Falls NY", "Bedford Falls, NY"],
+    "difficulty": "medium"
+  },
+  {
+    "id": "final-008",
+    "category": "christmas",
+    "question": "NORAD's Santa tracking traces back to a 1955 newspaper ad inviting children to phone Santa. Which store chain placed that ad?",
+    "answer": "Sears",
+    "accept": ["Sears Roebuck", "Sears, Roebuck and Co.", "Sears Roebuck and Co", "Sears Roebuck & Co", "Sears Roebuck and Company", "Sears & Roebuck"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "final-009",
+    "category": "popculture",
+    "question": "Which pop superstar released the 2019 song 'Christmas Tree Farm', about the Pennsylvania Christmas tree farm where she grew up?",
+    "answer": "Taylor Swift",
+    "accept": ["Taylor", "Swift", "T Swift", "T-Swift", "Taylor Alison Swift"],
+    "difficulty": "medium"
+  },
+  {
+    "id": "final-010",
+    "category": "popculture",
+    "question": "In Elf, Buddy confronts a fake department-store Santa and tells him, 'You sit on a throne of…' what?",
+    "answer": "Lies",
+    "accept": ["throne of lies", "a throne of lies"],
+    "difficulty": "medium"
+  },
+  {
+    "id": "final-011",
+    "category": "christmas",
+    "question": "In 'The Gift of the Magi', Della sells her hair to buy Jim a watch chain, but Jim has sold his watch to buy her what?",
+    "answer": "Combs",
+    "accept": ["comb", "set of combs", "a set of combs", "hair combs", "jeweled combs", "jewelled combs", "tortoiseshell combs", "tortoise shell combs", "tortoise-shell combs"],
+    "difficulty": "hard"
+  },
+  {
+    "id": "final-012",
+    "category": "christmas",
+    "question": "Every year since 1947, London's Trafalgar Square Christmas tree has been a thank-you gift from which country?",
+    "answer": "Norway",
+    "accept": ["Norge", "Oslo", "Oslo, Norway"],
+    "difficulty": "hard"
+  }
+]

@@ -1,0 +1,1284 @@
+{
+  "summary": "Re-run the 5 failed Christmas Chaos reviewers (playtest, visual, server code, client code, game design) with retries",
+  "agentCount": 5,
+  "logs": [],
+  "result": [
+    {
+      "key": "playtest",
+      "summary": "I played the game end to end. One host socket, one TV socket and six player sockets (three teams) drove 96 spins over 5 games, and every wheel segment came up: hotseat 13, popculture 15, dare 14, christmas 24, doubledown 8, allplay 5, sounditout 7, steal 9. A Playwright pass in headless Edge checked what the real host, TV and phone pages showed. The spin-timeout races were run against the unmodified 5.5s timer, on PORT=4101. The server is stopped and the port is free. No project files were changed.\n\nWhat works:\n- One spin per turn: a double-tapped SPIN (40ms apart) gives exactly one spin, and the result arrives after 5506ms. A teammate tapping SPIN at the same moment as the host button also gives exactly one spin.\n- Players on other teams cannot spin.\n- Three players buzzing at once gives exactly one winner.\n- Hot seat runs through all its questions correctly.\n- Rounds advance correctly, and the game-end standings are sorted correctly.\n- The TV wheel stops on the segment the server picked.\n- There were no JavaScript errors on any page.\n- A refreshed phone can re-join and spin.\n\nWhat fails: answers to your questions:\n- **Phone screen-lock / reconnect:** the player is silently dropped. Their phone still shows \"It's YOUR team's turn!\" and the SPIN button, but taps and buzzes are ignored.\n- **Page refresh:** works, but the player lands back on the join screen with an empty name and has to re-join by hand.\n- **Host removes a team:** phones on later teams keep the old team number for the whole game. The wrong phones get the SPIN button, and the team whose turn it is gets none.\n- **Host-only events from a player socket:** nothing stops them.\n- **Reset during the 5.5s spin:** the pending spin result still lands in the new game. A Full Reset done this way leaves the lobby locked.\n- **\"Play Again\":** it disconnects every player behind the scenes, but every phone still shows \"You're in!\".\n- **Server crashes:** a missing payload, or a steal from a team that doesn't exist, kills the server and all the scores.\n\nGameplay bugs:\n- **Sound It Out:** the TV shows the song title to the whole room.\n- **Plain trivia:** any team can buzz in, so ALL PLAY is identical to it.\n- **Buzzer:** a player who answered wrong is not locked out when it reopens.\n- **Double Down:** never appears on the TV, carries over to the next team, and is used up by penalties or by points given to another team.\n- **Steal:** gives the full 100 even when the victim has less, and works again if the host clicks twice.\n\nThe scripts and logs are in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/playtest/: play2.js (output in run2.txt), pw2.js (pw2.txt), realtime.js (realtime.txt), crash.js (crash.txt), xss.js, and the screenshots in shots/. Two of those TV screenshots (P6 and P9) show a \"BUZZ IN NOW!\" box that my test script caused by restarting the game mid-play. It is not a bug and is not in the findings.",
+      "findings": [
+        {
+          "severity": "critical",
+          "area": "server.js:178-181, 221, 244, 355-358; player.html:325-329, 385-412",
+          "title": "Phone screen-lock/reconnect turns the player into a ghost: SPIN and BUZZ are silently ignored",
+          "detail": "Players are keyed by socket.id, and disconnect deletes them (server.js:356). When a phone locks and wakes, socket.io reconnects with a NEW id, but player.html never sends join-game again: hasJoined/myTeamIndex live only in memory, and there is no 'connect' handler. The phone still shows the game. Repro (play2.js RC1-4): Alice on active team 0; alice.s.io.engine.close(); auto-reconnect old=qGpJ... new=7wIQ...; server players = Bob,Carol,Dave,Erin,Frank. Alice spin-wheel -> 0 spin-start (rejected at server.js:221). On an open buzzer, buzzer-press -> 0 buzzer-winner (server.js:245). Real page (pw2.js P2): after the reconnect Bob's phone shows '🎄 It's YOUR team's turn!' and the SPIN button. The tap does nothing, and the button stays disabled (shots/P2-bob-after-reconnect-dead-spin.png). Refresh (P3) is a related problem: the phone goes back to the join screen with an empty name, and the player must re-join by hand. At a party, phones lock constantly.",
+          "fix": "Give each phone a stable id. In player.html: `let pid = localStorage.getItem('ccPid') || Math.random().toString(36).slice(2); localStorage.setItem('ccPid', pid);`. On join, save {name, teamIndex} to localStorage too. Add `socket.on('connect', () => { const s = JSON.parse(localStorage.getItem('ccMe')||'null'); if (s) socket.emit('join-game', { ...s, pid }); })`. On page load, skip the join screen if ccMe exists. (crypto.randomUUID is not available over plain-http LAN.) In server.js, key players by pid: `state.players[pid] = { id: pid, name, teamIndex, connected: true }; socket.data.pid = pid;`. Look up `state.players[socket.data.pid]` in spin-wheel and buzzer-press. On disconnect set `connected = false` instead of deleting the player.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "server.js:342-348 (makeState at 344); host.html:394",
+          "title": "'Play Again (keep teams)' disconnects every player; phones still say \"You're in!\" but can't spin or buzz",
+          "detail": "reset-game calls makeState(), which empties state.players. Every phone still has hasJoined=true, so it shows the waiting screen as if it were joined. Repro (play2.js RS1/RS2): after a game, reset-game leaves players=0. start-game, then a team-0 phone sends spin-wheel -> 0 spin-start. Real page (pw2.js P4): after Play Again, Bob sees \"You're in!\". After Start, his SPIN button is visible, and tapping it gives 0 spin-starts (shots/P4-bob-after-play-again.png). Buzzers are dead for everyone too, so trivia can't be played until every guest refreshes and re-joins.",
+          "fix": "In reset-game keep the roster: `const savedPlayers = state.players; state = makeState(); state.teams = savedTeams; state.players = savedPlayers; state.totalRounds = ...`. Also cancel any pending spin timer (see the spin-timer finding).",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:191-201; player.html:393, 421, 429, 549-555; server.js:178",
+          "title": "Removing a team in the lobby desyncs every later team's phone for the whole game",
+          "detail": "The server re-indexes players (p.teamIndex--). But player.html caches myTeamIndex at join (line 393) and never re-reads it from state.players. Repro (pw2.js P1): teams Elves/Reindeer/Snowmen/Angels; Alice->Elves, Bob->Reindeer, Carol->Snowmen; host removes Elves. Phone badges then read Alice='Reindeer', Bob='Snowmen', Carol='Angels', but the server has Bob=Reindeer, Carol=Snowmen, and Alice removed. On Reindeer's turn, Alice (no longer a player) sees \"It's YOUR team's turn!\" and the SPIN button, and her tap gives 0 spins. Bob, who really is on the active team, sees \"Reindeer's turn\" and no SPIN button (shots/P1-*.png). The '(you)' marker and buzz toasts are wrong as well. The server also accepts join-game for a team that doesn't exist (play2.js L4: teamIndex 9 accepted). Removing a typo team after people have joined is a likely thing for a host to do.",
+          "fix": "In player.html state-update: `const me = state.players.find(p => p.id === pid /* or socket.id */); if (hasJoined && !me) { hasJoined = false; show('join-screen'); hide('game-screen'); hide('waiting-screen'); toast('Your team was removed, please re-join'); return; } if (me) myTeamIndex = me.teamIndex;`. In server join-game: `if (!state.teams[teamIndex] || typeof name !== 'string' || !name.trim()) return;`.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "tv.html:442-445; player.html:480-483; server.js:144-148",
+          "title": "Sound It Out shows the song title on the TV for the whole room, and on every phone of the guessing team",
+          "detail": "tv.html renders `🎵 ${songTitle} — ${artist}` in #sound-title as soon as the challenge arrives. player.html shows the title to everyone on the active team (isMyTurn), and that is the team meant to guess the hummed song. Repro (pw2.js P6): spin until sounditout. TV #sound-title is visible: '🎵 All I Want for Christmas Is You — Mariah Carey'. Teammate Alice's phone shows 'Hum or whistle: \"All I Want for Christmas Is You\" by Mariah Carey' (shots/P6-tv-sounditout-song-visible.png). The segment is pointless every time it lands (1 in 12 spins).",
+          "fix": "In tv.html showChallenge: show sound-title only `if (state.answerRevealed)`. In the server, send the song only to the hummer: record the spinner's socket id in spin-wheel (for host-spin, pick a random player on the active team), then call `io.to(hummerId).emit('secret-song', { songTitle, artist })` in processSegment. Strip songTitle/artist/answer from publicState until answerRevealed. player.html shows the title only on 'secret-song'.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:178, 183, 191, 203, 265, 273-278, 336",
+          "title": "Any connected phone can crash the server and wipe all scores (malformed payload or bad steal index)",
+          "detail": "Every handler destructures its payload with no default, and steal-execute has no bounds check. Verified with crash.js against the unmodified server: steal-execute {fromTeamIndex:7,toTeamIndex:0} -> 'TypeError: Cannot read properties of undefined (reading score)' at server.js:275, and the process exits. award-points, join-game, create-team and steal-execute sent with no payload -> 'Cannot destructure property ... of undefined', and the process dies each time. All game state is in memory, so the scores are lost. Nothing reachable from the normal UI sends these, but there is no auth (see the next finding), so any curious guest with devtools can.",
+          "fix": "Default every destructure, e.g. `socket.on('steal-execute', ({ fromTeamIndex, toTeamIndex } = {}) => { if (!state.teams[fromTeamIndex] || !state.teams[toTeamIndex]) return; ... })`, and the same for all handlers. Add a last-resort guard: `process.on('uncaughtException', e => console.error('handler error', e));`.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:183-353 (all host events)",
+          "title": "No host authorization: a player socket can award points, change turns, restart or reset the game",
+          "detail": "Repro (play2.js AU1), all sent from player Erin's socket mid-game, all accepted: award-points {teamIndex:2, points:5000} (team2 0->5000); override-score; steal-execute with no steal segment (team2 -> 5100); next-turn (turn moved to team 1); host-spin (a spin happened); start-game (round reset to 1, scores kept); reset-game (phase lobby, all players dropped). host.html is just another socket.io client.",
+          "fix": "Have host.html connect with `io({ auth: { hostKey: new URLSearchParams(location.search).get('key') } })`. The server generates a key at startup and prints `http://IP:PORT/host?key=XXXX`. In `io.on('connection')`, set `socket.data.isHost = socket.handshake.auth?.hostKey === HOST_KEY`, then wrap host handlers: `const hostOnly = fn => (...a) => { if (socket.data.isHost) fn(...a); };` and use `socket.on('award-points', hostOnly(...))` for create/remove-team, set-rounds, start-game, host-spin, reveal, award, steal, hotseat-next, open/close-buzzer, next-turn, override-score, reset-game and full-reset.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:229, 239, 342-353",
+          "title": "Reset Scores / Full Reset during the 5.5s spin: the old spin result lands in the new game; Full Reset leaves the lobby locked",
+          "detail": "The spin setTimeout is never cancelled, and processSegment doesn't check the phase. Repro (realtime.js, unmodified 5.5s timer). R3: Alice spins; 2s later host Reset Scores -> phase=lobby; 3.7s later phase=challenge with a trivia question showing, players=0; host create-team 'Late' is rejected (teams stay Elves,Reindeer) because create-team needs phase==='lobby'. R4: Alice spins; host Full Reset -> lobby; after the timer phase=challenge with 0 teams; create-team x2 -> teams=0, phase=challenge. The host can't set up a new game until they press Full Reset a second time, and the host page shows the in-game panel with no teams.",
+          "fix": "Add `let spinToken = 0;` and, in spin-wheel/host-spin: `const tok = ++spinToken; setTimeout(() => { if (tok === spinToken && state.phase === 'spinning') processSegment(seg); }, 5500);`. Increment spinToken in reset-game, full-reset and next-turn.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:306-334; host.html:385",
+          "title": "Next Turn pressed while the wheel spins: the old spin result hijacks the next team's turn",
+          "detail": "next-turn has no phase guard, and the Next Turn button is always enabled. Repro (realtime.js R2): Alice spins; 1.5s later host Next Turn -> playing, team 1. 5.5s later phase=challenge, currentSegment=null (cleared by next-turn), currentChallenge set to a question, buzzerOpen=true. Bob (now active) sends spin-wheel -> 0 spin-starts. Because currentSegment is null, the host page shows 'Waiting for spin…' with Spin disabled (host.html:607, 688). Phones hide the challenge and buzzer (player.html:465, 474). The TV shows 'Waiting for next spin…' plus 'BUZZ IN NOW!'. The host has to press Next Turn again, which skips Bob's team.",
+          "fix": "In next-turn: `if (['lobby','spinning','gameend'].includes(state.phase)) return;`. Also apply the spinToken fix from the previous finding. In host.html state-update, disable the Next Turn button while state.phase === 'spinning'.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:130-136; player.html:465",
+          "title": "Plain Christmas/Pop Culture trivia opens the buzzer to every team, so ALL PLAY is the same as normal trivia",
+          "detail": "processSegment handles 'trivia' and 'allplay' identically (buzzerOpen=true for everyone), and buzzer-press never checks the team. Repro (play2.js B2): Pop Culture on team 2's turn; Alice (team 0), a team-1 player and a team-2 player buzz together -> the winner is Alice from team 0. The active team's question was stolen. B5: ALL PLAY differs only in points (150 vs 100). Seven of the 12 wheel segments are effectively free-for-all buzzer races, which defeats the 'your turn' structure.",
+          "fix": "Choose one model. Option (a): for type 'trivia', set `state.buzzerOpen = false` and let the active team answer aloud, keeping the buzzer for 'allplay' only. Option (b): in buzzer-press add `if (state.currentSegment?.type === 'trivia' && player.teamIndex !== state.currentTeamIndex) return;`, and change player.html:465 to show the buzzer for trivia only when isMyTurn.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:242-255, 295-299; player.html:468",
+          "title": "No lockout: after a wrong answer and Open Buzzer, the same (fastest) player wins the buzzer again",
+          "detail": "open-buzzer clears buzzerWinner without remembering who already answered, and player.html re-enables every buzzer button. Repro (play2.js B3): Alice wins the buzz; host presses Open Buzzer; Alice buzzes again -> buzzer-winner = Alice. In a real race, the person who just answered wrong is always fastest to re-buzz.",
+          "fix": "Add `state.buzzLocked = []` to makeState and reset it in processSegment. In open-buzzer: `if (state.buzzerWinner) state.buzzLocked.push(state.buzzerWinner.playerId)` (or lock the whole teamIndex). In buzzer-press: `if (state.buzzLocked.includes(socket.id)) return;`. Include buzzLocked in publicState so player.html keeps that phone's button disabled.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "tv.html:199-211, 276, 503-505; server.js:159-163; host.html:607, 626; player.html:474, 492; tv.html:455, 525-530",
+          "title": "Double Down never appears on the TV; the dedicated 'Double Down!' texts are dead code",
+          "detail": "The CSS says `#double-down-banner { display:none }` and shows it only with `.show`. The JS only removes the `hidden` class, so the banner can never be visible. The server sets currentChallenge=null for doubledown, and the host, player and TV branches that print 'Double Down! Spin again…' all require currentChallenge, so they never run. Repro (pw2.js P9): wheel lands on Double Down; TV label '', TV text 'Spin the wheel!', banner computed display:none; host shows 'Waiting for spin…'. Only the phone pill and the host banner show anything (shots/P9-tv-doubledown.png).",
+          "fix": "In tv.html:503-505 use `ddb.classList.toggle('show', state.doubleDownActive)` (or delete `display:none` from #double-down-banner). In server.js:162 set `state.currentChallenge = { type: 'doubledown' }` so the existing host/player/TV doubledown branches render, or render those branches from the segment alone.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:268, 306-334",
+          "title": "Double Down logic: carries over to the next team, and is used up by penalties or by points to another team",
+          "detail": "Repro (play2.js). D2: Double Down lands, host presses Next Turn -> doubleDownActive is still true on team 2's turn. D3: while it's active, host gives a wrong-answer -50 to another team -> that team loses 100 and the double is used up. D4: on an open-buzzer question another team wins and gets 100 -> they receive 200 and the active team's double is gone. Only a positive award to the active team (D5) behaves as the wheel text says.",
+          "fix": "Add `state.doubleDownTeam` (set it to currentTeamIndex when Double Down lands). In award-points: `if (state.doubleDownActive && pts > 0 && teamIndex === state.doubleDownTeam) { pts *= 2; state.doubleDownActive = false; }`. In next-turn: `state.doubleDownActive = false;`.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "server.js:273-278; host.html:481-485, 621-625",
+          "title": "Steal gives the full 100 even when the victim has less, and works again on a second click",
+          "detail": "Repro (play2.js ST1): victim at 30 -> 0 (lost 30), thief +100. ST2: steal clicked twice -> victim 500->300, thief +200. The steal panel stays on screen after a steal, which invites a second click. The server never checks that the current segment is a steal (AU1: steal-execute accepted during a non-steal turn).",
+          "fix": "`if (state.currentSegment?.effect !== 'steal' || state.stealDone) return; const from = state.teams[fromTeamIndex], to = state.teams[toTeamIndex]; if (!from || !to || from === to) return; const amt = Math.min(100, from.score); from.score -= amt; to.score += amt; state.stealDone = true;`. Reset stealDone in processSegment and include it in publicState so host.html hides the steal panel once done.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "server.js:257-263",
+          "title": "Reveal Answer leaves the buzzer open: players can buzz after the answer is on the TV",
+          "detail": "Repro (play2.js B4 / pw2.js P11): with the buzzer open and no winner, host clicks Reveal. TV shows '✓ Todd Chester…' and still 'BUZZ IN NOW!'. Carol's phone buzzer is still visible, and her buzz is accepted and announced (shots/P11-carol-can-buzz-after-reveal.png).",
+          "fix": "In reveal-answer add `state.buzzerOpen = false;`.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "tv.html:521-522, 573-581",
+          "title": "TV refreshed or reconnected at game end shows 'Game Over!' with no standings",
+          "detail": "#end-results is filled only by the one-time 'game-end' event. The state-update gameend branch only toggles screens. Repro (play2.js E3, pw2.js P5): before reload, end-results = '🥇 Reindeer — 300 pts … 🥈 Elves — 0 pts'. After tv.reload() it is empty (shots/P5-tv-refresh-at-gameend.png). Smart-TV browsers reload or sleep often, and this is the finale.",
+          "fix": "In tv.html's gameend state-update branch, render end-results from `[...state.teams].sort((a,b) => b.score - a.score)`, the same template as the game-end handler.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "server.js:306-320",
+          "title": "Extra Next Turn after game end restarts play at 'Round 3 of 2'",
+          "detail": "Repro (play2.js E4): 2 rounds x 3 teams, 6x next-turn -> gameend; one more next-turn (e.g. a double-click on the last Next Turn over slow Wi-Fi) -> phase=playing, round 3/2, team 0. The end screens disappear on every device.",
+          "fix": "Add `if (state.phase === 'gameend' || state.phase === 'lobby') return;` at the top of next-turn. This can share a guard with the spinning check.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "tv.html:472-476 vs player.html:465; server.js:242, 295",
+          "title": "Open Buzzer during Sound It Out / Dare / Hot Seat: the TV says 'BUZZ IN NOW!' but no phone shows a buzzer",
+          "detail": "The host's Open Buzzer button is always available. The TV shows the prompt whenever buzzerOpen is true, but phones show the button only for trivia/allplay, and the server still accepts a buzz. Repro (play2.js SO2 / pw2.js P8): Sound It Out, Open Buzzer -> TV '🔔 BUZZ IN NOW!' visible, Carol's #buzzer-wrap hidden, yet a direct buzzer-press from her socket wins (shots/P8-*.png).",
+          "fix": "Pick one rule and use it everywhere. Either reject open-buzzer unless `['trivia','allplay'].includes(state.currentSegment?.type)`, or drop the segment-type check at player.html:465 so the phone follows state.buzzerOpen.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "server.js:284-287; tv.html:525-530 (no hotseat-complete handler)",
+          "title": "After the last Hot Seat question the TV keeps showing it as current ('Question 5 of 5')",
+          "detail": "hotseat-complete sets phase='challenge' and currentChallenge=null. tv.html's state-update has no branch for that state and doesn't listen for 'hotseat-complete'. Repro (play2.js HS2 / pw2.js P10): after 5x Next Q, the TV still reads 'In which country is KFC a popular Christmas tradition?' with 'Question 5 of 5', while the host shows 'Waiting for spin…' and phones hide the challenge.",
+          "fix": "In tv.html add `socket.on('hotseat-complete', () => { setText('challenge-text', '🔥 Hot Seat complete!'); hide('hotseat-progress'); })`, and in state-update handle `!state.currentChallenge && state.phase === 'challenge'`.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "server.js:187, 199, 203-206",
+          "title": "Host-chosen round count is silently overwritten when a team is added or removed",
+          "detail": "Repro (play2.js L2): host sets 2 rounds, adds a team -> totalRounds=3; sets 2 again, removes a team -> 4. A late-arriving family branch resets the host's game length without warning.",
+          "fix": "Set `state.roundsManual = true` in set-rounds. In create-team and remove-team, recompute only `if (!state.roundsManual)`.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "host.html:532 (renderPlayers), 505, 517; tv.html:408, 516; player.html:371, 421",
+          "title": "Player and team names are injected as HTML (a player name runs markup on the host page)",
+          "detail": "Names go into innerHTML unescaped, and maxlength=20 is enforced only in the browser. Repro (xss.js): join-game with name '<b id=\"pwn\">Mallory</b>', start the game, open /host -> document.getElementById('pwn') exists. A guest can inject markup or script into the host's game-master page.",
+          "fix": "Add `const esc = s => String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));` and wrap every `${t.name}` / `${p.name}` in esc(). On the server, also `name = String(name).trim().slice(0, 20)`.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "server.js:107-125 (line 116)",
+          "title": "Every phone receives the answer (and song title) in state-update before Reveal",
+          "detail": "publicState sends the full currentChallenge, including answer/songTitle, to all sockets. Repro (play2.js A1): in 64 of 64 question spins, an other-team phone's state already held currentChallenge.answer before reveal. Only visible with devtools, so low risk at a family party.",
+          "fix": "`currentChallenge: state.answerRevealed || !state.currentChallenge ? state.currentChallenge : (({ answer, songTitle, artist, ...rest }) => rest)(state.currentChallenge)`. Send the full object to the host only (requires the host-key fix).",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "server.js:204, 265-269",
+          "title": "Non-numeric points or rounds corrupt state (score becomes NaN / null, the game never ends)",
+          "detail": "Repro (play2.js V1): award-points {points:'abc'} -> team0.score = NaN (sent as null; boards show 'null' and it stays NaN after later awards). set-rounds {rounds:'x'} -> totalRounds NaN, so `round > totalRounds` is never true and the game cannot end. The normal UI can't send these; a player socket can (no auth).",
+          "fix": "In award-points: `const pts = Number(points); if (!Number.isFinite(pts)) return;`. In set-rounds: `const r = parseInt(rounds, 10); if (!Number.isInteger(r)) return;`. Do the same for override-score.",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "host.html:476-479",
+          "title": "Host toast shows '+-50 pts' for penalties and the un-doubled amount during Double Down",
+          "detail": "Repro (pw2.js P12/P13): clicking −50 shows '+-50 pts → Elves'. With Double Down active, clicking +150 shows '+150 pts → Reindeer' while the server added 300.",
+          "fix": "`const shown = gameState.doubleDownActive && points > 0 ? points * 2 : points; toast(`${shown > 0 ? '+' : ''}${shown} pts → ${gameState.teams[teamIndex]?.name}`);`",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "player.html (whole file); server.js",
+          "title": "Typed answers from phones are not implemented (buzzer only)",
+          "detail": "The brief says players 'use a buzzer or type answers'. player.html has no answer input (only #name-input), and the server has no answer-submit event, so answers are all spoken aloud after a buzz. Since the brief says 'or', this is acceptable, but it's worth knowing for ALL PLAY rounds, where a typed answer from every team would be fairer than a buzz race.",
+          "fix": "Optional. Add a text input shown during allplay, emit 'submit-answer' {text}, store it per team in state, and list the submissions on the host page with Award buttons.",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "key": "visual",
+      "summary": "I audited the real screens in headless Edge: host at 1440x900, TV at 1920x1080, three phones at 390x844, plus a 360x640 phone and the host page on a phone. Server ran on PORT=4102 and is now stopped. I played a full 5-team session through every state: lobby, my-turn, spinning, trivia buzzer open / won / revealed, ALL PLAY, dare, sound-it-out, hot seat, steal, double down, game end. Edge cases tested: 8 teams with 24-character names, 0 players, a phone reconnecting, Play Again, and Google Fonts blocked or stalled. I also measured font sizes, tap targets and WCAG contrast.\n\nAll screenshots and scripts are in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/. The earlier attempt's shots were reused because the code hasn't changed since. Its old 16-dare-* and 17-sounditout-* files were captured in the wrong state by a timing bug in that script; ignore them and use the new N-dare-* and N-sounditout-* files.\n\nThe four problems that would wreck the party:\n1. The TV game-over screen is completely blank, so the finale shows nothing.\n2. Sound It Out prints the song title in the biggest gold text on the TV, so the round is spoiled for everyone.\n3. Any phone that locks or blips Wi-Fi is silently dropped from the game. Play Again drops every player. The dropped phones keep showing buttons that do nothing.\n4. Nobody is told the real join address: the TV and host page say only \"/player\", with no IP and no QR code.\n\nBeyond those, the TV is built like a laptop page rather than a 10-foot screen: text is 15–21px, the wheel is 380px (35% of the screen height), and wheel labels are about 9.5px with half of them upside down. The host cannot see the answer before revealing it. Pressing Next Turn during a spin locks the next team out of their turn. Several TV states are stale or never appear: the old answer lingers, the Hot Seat's last question stays up, and the Double Down banner never shows. Buzzing in has no impact on the TV or the phone. Two of your stated requirements aren't there: typing answers, and the timers and team votes that most dares rely on.\n\nColour contrast is mostly fine. The failures are team colours used as name text (1.6–3.8:1) and the white label on the gold ALL PLAY wedge (2.6:1).",
+      "findings": [
+        {
+          "severity": "critical",
+          "area": "TV / game end",
+          "title": "TV game-over screen is blank, so the finale shows nothing",
+          "detail": "tv.html:180-186 sets `#end-screen{display:none}`, and the div (tv.html:290) has no `hidden` class. show('end-screen') (tv.html:397, called at 522 and 574) only removes `.hidden`, so the element stays hidden. Measured at game end: getComputedStyle(#end-screen).display === 'none' while #end-results holds 8 rows. The TV shows an empty navy screen, and the header is stale ('Naughty List's turn | Round 3 of 3') because tv.html:496 skips header updates during gameend. Reloading the TV doesn't help. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/40-gameend-tv.png and .../visual/41-gameend-tv-after-reload.png",
+          "fix": "Change the CSS to `#end-screen{display:flex;...}` and add class=\"hidden\" to <div id=\"end-screen\">, so show() and hide() work. In the gameend branch of state-update, set round-label to 'Final Scores' and clear turn-banner. Then add a winner hero (see the end-screen design finding).",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "TV / Sound It Out",
+          "title": "Sound It Out shows the song title and artist on the TV as soon as the wheel lands",
+          "detail": "tv.html:444-445 renders `🎵 ${songTitle} — ${artist}` in .sound-title (1.8rem, weight 900, gold: the largest, brightest text on screen) the moment the challenge appears. Every guesser in the room reads 'Last Christmas — Wham!' before anyone hums. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-sounditout-tv.png",
+          "fix": "Remove lines 444-445 from showChallenge(). The TV should show '🎵 Team Rudolph is humming… guess the song!' with a countdown. Show the title only after Reveal; the answer-revealed handler at tv.html:547-551 already does this.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "Phones / connection",
+          "title": "A phone that locks, reconnects or refreshes is silently dropped, and its buttons then do nothing",
+          "detail": "server.js:355-358 deletes the player on disconnect, and reset-game (server.js:342-348, makeState) wipes all players. player.html never re-sends join-game after a reconnect: hasJoined exists only in memory (player.html:329, 385-412) and there is no localStorage or 'connect' handler. Verified: after Mia's socket blipped, the server's player list was ['Grandma Carol'], yet Mia's phone still said \"It's YOUR team's turn!\". Tapping SPIN greyed the button and nothing happened (phase stayed 'playing', with no error). After Play Again the server had players: [] while every phone still showed the game. Phones auto-lock 30–60 seconds between turns, so most players will hit this. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-orphaned-p3-spin-pressed.png and .../visual/M-43-replay-spin-pressed-nothing-happens-phones.png",
+          "fix": "Store {clientId, name, teamIndex} in localStorage. On socket 'connect', re-emit join-game with that clientId. On the server, key players by clientId instead of socket.id, mark them connected:false on disconnect rather than deleting them, and keep players through reset-game. On the phone, show a 'Reconnecting…' banner and disable buttons on 'disconnect'. Have the server send an error event when it ignores a spin or buzz, so the phone can show 'You've been disconnected, tap to rejoin'.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "Onboarding / lobby",
+          "title": "No usable join address: TV and host say only '/player', with no IP and no QR code",
+          "detail": "tv.html:263 reads 'Players join at: /player'; host.html:280 and 340 say the same. The LAN URL is only printed to the server console (server.js:367-381). The element is even called #lobby-qr, but there is no QR code. A first-time grandparent cannot turn '/player' into http://10.0.0.235:3000/player. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/03-lobby-tv.png and .../visual/03-lobby-host.png",
+          "fix": "Add GET /api/info that returns the LAN IPv4 addresses and port. On the TV lobby, show the full URL at 48px or larger plus a 300px QR code. Bundle a QR library locally (for example the `qrcode` npm package served from /vendor), because the party Wi-Fi may have no internet. Optionally redirect '/' to /player for phone user agents.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Host / turn flow",
+          "title": "Next Turn is always enabled; pressing it during a spin locks the next team out of their turn",
+          "detail": "The Next Turn button (host.html:385) is never disabled. server.js:229 and 239 schedule processSegment with a setTimeout that is never cancelled, and next-turn (server.js:306-334) doesn't check the phase. Verified: Elf Help spun, the host pressed Next Turn after 1 second, and 5.5 seconds later the state was: Naughty List's turn, phase 'challenge', currentSegment null. TV shows 'Waiting for next spin…' plus 'BUZZ IN NOW!'. Phones show no buzzer, the host shows 'Waiting for spin…', and Naughty List can't spin. The host has to press Next Turn again, which skips Naughty List. An impatient host will do this. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-nextturn-during-spin-tv.png",
+          "fix": "On the host, disable Next Turn and the award buttons while state.phase==='spinning'. On the server, return early from next-turn during 'spinning', keep the timeout handle and clearTimeout() it on next-turn and reset, and set state.currentSegment inside processSegment.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "TV / legibility",
+          "title": "TV is laid out like a laptop page: 15–21px text and a 380px wheel on a 1080p screen",
+          "detail": "Measured at 1920x1080: question text 20.8px (tv.html:132), hint 13.6px, team names 15.2px (tv.html:71), scores 19.2px (72), \"X's turn\" 19.2px tucked in the top-right corner (23), round label 17.6px in muted grey (22), buzzer status 17.6px (156). The wheel is a fixed 380px, 35% of the screen height (tv.html:271). The content sits in a band in the middle of the screen with large empty areas around it. For viewing from a sofa 3m away, body text should be 28–32px or more and headlines 48px or more. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/11-trivia-buzzer-open-tv.png",
+          "fix": "Wheel: width/height min(62vh,40vw), about 670px. #challenge-panel: max-width min(900px,45vw). #challenge-text: font-size clamp(2rem,2.4vw,3.2rem). Scoreboard sidebar: width 360px, names 1.6rem, scores 2.4rem. Replace the corner turn label with a full-width ribbon in the team's colour ('THE GRINCHES — spin on your phone!') at 2.5rem or larger. Round label 1.6rem, not muted.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "TV / wheel",
+          "title": "Wheel labels are about 9.5px, half are upside down, ALL PLAY is low-contrast, and the winning wedge isn't highlighted",
+          "detail": "Labels use font-size 5.5 in a 220-unit viewBox drawn at 380px, which renders as about 9.5px text (tv.html:352); emoji render at about 21px (tv.html:348). Labels are rotated to the radial angle (tv.html:345-347), so 6 of 12 (rotations 105°–255°) are upside down at rest, and different ones are upside down after each spin. In the landed crop, 'Pop Culture', 'Sound It Out' and 'Dare Card' are inverted. White on the ALL PLAY gold (#b7950b, server.js:26) is 2.61:1. After landing, nothing marks the winning wedge, and the pointer is a text glyph '▼' (tv.html:270). Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/05d-wheel-landed-crop-tv.png and .../visual/04-myturn-tv.png",
+          "fix": "Use short one-word labels (TRIVIA, POP, DARE, HUM IT, ALL PLAY, HOT SEAT, 2×, STEAL) at font-size 9–10 units, with emoji at about 20 units. For wedges whose angle is between 90° and 270°, use rotate(angle+180) so no text is ever inverted. Change ALL PLAY to #8a6d00, or use dark #111 text on it. On landing, outline the winning wedge in gold (stroke-width 3), dim the others to 50%, and pulse it. Replace '▼' with an SVG pointer.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Host / judging",
+          "title": "Host can't see the answer without also revealing it on the TV",
+          "detail": "host.html:124-134 sets `.challenge-a{display:none}`, and updateChallenge assigns class 'challenge-a' (hidden) until the answer is revealed (host.html:641-643). The judge can't check a shouted answer privately; the only way to see it is Reveal Answer, which also shows it on the TV and every phone. Compare C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/11-trivia-buzzer-open-host.png (no answer) with .../visual/11-trivia-answer-revealed-host.png",
+          "fix": "Always show the answer on the host page, styled as '🔒 Host only: Kevin'. Rename the button 'Reveal on TV' and make it only push the answer to the TV and phones.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "TV / state rendering",
+          "title": "Stale TV content: the previous answer stays up, the Hot Seat's last question never clears, and the header is wrong at game end",
+          "detail": "(a) After Next Turn, the TV shows 'Spin the wheel!' alongside the previous answer ('✓ Last Christmas'; checked in the DOM). It stays through the next spin animation, because tv.html:527-530 and the spin-start handler (535-541) never remove `.show` from #challenge-answer-box. In C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/15-doubledown-tv.png the previous ALL PLAY answer '✓ Red' is still shown. (b) After the Hot Seat ends, the TV keeps showing question 5 and 'Question 5 of 5': there is no 'hotseat-complete' handler, and phase 'challenge' with a null challenge isn't handled (525-530). See .../visual/12-hotseat-complete-tv.png. (c) The game-end header is stale (see the blank end-screen finding).",
+          "fix": "Replace the patchy event handlers with one render(state) that resets every element for each phase. In the 'playing' with no challenge branch, remove the answer box's .show and hide sound-title, dare-props and hotseat-progress. Add a hotseat-complete view: '🔥 Hot Seat over! Host is scoring…'.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Double Down",
+          "title": "Double Down is never explained: the TV banner never appears and landing on it shows 'Spin the wheel!'",
+          "detail": "The TV banner #double-down-banner needs class `.show` to be visible (tv.html:199-211), but the JS toggles `.hidden` (tv.html:503-505), so it never appears. The phones show their pill; the TV doesn't. Landing on Double Down sets currentChallenge=null (server.js:160-163), so the TV says 'Spin the wheel!', the host says 'Waiting for spin…', and the explanation in player.html:492-494 is never reached. Also, the doubling applies to the next award to any team, including −50/−100 penalties (server.js:268), which no screen mentions. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/15-doubledown-tv.png and .../visual/M-15-doubledown-phones.png",
+          "fix": "In tv.html:503-505 use ddb.classList.toggle('show', state.doubleDownActive). Set currentChallenge to {type:'doubledown'} so every screen shows '💫 DOUBLE DOWN! Team Rudolph spins again; their next win is worth 2×'. Double only positive awards to the current team.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Phones / Sound It Out",
+          "title": "Sound It Out shows the song on every phone of the team that is supposed to guess it",
+          "detail": "player.html:481-483 shows 'Hum or whistle: \"Last Christmas\" by Wham!' on every phone where isMyTurn is true. The card text itself says 'for your team to guess', so teammates read the answer on their own phones. Screenshot (Mia's phone): C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-sounditout-phones.png",
+          "fix": "Pick one hummer: the player who spun, or a random member chosen by the server, stored as state.performerId. Show the song only on that phone. Teammates see '🎵 Mia is humming. Shout your guess!'.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Buzzer feedback / fun",
+          "title": "Buzzing in has no impact, and the winner isn't told to say their answer",
+          "detail": "The TV shows only a 17.6px green strip, 'Uncle Bob (Jingle Bell Rockers) buzzed in!'. The winner's own phone gets a third-person toast, 'Uncle Bob from your team got it!' (player.html:585), and no instruction to answer out loud. There is no vibration (navigator.vibrate is never called) and no sound anywhere in public/*. Other players' buzzers simply disappear. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/11-trivia-buzzer-won-tv.png and .../visual/M-11-trivia-buzzer-won-phones.png",
+          "fix": "TV: a one-second full-width flash in the buzzing team's colour with the player's name at 4rem, plus a buzzer sound. Winner's phone turns gold: \"🔔 YOU'RE FIRST! Say your answer out loud\", with navigator.vibrate(200) on press. Everyone else: 'Too slow! Uncle Bob got there first'. Add a mute toggle on the host.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Clarity / rules",
+          "title": "Players can't tell what to do: regular trivia looks the same as ALL PLAY, and Hot Seat and Steal have no rules on screen",
+          "detail": "For every trivia spin, server.js:134 opens the buzzer to all teams, and every phone shows the same BUZZ IN button whether it's 'Christmas Trivia' or 'ALL PLAY!'. Meanwhile the active team's phone says '⚡ Your team is on!' (player.html:450), which doesn't say whether they should answer or race. Hot Seat shows a question and 'Question 1 of 5' in 0.9rem muted text, with no rules, timer or points. Steal says 'The host will pick…'. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/M-11-trivia-buzzer-open-phones.png and .../visual/M-12-hotseat-q1-phones.png",
+          "fix": "Add a one-line instruction per segment, large on the TV and on phones. Examples: 'CHRISTMAS TRIVIA: The Grinches get first shot (20s); if they miss, anyone can buzz to steal'. 'ALL PLAY: everyone race to buzz!'. 'HOT SEAT: Team Rudolph answers 5 rapid-fire questions, 25 pts each'. Give the active team a buzzer head start for normal trivia.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Onboarding / grandparent",
+          "title": "What a first-time grandparent will get stuck on",
+          "detail": "Walking the flow as a first-time older player: (1) The TV says '/player' and there's no QR code, so they can't get in. (2) The join screen asks for a team with no guidance on which one (and the Join button falls off-screen with many teams). (3) '⚡ Your team is on!' plus a red BUZZ IN: do I press it or wait? (4) After buzzing, a toast talks about them in the third person and gives no 'say your answer now'. (5) Their phone locks between turns and they're silently dropped; SPIN does nothing. (6) Jargon (Hot Seat, Double Down, STEAL!) with no rules screen. (7) 16px question text, 13.6px grey helper text, and pinch-zoom disabled. (8) Some dares require a vote or rating that has no buttons. Representative screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/M-02-join-filled-phones.png and .../visual/N-orphaned-p3-spin-pressed.png",
+          "fix": "Add a 30-second 'How to play' slide on the TV before round 1 (spin, buzz, then shout your answer; the host is the judge). Add a QR code, allow zoom and use larger phone text, let phones reconnect automatically, add a per-segment instruction line, and give the buzz winner a direct 'YOU'RE FIRST, say it out loud' screen. Optionally let the host assign players to teams.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Requirements",
+          "title": "'Type answers' requirement is missing: phones can only buzz",
+          "detail": "You asked for 'use a buzzer or type answers'. player.html has no text input anywhere outside the join form, so every trivia question is buzz-and-shout. On the phone screenshots, there's no way to answer an ALL PLAY by typing: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/M-14-allplay-buzzer-open-phones.png",
+          "fix": "Add a typed-answer mode, for example for ALL PLAY. Every phone gets a large text box (font-size 1.25rem, autocapitalize on, Enter submits, button locks after submit). The host sees all submissions with a one-tap ✓ per team. The TV shows '4 of 5 teams locked in', then reveals every team's answer together.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Dares / pacing",
+          "title": "Dares rely on timers and team votes, but the app has neither",
+          "detail": "Most of the 25 dares in data/dares.json specify a time ('60 seconds', '30 seconds', '45 seconds'…). Several say 'other teams vote…', 'votes thumbs up or down' or 'Other teams rate your reaction 1-5'. There is no countdown anywhere and no voting UI. The dare card also doesn't show its 150 points or which player should perform it. Other teams' phones sit idle during dares. Hot Seat has no clock either, which matters for a 60–75 minute party. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-dare-tv.png and .../visual/N-dare-phones.png",
+          "fix": "Add a `seconds` field to each dare and a host 'Start timer' button that drives a large countdown ring on the TV and a small one on phones. For vote or rating dares, give the other teams' phones 1–5 or 👍/👎 buttons and show a live tally on the TV that suggests points to the host. Show a 'Worth 150 pts' chip on the TV and phones.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Host / controls",
+          "title": "Host loses track of who buzzed, sees irrelevant controls, and can steal twice",
+          "detail": "The buzz winner appears only in a 4-second toast (host.html:702-704), and the award rows (551-573) don't highlight that team, so the host has to remember who buzzed. Reveal, Open Buzzer and Close Buzzer, plus all the ± award buttons, appear for every challenge type (366-371). On a STEAL, the actual steal list sits below the fold (page is 1062px tall in a 900px window). The 'Steal 100!' buttons stay active after one use, so each extra click steals again, and stealing from a team with 0 points still gives +100 (server.js:273-277). Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/13-steal-host.png and .../visual/11-trivia-answer-revealed-host.png",
+          "fix": "Keep a persistent row: '🔔 Uncle Bob (Jingle Bell Rockers) buzzed first' with [✓ Correct +100] and [✗ Wrong: re-open buzzer]. Show only the controls that fit the challenge type (trivia: reveal and buzzer; dare: timer and award; steal: just the team buttons at the top). Disable the steal buttons after one steal, and disable or grey out teams with 0 points.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Colour / contrast",
+          "title": "Team colours used as name text are nearly invisible, and the palette has near-duplicates",
+          "detail": "The host, phone and TV end screens draw team names in the team's colour (host.html:678, player.html:568, tv.html:577). Measured contrast on the dark row background: navy #1a5276 1.92:1 (1.60:1 on the TV's gold-tinted row), olive #7D6608 2.88:1, red #c0392b 2.95:1, purple #8e44ad 2.73:1. All fail WCAG AA (4.5:1). The palette at server.js:33 has near-duplicates (green #1a7a3c vs teal #117a65; blue #2471a3 vs navy #1a5276), and the navy dot against the page background is 2.17:1, below the 3:1 minimum for non-text elements. Team identity rests on a 10–16px dot. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-gameend-p1.png and .../visual/N-gameend-host.png",
+          "fix": "Keep team names white and show the colour as a 6px left border or a filled chip. Switch to 8 bright, clearly different hues that each reach at least 3:1 against #0a1628 (for example #ff5a4e, #2ecc71, #3fa9f5, #b57cff, #ff9f1c, #1fd1b5, #ffd23f, #ff6fb5). Optionally give each team an emoji badge.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Accessibility / phones",
+          "title": "Pinch-zoom is disabled on phones, and phone text is small for older players",
+          "detail": "player.html:5 sets `maximum-scale=1, user-scalable=no`, which blocks zoom (a WCAG 1.4.4 failure). Question text is 16px (.challenge-box at 1rem, player.html:147). Helper captions ('First to buzz answers the question', \"It's your team's turn!\") are 13.6px in muted grey (player.html:298, 304), and 'Your score' is 14.4px. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/M-11-trivia-buzzer-open-phones.png",
+          "fix": "Use `width=device-width, initial-scale=1` only. Set .challenge-box to 1.2rem and helper text to 1rem. Make the turn status 1.3rem.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Host / responsive",
+          "title": "Host page is unusable on a phone or small tablet",
+          "detail": "host.html:33-43 gives the sidebar a fixed 280px width and there are no media queries. At 390px wide, the main column is about 110px: the question wraps one word per line, headings are clipped ('CURRENT CHALLENG'), and Next Turn is 1954px down a 2099px page. A host walking around the living room to judge dares will probably use a phone. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-host-on-phone.png",
+          "fix": "Add @media (max-width:900px){.host-body{flex-direction:column}.host-left{width:auto}} and collapse the scores into a strip. Add a sticky bottom action bar with Reveal and Next Turn. Move Reset and Full Reset into a ⋯ menu so they can't be mis-tapped.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "TV / buzzer status",
+          "title": "TV says 'BUZZ IN NOW!' when no phone has a buzzer",
+          "detail": "tv.html:472-484 shows '🔔 BUZZ IN NOW!' whenever buzzerOpen is true. Phones only show a buzzer for trivia and ALL PLAY (player.html:465). I saw it on the TV during a STEAL and after the mid-spin Next Turn lock. The host's Open Buzzer button is available for dares, steal and sound-it-out (host.html:366-371), so the host can trigger it at any time. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/13-steal-tv.png and .../visual/N-nextturn-during-spin-tv.png",
+          "fix": "Gate the TV's updateBuzzer() on the same segment-type check the phones use. Hide Open and Close Buzzer on the host for challenges without a buzzer. Alternatively, enable phone buzzers for Sound It Out, where buzzing to guess makes sense.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "TV / trivia",
+          "title": "Hint appears immediately on the TV, gives the answer away, and is too small to read",
+          "detail": "tv.html:461-463 adds the hint as soon as the question appears, at 0.85rem (13.6px). For example, 'Hint: His last name is McCallister' sits next to the Home Alone first-name question. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/11-trivia-buzzer-open-tv.png",
+          "fix": "Hide hints by default. Add a host 'Show hint' button (optionally halving the points) that pushes the hint to the TV at full question size.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Fonts / loading",
+          "title": "Remote Google Fonts @import can leave the TV blank and disconnected on flaky party internet",
+          "detail": "style.css:1 @imports fonts.googleapis.com. With that request stalled for 15 seconds (simulated), the TV was still unstyled after 4 seconds (body background transparent). The @import holds up the stylesheet, which in turn holds up the parser-blocking socket.io script, so the page is blank and not connected until the request settles. With the fonts fully blocked, the page falls back to Comic Sans and Arial, which is acceptable. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-fonts-blocked-tv-lobby.png and .../visual/N-fonts-hang-tv-at-4s.png (that capture was taken after the stall ended)",
+          "fix": "Self-host Mountains of Christmas and Nunito as woff2 files in public/fonts with @font-face and font-display:swap, and remove the @import. Add <link rel=preload as=font> for the display font.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "TV / spin moment",
+          "title": "Spin and landing moment is flat: 'Spinning…' shown twice, and no announcement of who spun or what landed",
+          "detail": "During a spin the TV shows '🎡 Spinning…' in the challenge card (tv.html:537) and again in the bottom overlay (tv.html:295, 377). It never names the spinning team. When the wheel stops, the result just appears in the small card, with no sound or splash. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/05-spinning-tv.png",
+          "fix": "On spin-start, show 'THE GRINCHES are spinning!' in their colour. On landing, show a 1.5-second full-screen splash in the segment's colour ('😱 DARE CARD! 150 pts') before the card. Add a tick sound during the spin and a ding on landing (local audio or WebAudio).",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "End screen design",
+          "title": "End screen has no winner moment and handles ties badly",
+          "detail": "Even once the TV end screen is fixed, every .winner-row is the same size (tv.html:189-197) and there is no 'WINNER' hero or confetti. Ties are ranked arbitrarily: a 0-point team gets 🥉 while other 0-point teams are ranked 4th to 8th. Score steps of 50 and 100 make ties likely. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-gameend-host.png",
+          "fix": "Make the winner a hero card at twice the size ('🏆 THE GRINCHES WIN! 1250 pts') with a CSS confetti burst and a fanfare. Rank with ties: equal scores share a rank and medal, shown as 'T-3'.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "Edge cases / long names",
+          "title": "Long names and 8 teams: names truncate on the TV, the phone header wraps, and the Join button falls off-screen",
+          "detail": "The TV's 260px sidebar truncates names to 'Grandpa's Egg…', 'The Abominable S…' and 'Mistletoe Mischi…', and it gets worse with 3–4 digit scores (see C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-8teams-game-tv.png). With a long team name, the phone header wraps 'Christmas Chaos' onto two lines (.../visual/N-gameend-p1.png). With 8 teams on a 390x844 phone, the Join button starts at y=850, just below the visible screen (.../visual/N-8teams-join-p1.png). I estimate 5 teams already push it below the fold on a 375x667 phone, but I didn't screenshot that size.",
+          "fix": "Widen the sidebar to 360px and allow 2-line names (-webkit-line-clamp:2) at the larger size. Make the Join button sticky at the bottom of the join screen. In the phone header, hide the title text once joined, or cap the badge at max-width:55% with an ellipsis.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "Host / tap targets",
+          "title": "Host tap targets are small, and removing a team has no confirmation",
+          "detail": "Measured: award buttons 60×31px (host.html:99-107), rounds ± buttons 31×28 (172-181), remove-team ✕ 12×20 in #888 (506). Removing a team needs no confirmation and silently deletes its joined players (server.js:195-196). The −50/−100 buttons sit right beside +100/+50, and there is no undo. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/03-lobby-host.png",
+          "fix": "Make every tap target at least 44×44px. Ask before removing a team: 'Remove Elf Help and its 2 players?'. Show an award toast with an Undo button (keep a stack of recent actions) and move the penalty buttons into a separate '−' menu.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "Phones / idle states",
+          "title": "Waiting phones are dead air, while the active team gets the same message three times",
+          "detail": "Other teams' phones show only \"The Grinches's turn\" and the scoreboard, with no 'watch the TV' cue and nothing to do. The active team sees \"It's YOUR team's turn!\", the caption \"It's your team's turn!\" under SPIN (player.html:298), and a toast saying the same. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/M-04-myturn-phones.png",
+          "fix": "Give waiting phones an idle card ('👀 Eyes on the TV! The Grinches are spinning') with reaction buttons (🎉 😂 😱 🤔) that float up on the TV. Remove the duplicate caption under SPIN.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "TV / lobby",
+          "title": "TV lobby shows the teams twice, with a 'Scores' sidebar and an 'active' team before the game starts",
+          "detail": "In the lobby, the sidebar reads '🏆 Scores', lists every team at 0, and highlights team 1 as active. The centre list repeats the same teams, with centred names and '0 players' in the same gold emphasis as joined teams. It doesn't show who has joined, and Start Game allows teams with no players without any warning. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/N-8teams-lobby-tv.png",
+          "fix": "Hide the sidebar in the lobby. Show a grid of team cards listing joined player names, so people can see who's in. Dim empty teams with a 'needs players' tag, and warn the host on Start Game if any team has 0 players.",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "Copy",
+          "title": "Grammar and raw labels: \"Grinches's\", \"1 players\", and phase codes in the host header",
+          "detail": "\"The Grinches's turn\" appears in tv.html:499, player.html:453 and host.html:657/697. '1 players' appears in tv.html:517. The host header shows raw phase codes ('lobby', 'challenge', 'gameend'; host.html:658), shows \"The Grinches's turn\" while still in the lobby, and shows 'Round: —' with \"Naughty List's turn\" at game end. Screenshots: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/03-lobby-tv.png and .../visual/03-lobby-host.png",
+          "fix": "Use a possessive helper (names ending in s get a bare apostrophe), or rephrase as 'Up now: The Grinches'. Pluralise player counts. Map phases to friendly labels (Lobby, Spinning, Challenge, Game over) and hide the turn label outside play.",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "Layering",
+          "title": "Falling snowflakes draw over text and cards",
+          "detail": "style.css:116-123 makes .snowflakes position:fixed with z-index:0, so the flakes paint above content that has no position set. Snowflakes cross score rows and question cards: over 'Team Rudolph' in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/11-trivia-buzzer-open-tv.png and inside the cards in .../visual/M-11-trivia-buzzer-open-phones.png",
+          "fix": "Add .tv-header, .tv-body, .host-header, .host-body and the player screens {position:relative; z-index:1}, or set the snowflakes to z-index:-1 with the background colour on html.",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "Phones / toast",
+          "title": "Hidden toast still shows a sliver at the bottom of every phone screen",
+          "detail": "In style.css:279-296, the hidden toast sits at bottom:30px with translateY(80px), so its top edge is at y=842 on an 844px screen. A 2px gold curve shows at the bottom of every phone screenshot. The toast also uses white-space:nowrap, so long messages with long names may overflow narrow phones (not verified). Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/M-04-myturn-phones.png",
+          "fix": "When hidden, use transform: translateX(-50%) translateY(calc(100% + 40px)) plus opacity:0. Change to white-space:normal with max-width:calc(100vw - 32px).",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "Emoji / icons",
+          "title": "Wheel icons and pointer depend on emoji fonts the TV's built-in browser may lack; 🎡 is the wrong metaphor",
+          "detail": "Wheel icons, the centre 🎄 and the pointer '▼' are text glyphs. Smart-TV built-in browsers (Tizen, webOS) often lack colour emoji and would show empty boxes. Not verified: only Edge on Windows was tested. 🎡 (a Ferris wheel) is used as the 'spin' icon on the phone button and as the current-team marker in the host's score list, which is confusing. Screenshot: C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/visual/M-04-myturn-phones.png",
+          "fix": "Use inline SVG icons for the wheel and pointer. Test on the actual TV, or cast from a laptop. Use a 🎯 or wheel SVG for spin, and a ▶ 'up now' chip for the current team on the host.",
+          "verified": false
+        }
+      ]
+    },
+    {
+      "key": "server-code",
+      "summary": "I reviewed server.js line by line without changing any project files, then tested it. Socket clients and headless Edge ran against a test server on PORT 47613, and a crash/restart script started its own server on 47614. Both servers have been stopped. Scripts and outputs are in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/server-js/ (t_state.out, t_crash.out, t_reconnect.out, t_more.out, reconnect_ghost.png).\n\nFour problems could break the party:\n1. Any malformed socket payload crashes the Node process. I reproduced this with 8 of 8 handlers. All game state is held only in memory, so a crash loses everything. I also confirmed that a restart mid-game goes back to an empty lobby.\n2. A player is identified only by socket.id and is deleted on disconnect, and the phone never joins again. After a Wi-Fi drop or screen lock the phone still shows SPIN and the buzzer, but the server silently ignores both. I reproduced this in Edge.\n3. \"Play Again\" (reset-game) and full-reset wipe every player, so every phone stops working in game 2.\n4. There is no host check at all, and '/' redirects to /host. A guest who types the bare IP gets the game-master panel. I confirmed that a player socket can set any score and run full-reset.\n\nConfirmed state-machine and timer problems:\n- The 5.5s spin timer is never cancelled. A reset during a spin locks the lobby, because a team can no longer be created. Pressing Next Turn during a spin applies the old result to the next team.\n- next-turn has no phase check and no duplicate guard. A double-tap skips a team, it starts the game from the lobby, it restarts a finished game, and with zero teams the current team index becomes NaN.\n- Teams are referenced by index. A double-tap on remove-team deletes two teams, and phones that already joined end up with the wrong team.\n- Regular trivia opens the buzzer to every team, so it plays exactly like ALL PLAY.\n- Double Down goes to whichever team is awarded points next, including penalties and other teams, and it carries over past Next Turn.\n- Steal can be repeated, creates points the victim did not have, and lets a team steal from itself.\n- Every question's answer is sent to every connected client before the reveal.\n- There is no server path at all for typing answers, which the requirements ask for.\n\nNetwork: the server prints every non-internal IPv4 address in OS order. An earlier run today printed a VPN address (10.200.101.14) before the Wi-Fi address, and neither the TV nor the host page shows the real join URL. The Wi-Fi profile on this machine is Public, the firewall is on, and I found no inbound rule for node.exe. I could not test whether that blocks phones, because it needs a real phone.\n\nEach finding below gives the file:line, the scenario I reproduced and the exact fix.",
+      "findings": [
+        {
+          "severity": "critical",
+          "area": "validation / crash",
+          "title": "Any malformed socket payload crashes the whole server, and all game state is lost",
+          "detail": "Socket.io v4 calls listeners from inside process.nextTick, so an exception in a handler is uncaught and the process exits with code 1. Reproduced 8 of 8 (t_crash.out): steal-execute {} and {fromTeamIndex:7} give 'Cannot read properties of undefined (reading score)' at server.js:275. join-game, create-team, award-points, set-rounds and remove-team with no payload, and override-score with null, give 'Cannot destructure property ... of undefined' at server.js:178,183,191,203,265,336. State lives only in `let state` (server.js:57), so one bad emit, or a future bug in any handler, ends the party.",
+          "fix": "Add a wrapper: `const on = (ev, fn) => socket.on(ev, (p = {}, ...r) => { try { fn(p && typeof p === 'object' ? p : {}, ...r); } catch (e) { console.error(ev, e); } });` and register every handler through it. Validate every index with `const validTeam = i => Number.isInteger(i) && i >= 0 && i < state.teams.length;`. As a last resort add `process.on('uncaughtException', e => console.error('uncaught', e));`. Pair this with persistence (see the restart finding).",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "identity / reconnect",
+          "title": "Players are keyed by socket.id and deleted on disconnect; phones never rejoin, so spin and buzz are silently ignored",
+          "detail": "server.js:179 stores the player under socket.id and server.js:356 deletes it on disconnect. socket.io auto-reconnects with a new id, but player.html only emits join-game once (player.html:396, hasJoined stays true). Reproduced in headless Edge (t_reconnect.out): after a transport drop the id changed (BI8y...→Gb8-...), the server player list became [], the phone still showed the SPIN button, and tapping it left phase 'playing'. spin-wheel (server.js:220-221) and buzzer-press (server.js:244-245) return without telling the phone. Phone screen locks and Wi-Fi blips are constant at a party.",
+          "fix": "Give each player a persistent id. The client creates `playerId = localStorage.ccId ||= crypto.randomUUID()` and connects with `io({ auth: { playerId } })`. The server keys `state.players[playerId] = { id: playerId, socketId, name, teamId, connected }`. In 'connection', look up `socket.handshake.auth.playerId`. If the player exists, set socketId and connected:true, then `socket.emit('you', player)`. On disconnect set `connected = false` instead of deleting. spin-wheel and buzzer-press find the player by `socket.data.playerId`. When the server cannot find the player, emit `socket.emit('need-join')` so the phone returns to the join screen instead of failing silently.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "state machine / identity",
+          "title": "'Play Again' (reset-game) and full-reset drop every joined player; all phones stop working in game 2",
+          "detail": "server.js:343-345 rebuilds state with makeState(), keeping teams but resetting players to {}. full-reset (server.js:351) does the same. No message tells phones to rejoin, and they keep hasJoined=true. Reproduced (t_more.out M1): Alice@0 → players [] after reset-game. After start-game, Alice tapped spin on her own team's turn and the phase stayed 'playing'. host.html:394 'Play Again (keep teams)' is the obvious end-of-game button.",
+          "fix": "In reset-game keep the players: `const savedPlayers = state.players; state = makeState(); state.teams = savedTeams; state.players = savedPlayers;`. For full-reset, which removes the teams, emit `io.emit('force-rejoin')` and have player.html set hasJoined=false and show the join screen.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "authorization",
+          "title": "No host authorization, and '/' redirects to /host: any guest gets the game-master panel",
+          "detail": "Every host event (award-points, override-score, steal-execute, next-turn, reveal-answer, open-buzzer, set-rounds, start-game, host-spin, reset-game, full-reset; server.js:203-353) is accepted from any socket. server.js:364 redirects '/' to /host, so a guest who types the printed 'Network: http://10.0.0.235:PORT' without /player lands on the full controls. Reproduced (t_state.out T11): a player socket set team A to 99999 and then ran full-reset, which wiped all teams.",
+          "fix": "Generate a key at startup with `const HOST_KEY = crypto.randomBytes(3).toString('hex');` and print `http://IP:PORT/host?key=HOST_KEY`. host.html connects with `io({ auth: { hostKey: new URLSearchParams(location.search).get('key') } })`. On connection set `socket.data.isHost = socket.handshake.auth.hostKey === HOST_KEY` and `if (socket.data.isHost) socket.join('host')`. Guard host handlers with `if (!socket.data.isHost) return;`. Change server.js:364 to `res.redirect('/player')`. For the TV, use a separate read-only key or no key, since it only listens.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "timers",
+          "title": "The 5.5s spin timeout is never cancelled: a reset or Next Turn during a spin applies a stale result (and can lock the lobby)",
+          "detail": "server.js:229 and server.js:239 call setTimeout(() => processSegment(seg), 5500) without keeping the handle or checking state. Reproduced (t_state.out): T1, full-reset during a spin → 5.5s later phase='challenge' with teams [], after which create-team is rejected (server.js:184) and the lobby stays locked until another full reset. T2, reset-game during a spin → phase 'challenge' with the host page off the lobby. T3, Next Turn during team A's spin, then team B spins → events 'spin-start#6, turn-start, spin-start#5, spin-result:w6, spin-result:w5'. A's Dare result fired in the middle of B's spin and was then overwritten. The host's Next Turn button is always enabled (host.html:385).",
+          "fix": "Add `let spinTimer = null, spinSeq = 0;`. When spinning: `const seq = ++spinSeq; clearTimeout(spinTimer); spinTimer = setTimeout(() => { spinTimer = null; if (state.phase !== 'spinning' || seq !== spinSeq) return; processSegment(WHEEL_SEGMENTS[segIndex]); }, 5500);`. Call `clearTimeout(spinTimer); spinTimer = null; spinSeq++;` in reset-game, full-reset, start-game and next-turn. Reject next-turn while phase === 'spinning'. Combine spin-wheel and host-spin into one startSpin() function so the logic exists once.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "state machine",
+          "title": "next-turn has no phase guard or duplicate guard: a double-tap skips a team, and it works in the lobby, after game end and with zero teams",
+          "detail": "server.js:306-334 runs in every phase. Reproduced (t_state.out): T4, two quick next-turn taps → current team 0→2, so team B lost its turn. T5a, next-turn in the lobby → phase 'playing' without start-game. T5b, next-turn after 'gameend' → phase 'playing', round 2 of 1, game resumed. T5c, zero teams → currentTeamIndex = (0+1)%0 = NaN (shown as null). The host's Next Turn button is a big always-enabled phone button (host.html:385), so double-taps will happen.",
+          "fix": "Add `state.turnId` (increment it on every turn change and include it in publicState). host.html sends `socket.emit('next-turn', { turnId: gameState.turnId })`. The server ignores the event when `turnId !== state.turnId`, when `!['challenge','hotseat','playing'].includes(state.phase)`, or when `state.teams.length === 0`. Optionally disable the button during 'spinning'.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "networking",
+          "title": "The printed LAN address can be the VPN or a virtual adapter, and no screen shows the real join URL",
+          "detail": "server.js:369-376 prints every non-internal IPv4 address in OS order. A server.log from an earlier run today on this machine showed 'Network: http://10.200.101.14:47613' (not the Wi-Fi adapter) before 'Network: http://10.0.0.235:47613' (Wi-Fi, 10.0.0.235/24, default gateway 10.0.0.1). The same code would also print 169.254.x link-local addresses and Hyper-V/WSL/Docker vEthernet 172.x addresses when those adapters are up. tv.html:263 and host.html:280/340 only say '/player', with no host:port, so guests depend on whoever reads the console. With a full-tunnel corporate VPN connected, LAN traffic may also be blocked (not verified for this VPN).",
+          "fix": "Pick one address. Skip `169.254.`, and skip interface names matching `/vEthernet|WSL|Hyper-V|VirtualBox|VMware|Docker|Loopback|Tailscale|ZeroTier|VPN|TAP|Cisco|AnyConnect|GlobalProtect|Zscaler|Bluetooth/i`. Prefer `/Wi-?Fi|Wireless|WLAN|Ethernet/i` and 192.168/16 or 10/8 ranges. Allow an override with `process.env.HOST_IP`. Expose `app.get('/api/info', (q, r) => r.json({ joinUrl: `http://${ip}:${PORT}/player` }))` (or emit it in 'wheel-segments'). Show the URL big, with a QR code, in the TV lobby and on the host page. Print the remaining candidates as 'other interfaces'. Tell the host to disconnect the VPN before the party.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "networking (environment)",
+          "title": "Windows Firewall will probably block phones: Wi-Fi profile is Public and there is no inbound rule for node.exe",
+          "detail": "Get-NetConnectionProfile shows Wi-Fi 'leysML' as NetworkCategory Public. All firewall profiles are Enabled, with DefaultInboundAction NotConfigured (Windows default: block). Get-NetFirewallApplicationFilter found no rule for C:\\Program Files\\nodejs\\node.exe. The server binds 0.0.0.0 (server.js:367). The party Wi-Fi will be a new network, which Windows 11 also marks Public by default. NOT VERIFIED end-to-end, because traffic from this machine to its own IP skips the firewall. It needs a test from a real phone.",
+          "fix": "Before the party, set the network to Private with `Set-NetConnectionProfile -InterfaceAlias Wi-Fi -NetworkCategory Private` (admin), or add a rule with `New-NetFirewallRule -DisplayName 'Christmas Chaos' -Direction Inbound -Protocol TCP -LocalPort 3000 -Action Allow -Profile Private,Public` (admin). Add a startup console hint saying that if phones cannot connect, the network should be set to Private. Do a dry run with one phone on the party Wi-Fi.",
+          "verified": false
+        },
+        {
+          "severity": "major",
+          "area": "persistence",
+          "title": "A server restart or crash mid-game loses all teams and scores, and phones do not recover",
+          "detail": "State is only in memory (server.js:57). Reproduced (t_crash.out): before the restart phase 'playing' with A:500, B:0; after the restart phase 'lobby' with teams []. Phones reconnect automatically but stay in a joined-looking waiting screen with no teams, and they never rejoin (player.html:396). Recovery means recreating teams in the same order, re-entering scores with override and reloading every phone. This also makes the crash finding much worse.",
+          "fix": "Persist after every change. Use `function save(){ clearTimeout(saveT); saveT = setTimeout(() => fs.writeFile(SAVE, JSON.stringify({ ...state, players: strip(state.players) }), () => {}), 200); }` and call it inside a shared `broadcast()` that replaces the `io.emit('state-update', ...)` calls. On boot, `if (fs.existsSync(SAVE)) state = { ...makeState(), ...JSON.parse(...) }`, and if the phase was 'spinning' set it back to 'playing'. Keep SAVE outside public/ (for example `path.join(os.tmpdir(), 'christmas-chaos-save.json')`). Together with the persistent player id, phones restore themselves.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "index-based team references",
+          "title": "remove-team works by array index: a double-tap deletes two teams, a bad payload deletes team 0, and the index shift leaves phones on the wrong team",
+          "detail": "server.js:191-201 splices by index and renumbers p.teamIndex on the server only. Reproduced (t_more.out M2): A,B,C,D plus two remove-team {teamIndex:1} → [A,D]. T13: remove-team {} → splice(undefined,1) removed team A. M6 (Edge): Carol joined C (index 2), then A was removed; the server moved her to C@1, but the phone keeps myTeamIndex=2 (player.html:394) and showed badge 'D'. On C's turn her SPIN button was hidden; on D's turn it was visible, and the tap was silently rejected (phase stayed 'playing'). Players on the removed team are deleted on the server but their phones still think they joined.",
+          "fix": "Give teams stable ids (`id: nextTeamId++`) and have players store teamId. remove-team takes `{ teamId }` and ignores ids that do not exist, which also makes a double-tap harmless. After any change to a player's team, `io.to(p.socketId).emit('you', p)` (or `need-join` for removed teams) so the phone takes its team from the server rather than its local myTeamIndex. currentTeamIndex can stay an index into teams, because teams are lobby-only.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "game logic",
+          "title": "Regular trivia is handled exactly like ALL PLAY: every team can buzz, so the spinning team has no advantage",
+          "detail": "server.js:130-136 handles `seg.type === 'trivia' || seg.type === 'allplay'` the same way: buzzerOpen = true for everyone, and buzzer-press (server.js:242-251) does not check the team. Reproduced (t_more.out M3): on team A's 'Christmas Trivia' (w8), Bob from team B buzzed and won. 'ALL PLAY!' (w7) means nothing extra, and a team's own trivia spin can be stolen every time.",
+          "fix": "For 'trivia' set `state.buzzerTeam = state.currentTeamIndex` (or skip the buzzer: the current team answers by voice or typing, and the host can then 'open-buzzer' to steal). For 'allplay' set `state.buzzerTeam = null`. In buzzer-press add `if (state.buzzerTeam != null && player.teamIndex !== state.buzzerTeam) return;`.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "requirements",
+          "title": "There is no server path for typed answers ('use a buzzer or type answers' is not implemented)",
+          "detail": "server.js handles only buzzer-press for player input. It has no 'submit-answer' (or similar) event, and player.html emits only join-game, spin-wheel and buzzer-press (player.html:396,527,532). Teams that cannot be heard in a noisy room, or ALL PLAY rounds where every team answers, have no way to send an answer.",
+          "fix": "Add `socket.on('submit-answer', ({ text }) => { if (state.phase !== 'challenge' && state.phase !== 'hotseat') return; const p = findPlayer(socket); if (!p) return; state.answers[p.teamId] = { text: String(text).slice(0, 80), by: p.name, at: Date.now() }; io.to('host').emit('answers', state.answers); io.emit('answer-count', Object.keys(state.answers).length); })`. Clear `state.answers` in next-turn and processSegment. The host marks each answer correct, which calls award-points.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "information leak",
+          "title": "Answers (and the Sound It Out song) are sent to every client before the reveal",
+          "detail": "publicState() includes the full currentChallenge (server.js:116), and spin-result (server.js:136,148,156) and hotseat-question (server.js:290) broadcast it too, including answer, hint, songTitle and artist, to the TV and all phones. Reproduced (t_more.out M3): with answerRevealed=false, a player socket received answer='Todd Chester (played by Nicholas Guest)'. Because the server broadcasts everything, clients cannot keep the song secret either. The earlier client review captured the TV and teammates seeing the song (scratchpad/review/clients/tv_sounditout_leak.png, player_teammate_sees_song.png).",
+          "fix": "Add `function publicChallenge(c){ if (!c) return null; const { answer, songTitle, artist, ...rest } = c; return state.answerRevealed ? c : rest; }` and use it in publicState, spin-result and hotseat-question. Send the full challenge only to the host: `io.to('host').emit('host-challenge', c)`. For Sound It Out, pick one hummer on the current team and send the song only to them: `io.to(hummer.socketId).emit('secret-song', { songTitle, artist })`.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "scoring",
+          "title": "Double Down doubles the next award to any team (including penalties) and survives Next Turn",
+          "detail": "server.js:268 doubles and clears on the first award-points call regardless of team or sign. next-turn (server.js:306-330) never clears doubleDownActive. Reproduced (t_state.out T6): team C hit Double Down, the host pressed Next Turn, dd stayed true, and +100 to team B became 200. A -50 penalty becomes -100 and uses up C's double. Steal ignores it.",
+          "fix": "In processSegment set `state.doubleDownTeam = state.currentTeamIndex` instead of a bool. In award-points: `if (state.doubleDownTeam === teamIndex && pts > 0) { pts *= 2; state.doubleDownTeam = null; }`. In next-turn, clear it once the bonus turn ends: keep it across the DD re-spin, which leaves phase 'playing' with the same team, and clear it when currentTeamIndex changes. Expose `doubleDownActive: state.doubleDownTeam != null` in publicState.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "scoring",
+          "title": "Steal can be repeated, works in any phase, creates points from nothing, allows stealing from yourself, and trusts the client's indices",
+          "detail": "server.js:273-278 has no phase or segment check, no once-only flag and no from !== to check. It always adds 100 even when the victim has less. Reproduced (t_state.out T10): stealing from B with 30 left B:0 and gave A:100 (70 points created); a self-steal on C (0 points) gave C:100. Each extra tap on 'Steal 100!' (host.html:483) steals again. Bad indices crash the server.",
+          "fix": "`if (state.phase !== 'challenge' || state.currentChallenge?.type !== 'steal' || state.stealDone) return; const to = state.currentTeamIndex; if (!validTeam(fromTeamIndex) || fromTeamIndex === to) return; const amt = Math.min(100, state.teams[fromTeamIndex].score); state.teams[fromTeamIndex].score -= amt; state.teams[to].score += amt; state.stealDone = true;` Reset stealDone in processSegment. Ignore the toTeamIndex the client sends.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "state machine",
+          "title": "start-game is accepted in any phase: mid-game it resets the round and keeps the old challenge",
+          "detail": "server.js:208-216 checks only teams.length. Reproduced (t_more.out M4): during a STEAL challenge, start-game → phase 'playing', round 1, current team 0, scores kept, currentChallenge still set. The TV then shows the old challenge in 'playing' (tv.html shows currentChallenge whenever the phase is not spinning). During a spin, the uncancelled timer then flips the phase to 'challenge'.",
+          "fix": "Add `if (state.phase !== 'lobby' || state.teams.length < 2) return;`. Clear currentChallenge, currentSegment, buzzerOpen, buzzerWinner, doubleDown and the hot-seat fields, and cancel spinTimer.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "validation",
+          "title": "Non-numeric points, score or rounds poison state with NaN (scores show null forever; the game never ends)",
+          "detail": "server.js:267-269: Number('abc') = NaN and Math.max(0, NaN) = NaN, so the score is NaN, sent as null, and every later award stays NaN. server.js:338 has the same problem. server.js:204: Math.max(1, Math.min(6, NaN)) = NaN, so `round > NaN` (server.js:312) is never true. Reproduced: T7 'A:null' even after +100; T8 round 11 with totalRounds null, still 'playing'. The host UI sends numbers, so this needs a crafted or buggy payload, which is easy without host auth.",
+          "fix": "`const pts = Math.trunc(Number(points)); if (!Number.isFinite(pts) || Math.abs(pts) > 10000) return;`. Use the same check for score. For rounds: `const r = Number(rounds); if (!Number.isInteger(r)) return; state.totalRounds = Math.max(state.round, Math.min(6, Math.max(1, r)));`.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "validation",
+          "title": "join-game and create-team accept empty names, HTML names, unbounded length and invalid team indices",
+          "detail": "server.js:179 stores name and teamIndex unchecked, and server.js:186 stores teamName unchecked. Reproduced: M5, name '' with teamIndex '0' (a string) was accepted, and that player can never spin because `'0' !== 0` (server.js:221). T15, teamIndex 42 was accepted and won the buzzer as team 'Unknown' while in the lobby. A name of `<img src=x onerror=alert(...)>` ran script on /host (t_reconnect.out R4; host.html renders p.name with innerHTML). Names can be close to 1 MB (the socket.io default maxHttpBufferSize) and are re-sent in every state-update.",
+          "fix": "`const name = String(name ?? '').replace(/[<>]/g, '').trim().slice(0, 20); const ti = Number(teamIndex); if (!name || !validTeam(ti)) return socket.emit('join-error', 'Pick a name and team');`. Apply the same cleanup to teamName (max 24 characters, reject duplicates). Also escape on the client (textContent instead of innerHTML templates).",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "state machine / buzzer",
+          "title": "Buzzer events ignore the phase, and a team that answered wrong is never locked out",
+          "detail": "open-buzzer and close-buzzer (server.js:295-304) work in lobby, gameend, dare and so on. buzzer-press (server.js:242) only checks buzzerOpen; T15 shows a win in the lobby. After a wrong answer the host re-opens with open-buzzer, which resets buzzerWinner for everyone, so the same player can win again straight away. processSegment only resets the buzzer for trivia, not for the other segment types.",
+          "fix": "Accept open-buzzer only when `state.phase === 'challenge' && ['trivia','allplay'].includes(state.currentSegment?.type)`. Keep `state.buzzLocked = new Set()` of team ids: add the winner's team when the host marks the answer wrong or re-opens, and reject buzzer-press from locked teams. Reset the set in processSegment and next-turn.",
+          "verified": false
+        },
+        {
+          "severity": "minor",
+          "area": "state machine / hot seat",
+          "title": "A double-tap on hot-seat 'Next Q' skips a question; hot seat never reuses used questions",
+          "detail": "server.js:280-293 increments hotSeatIndex on every event with no expected index, so two taps skip a question (found by reading the code; not run, because it needs a random Hot Seat spin). pickHotSeat (server.js:93-105) does not reuse questions the way pickQuestion does. If the christmas+popculture pool is used up (more likely if Play Again stops repeating questions), the result is phase 'hotseat' with a null challenge and hotSeatTotal 0.",
+          "fix": "Client sends `{ index: gameState.hotSeatIndex }` and the server ignores the event `if (index !== state.hotSeatIndex)`. In pickHotSeat, if the pool has fewer than count questions, drop those categories' ids from usedQuestionIds and rebuild the pool, as pickQuestion does.",
+          "verified": false
+        },
+        {
+          "severity": "minor",
+          "area": "lobby",
+          "title": "Adding or removing a team silently overwrites the host's manual round count",
+          "detail": "server.js:187 and server.js:199 always call recommendedRounds(). Reproduced (t_state.out T12): the host set 6 rounds, added team C, and rounds went back to 4. A late team arriving after the host set the length of a 60-75 minute game resets it.",
+          "fix": "Set `state.roundsManual = true` in set-rounds, and only auto-recommend while `!state.roundsManual`. Clear the flag in full-reset.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "scoring",
+          "title": "award-points works in the lobby and after game end, and there is no undo",
+          "detail": "server.js:265-271 only checks that the team exists. Points can change after the final standings are shown, and a mistaken or double tap on +100 (host.html:477) can only be fixed by typing a score into Override.",
+          "fix": "Reject when `state.phase === 'lobby' || state.phase === 'gameend'`. Keep `state.lastAward = { teamIndex, delta }` (the delta actually applied after the 0 floor) and add an 'undo-award' event that reverses it once.",
+          "verified": false
+        },
+        {
+          "severity": "minor",
+          "area": "content rotation",
+          "title": "'Play Again' clears used question and dare ids, so game 2 repeats the same questions",
+          "detail": "reset-game (server.js:343-346) rebuilds state with makeState(), which resets usedQuestionIds and usedDareIds (server.js:46-47). With 40/25/25 questions and 25 dares, a second game at the same party repeats content soon.",
+          "fix": "In reset-game keep `state.usedQuestionIds` and `state.usedDareIds` from the previous state; the existing recycle logic in pickQuestion and pickDare already handles running out.",
+          "verified": false
+        },
+        {
+          "severity": "minor",
+          "area": "identity",
+          "title": "A player can switch teams mid-game by re-emitting join-game",
+          "detail": "server.js:178-181 accepts join-game in every phase and overwrites teamIndex. A player can move to the team whose turn it is to spin, or to another team to buzz for it. With socket.id identity the same person can also appear twice (old ghost plus new entry) after a reconnect.",
+          "fix": "Once phase !== 'lobby', allow join-game only for new players (or players whose stored team no longer exists). Team changes after the start go through the host (a 'move-player' host event).",
+          "verified": false
+        },
+        {
+          "severity": "polish",
+          "area": "startup",
+          "title": "Port already in use crashes with a raw stack trace",
+          "detail": "server.listen (server.js:367) has no 'error' handler. If an earlier instance is still running on the port, Node throws EADDRINUSE as an unhandled 'error' event and the host sees a stack trace minutes before the party. Standard Node behaviour; not run here.",
+          "fix": "`server.on('error', e => { if (e.code === 'EADDRINUSE') { console.error(`Port ${PORT} is busy - close the other Christmas Chaos window or run with PORT=3001`); process.exit(1); } throw e; });`",
+          "verified": false
+        },
+        {
+          "severity": "polish",
+          "area": "game end",
+          "title": "Tied teams get different medals at game end",
+          "detail": "server.js:314 sorts by score only, so tied teams come out in array order and the host, TV and phones give them different medals. For a competitive family game a tie should be shown, or decided with a tiebreak question.",
+          "fix": "Compute ranks with ties: `sorted.forEach((t, i) => t.rank = i && t.score === sorted[i-1].score ? sorted[i-1].rank : i + 1)` and send rank. Optionally go to a 'tiebreak' phase that runs one ALL PLAY question between the tied leaders.",
+          "verified": false
+        }
+      ]
+    },
+    {
+      "key": "client-code",
+      "summary": "Read-only, line-by-line review of public/tv.html, host.html, player.html and css/style.css. I ran the real server on PORT=3487 and drove it with socket.io-client plus headless Edge (Playwright), using either the real socket or a stubbed one, then stopped the server. All scripts and screenshots are in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/clients/ (sock1.js, pw1_tv.js, pw1b_tvend.js, pw2_host_player.js, pw3_real.js, pw4_extra.js, *.png). No project file was changed.\n\nThe wheel math is correct. offset = 360-(i+0.5)*30 lines segment i up with the top pointer: 26 out of 26 stubbed spins and 4 out of 4 real end-to-end spins stopped mid-segment on the segment the server picked. Every event name the clients emit is handled by the server. The TV just ignores 'spin-result' and 'game-started' and never listens for 'hotseat-complete'.\n\nFive problems would break the party:\n1. **Phones lose their player after reconnecting.** The server deletes a player on disconnect, and the phone never re-sends join-game. After a screen lock or Wi-Fi blip the phone looks normal but its SPIN and BUZZ buttons do nothing.\n2. **\"Play Again (keep teams)\" / \"Reset Scores\" wipes every player on the server.** No phone can spin or buzz in the next game.\n3. **The TV game-over screen never appears.** The TV goes blank at the end.\n4. **The Sound It Out song title is shown on the TV and on every phone of the performing team** before anyone guesses.\n5. **The host cannot see a trivia answer without revealing it to everyone.**\n\nOther verified problems: team names and player names are inserted as raw HTML on all three screens. A crafted name ran a script on the host page that awarded 11,900 points in about a second. The phone keeps its old team number after the host removes a team. Next Turn has no guard: a double-click skips a team, and pressing it mid-spin jams the game. The TV keeps showing the previous answer and song title into the next team's spin. The TV Double Down banner can never appear. The host page is unusable on a phone (110px content column). There is no typed-answer input. Plain trivia is open to every team, so it plays exactly like ALL PLAY.",
+      "findings": [
+        {
+          "severity": "critical",
+          "area": "player.html – reconnect / stale hasJoined",
+          "title": "A phone that reconnects becomes a 'ghost': it shows the game normally but SPIN and BUZZ silently do nothing",
+          "detail": "server.js:355-357 deletes state.players[socket.id] on disconnect. socket.io then reconnects with a NEW socket.id. player.html has no socket.on('connect') handler and never re-sends join-game. hasJoined, myName and myTeamIndex (player.html:326-329) stay set, so the page keeps rendering the game. Verified with the real server (pw4_extra.js and sock1.js): after socket.io.engine.close() the id changed, the server's players list was [], and the phone still showed \"It's YOUR team's turn!\" with the spin button visible. Tapping SPIN emitted nothing (no spin-start), and buzzer-press was ignored. doSpin (player.html:525-528) leaves the button disabled forever with no message. doBuzzer (530-534) still shows the 'Buzzed!' toast. An iOS screen lock longer than about 45 seconds (server ping timeout), switching apps, or a Wi-Fi blip all trigger this, so over a 60-75 minute party almost every phone will hit it.",
+          "fix": "In player.html add: socket.on('connect', () => { if (hasJoined) socket.emit('join-game', { name: myName, teamIndex: indexOfTeamName(savedTeamName) }); }). Store the team NAME and look its index up in the latest state, because indexes shift. In the state-update handler, derive identity from the server: const me = state.players.find(p => p.id === socket.id). If hasJoined && !me, re-emit join-game, or return to the join screen if the team is gone. Show a 'Reconnecting…' banner on socket 'disconnect'. Re-enable the spin and buzz buttons after about 3 seconds if no spin-start or buzzer-winner arrives. Better, server side: identify players by a stable playerId kept in localStorage (crypto.randomUUID is unavailable over plain-HTTP LAN, so use Math.random) and mark them offline on disconnect instead of deleting them.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "host.html Reset / Play Again → player.html",
+          "title": "'Play Again (keep teams)' and 'Reset Scores' delete every player on the server, while every phone still says 'You're in!'",
+          "detail": "host.html:268 and :394 emit reset-game. server.js:342-348 runs state = makeState() and restores only teams, so players becomes {}. Verified (sock1.js [C]): players went from Ann,Bob to []. player.html still has hasJoined=true and shows the waiting screen (verified for full reset in pw2: waiting-screen visible, badge 'Elves' with empty teams). In the second game, spin-wheel and buzzer-press are rejected for everyone (server.js:220-221, 244-245). Only the host's backup spin works.",
+          "fix": "Server: in reset-game keep the players (const savedPlayers = state.players; …; state.players = savedPlayers). Client: the same re-sync as the reconnect finding. In state-update, if hasJoined and you are not in state.players, re-join by team name, or show the join screen with a 'The host reset the game, please re-join' message. On full-reset (teams empty), clear hasJoined, myTeamIndex and the badge and show the join screen.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "tv.html – end screen",
+          "title": "The TV 'Game Over' screen can never become visible, so the TV goes blank at the climax",
+          "detail": "tv.html:180-186 sets #end-screen { display:none } in its id rule. show('end-screen') (tv.html:397, 522, 574) only removes a 'hidden' class, which the element never had, so it stays display:none. Meanwhile the lobby and game screens are hidden. Verified (pw1b_tvend.js): after the real game-end + state-update sequence, end-screen computed display = none, lobby none, game none, even though end-results held 219 characters of HTML. Screenshot tv_gameend.png shows an empty main area and a stale header ('Round 3 of 3', \"Reindeer's turn\"). Also, on a TV refresh at gameend the results are empty (verified), because they are only rendered in the 'game-end' event handler (tv.html:573-581), not from state.",
+          "fix": "tv.html:180: change to #end-screen { display:flex; … } and give the element class=\"hidden\" at line 290. In the state-update gameend branch (tv.html:521-522), render the sorted results from state.teams so a refresh works, and set round-label to 'Final scores' and turn-banner to ''.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "tv.html / player.html – Sound It Out secrecy",
+          "title": "The Sound It Out song title is displayed on the TV and on every phone of the guessing team before any guess",
+          "detail": "tv.html:443-445 always fills and shows #sound-title with '🎵 <songTitle> — <artist>' in big gold text. Verified: visible before any reveal (tv_sounditout_leak.png). player.html:481-483 shows the title to EVERY member of the current team (isMyTurn is a team check), and those teammates are the guessers. Verified: the performer's and the teammate's phones both show 'Hum or whistle: \"All I Want for Christmas Is You\"' (player_teammate_sees_song.png). The root cause is also server side: spin-result and state-update broadcast the full challenge, including songTitle and answer (and every trivia answer), to all sockets (sock1.js [D]).",
+          "fix": "TV: only show #sound-title when state.answerRevealed is true. Phones: add a performer concept. In spin-wheel the server records performerId = socket.id (for host-spin, pick a connected player on that team), strips songTitle, artist and answer from publicState()/spin-result, and sends them only with io.to(performerId).emit('secret', …) and to a host room. player.html then shows the title only when state.performerId === socket.id, and other teammates see 'Your teammate is humming — guess!'. Interim client-only option: on the current team's phones, hide the title behind a press-and-hold 'Performer only – peek' button.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "host.html – judging",
+          "title": "The host cannot see the answer privately. It stays hidden until Reveal, which shows it to everyone at the same moment",
+          "detail": "host.html:641-643 writes ch.answer into #ch-answer but keeps class 'challenge-a', and host.html:124-134 makes that display:none unless '.shown'. The only way to make it visible is Reveal (host.html:367/472), which broadcasts it to the TV and all phones (server.js:257-263). Verified: with a trivia question and Ann buzzed in, #ch-answer text = 'Rudolph' but computed display none (host_before_reveal.png). This applies to trivia, ALL PLAY and all 5 Hot Seat questions. Sound It Out is the exception: the host does see the song, via the hint line (host.html:620).",
+          "fix": "Always show the answer on the host page with a private style, e.g. in updateChallenge: else if (ch.answer) { ansEl.textContent = '🔒 Answer (only you see this): ' + ch.answer; ansEl.className = 'challenge-a shown private'; }. Style .private with a dashed border, and relabel the button 'Reveal to everyone'.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "player.html – stale myTeamIndex",
+          "title": "After the host removes a team, the phone's cached myTeamIndex points at the wrong team",
+          "detail": "server.js:191-198 renumbers players (p.teamIndex--) when a lower-index team is removed, but player.html sets myTeamIndex once in joinGame (393) and never resyncs it. Verified (pw4_extra.js): after removing team 0, the server record was teamIndex 1 while the client still had myTeamIndex 2, and the '(you)' marker disappeared. sock1.js [A]: after the host added another team, the phone treated team 2's turn as its own and its SPIN was rejected. On the player's real turn the spin button is hidden (isMyTurn, player.html:429). Players on the removed team are deleted on the server but stay 'joined' on the phone. The join screen also selects by index (player.html:358, 369, 378-383), so if the host edits teams while someone is choosing, they can silently join a different team.",
+          "fix": "In the state-update handler: const me = state.players.find(p => p.id === socket.id); if (me) myTeamIndex = me.teamIndex; else if (hasJoined) send the user back to the join screen. On the join screen, store the selected team's name rather than its index, and resolve the index when sending join-game.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "XSS – all three pages",
+          "title": "Team and player names are injected into innerHTML. A crafted name ran a script on the host page that awarded itself 11,900 points in about a second",
+          "detail": "Raw ${t.name} or ${p.name} inside innerHTML templates: tv.html:408, 516, 578; host.html:505, 517, 532, 533, 544, 561, 585, 678; player.html:371, 421, 568. Player names come from any phone. maxlength=20 (player.html:255) is client-only, and the server stores names unchecked (server.js:179). Any socket can also emit create-team in the lobby (server.js:183). Verified on the real server (pw3_real.js): a team named <img src=x onerror=…> ran on the host, the TV (twice) and the player join screen. A late joiner named <img src=x onerror=\"socket.emit('award-points',…)\"> ran on the host page, and because every award re-renders the players list, it looped: Reindeer went from 0 to 11,900 in about a second. Even harmless names containing '<' break the layout. Dare and hint text is also injected raw (tv.html:437, 462; host.html:615; player.html:479). That data is currently clean (no <, > or & found).",
+          "fix": "Add a helper to each page: const esc = s => String(s ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c])); and use ${esc(t.name)} or ${esc(p.name)} at every line listed, plus the dare title, description and hint. Also trim and length-cap names on the server in join-game and create-team.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "host.html – Next Turn",
+          "title": "Next Turn has no guard: a double-click skips a team, and pressing it mid-spin leaves the game stuck in an invisible challenge",
+          "detail": "host.html:385/495-497 emit next-turn with no debounce and no phase check, and the button stays enabled while the wheel spins (verified in pw2). Verified on the real server (pw4_extra.js): a double-click on Next Turn moved currentTeamIndex from 0 to 2. Pressing Next Turn during a host spin made the pending processSegment timeout (server.js:229/239) fire for the NEXT team. The result was phase 'challenge', currentSegment null and a challenge set. The TV shows 'Waiting for next spin…', the host shows 'Waiting for spin…', the spin button is disabled, and only another Next Turn recovers.",
+          "fix": "host.html: disable the Next Turn button while state.phase === 'spinning', and after clicking it until a state-update arrives with a changed currentTeamIndex or round (or a 1-second cooldown). Add confirm() if no points were awarded this turn. Server: ignore next-turn while phase === 'spinning', and send a turn id that the client echoes back so duplicates are dropped.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "tv.html – stale challenge content",
+          "title": "The previous turn's revealed answer, song title, props and hot-seat counter stay on the TV through the next team's turn and spin",
+          "detail": "The 'playing && !currentChallenge' branch (tv.html:527-530) and the spin-start handler (535-541) reset only the label and text. They never hide #challenge-answer-box, #sound-title, #dare-props or #hotseat-progress, and showChallenge (the only reset) is not called. Verified (pw1_tv.js, tv_stale_during_next_spin.png): after a Sound It Out turn and Next Turn, the TV shows 'Spin the wheel!' with the '✓ All I Want for Christmas Is You' box and the big song title still visible, and they remain while the next team's wheel spins.",
+          "fix": "Factor a resetChallengePanel() out of showChallenge (tv.html:422-426) and call it in the playing/no-challenge branch and at the top of the spin-start handler.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "tv.html / host.html / player.html – Double Down",
+          "title": "Double Down is invisible on the TV: the banner can never show, and every 'Double Down' message branch is dead code",
+          "detail": "tv.html:199-211 sets #double-down-banner { display:none } and shows it only via '.show', but the JS (tv.html:503-505) only toggles the 'hidden' class, so the banner stays display:none. Verified: doubleDownActive=true gives computed display none. The server delivers Double Down with currentChallenge = null (server.js:160-163). The TV state-update therefore shows 'Spin the wheel!' with an empty label (verified end to end: after landing on Double Down the TV label was ''). The doubledown branches in tv.html:455, host.html:626 and player.html:492 can never run, because each is guarded by a !challenge or !ch early return. The host shows 'Waiting for spin…' (verified).",
+          "fix": "tv.html:199: remove display:none from #double-down-banner, since the .hidden class already handles it. Handle the segment without a challenge: in tv.html state-update, if (state.currentSegment?.effect === 'doubledown' && state.phase === 'playing') show the label '💫 Double Down!' and the explanatory text. Do the same in host updateChallenge and player updateGameScreen before the !ch early return.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "host.html – layout",
+          "title": "The host page is unusable on a phone: a fixed 280px sidebar leaves a 110px column for the game controls",
+          "detail": "host.html:26-43: .host-body is a flex row and .host-left is width:280px; flex-shrink:0, with no media query. A host walking around judging dares will likely use a phone. Verified at 390x844 (host_phone_390.png): left panel 280px, main panel 110px, and the question renders one word per line. The award buttons, Reveal and Next Turn are far below the fold.",
+          "fix": "Add @media (max-width: 760px) { .host-body { flex-direction: column; } .host-left { width: auto; border-right: 0; } } and consider putting #host-game (Reveal, Award, Next Turn) first on small screens, e.g. with order:-1.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "player.html – requirements",
+          "title": "Players cannot type answers. Only a buzzer exists, although typed answers are a stated requirement",
+          "detail": "The only input in player.html is #name-input (line 255). Verified in pw2: the page's answer inputs are 'name-input' only. There is no answer field, no submit event, and no host view of submissions.",
+          "fix": "Add an answer form to #game-screen, shown while phase === 'challenge' for trivia/allplay (and for the hot-seat team), that emits 'submit-answer' {text}. The server should store it per team and send it only to the host, and the host page lists submissions with ✓/✗ buttons that call award-points. Lock submissions when the host reveals.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "player.html – buzzer rules",
+          "title": "On a team's own trivia spin every team gets the buzzer, so regular trivia plays exactly like ALL PLAY",
+          "detail": "player.html:464-471 shows the buzzer to all players whenever buzzerOpen && (seg.type === 'trivia' || 'allplay'), and the server opens the buzzer for both (server.js:130-136). Verified: on Elves' own Christmas Trivia turn, a Reindeer phone's buzzer was visible. Six of the 12 wheel segments are trivia, so the team that spun gets no advantage, and the ALL PLAY segment means nothing.",
+          "fix": "Client: showBuzzer = state.buzzerOpen && (seg.type === 'allplay' || (seg.type === 'trivia' && isMyTurn)). Better, let the team that spun answer alone, and only on a wrong answer the host clicks 'Open to all' (a new event). The server must enforce the same rule in buzzer-press.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "tv.html / host.html – joining",
+          "title": "The TV and host only say 'Players join at: /player'. Guests are never shown the host's IP address or a QR code",
+          "detail": "tv.html:263 (the #lobby-qr element contains no QR code) and host.html:279-281/340 show only a path. The LAN URL is computed only in the server console (server.js:369-376). At a family party, nobody can type a path without the IP.",
+          "fix": "Add a server endpoint (e.g. GET /api/info returning http://<lan-ip>:<port>/player from the existing os.networkInterfaces() loop). The TV lobby renders it in large text plus a QR code; serve a QR library locally, since the LAN may have no internet. Interim: show location.host when the TV is opened via the LAN IP.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "mobile/TV – screen sleep",
+          "title": "There is no keep-awake handling on any page. Phones auto-lock between turns, and a laptop driving the TV may blank its display",
+          "detail": "No navigator.wakeLock, NoSleep-style video or similar exists in any page (verified by search in pw2). On phones, auto-lock suspends the page, which feeds directly into the ghost-player bug. Note that the Screen Wake Lock API needs a secure context, so it is unavailable on phones loading http://192.168.x.x. It works for a TV page opened as http://localhost on the host laptop. Whether a laptop display actually sleeps depends on its OS power settings (unverified).",
+          "fix": "tv.html: request navigator.wakeLock.request('screen') on load, re-acquire on visibilitychange, and wrap it in try/catch. Phones: fixing reconnects (critical finding 1) is the real cure. Optionally start a muted, looping, playsinline 1-second video on the Join tap as a NoSleep fallback. Add a hint 'Keep this page open – set Auto-Lock to Never during the game'.",
+          "verified": false
+        },
+        {
+          "severity": "minor",
+          "area": "host.html – buttons in wrong phases",
+          "title": "Reveal, Open Buzzer and Close Buzzer are live in every phase, producing '✓ —' on the TV and 'BUZZ IN NOW!' with no buzzer on any phone",
+          "detail": "host.html:366-371 never disables these buttons. Verified: during spinning they were all enabled. Reveal with no answer (a dare, steal, or before a spin) makes the server send '—' (server.js:260), and the TV shows and keeps '✓ —' (pw1 [reveal-none]). Open Buzzer during a dare, Sound It Out or idle makes the TV show '🔔 BUZZ IN NOW!' (tv.html:474-476) while the phones show no buzzer (player.html:465). Verified for all three cases.",
+          "fix": "In host state-update: btn-reveal.disabled = !(ch && ch.answer) || state.answerRevealed; open and close buzzer enabled only when seg.type is 'trivia' or 'allplay' and phase === 'challenge'. Make the TV updateBuzzer use the same segment-type condition as player.html:465.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "host.html – buzzer winner",
+          "title": "The host panel never shows who buzzed in, only a 4-second toast",
+          "detail": "state.buzzerWinner is ignored by updateChallenge (host.html:592-647). The only display is the toast at host.html:702-704. Verified: with Ann buzzed in, the panel shows nothing (host_before_reveal.png). If the host looks away while judging, they must read the TV.",
+          "fix": "Add a #ch-buzz line in #current-challenge-box: state.buzzerWinner ? `🏆 ${esc(name)} (${esc(team)})` : (state.buzzerOpen ? '🔔 Buzzer open' : '🔕 Buzzer closed'). Highlight that team's award row.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "host.html – Edit tab",
+          "title": "Score-override inputs are rebuilt on every state-update, wiping what the host is typing",
+          "detail": "renderOverride (host.html:539-549) runs on every state-update (692), including player joins, disconnects and buzzes. Verified: typing 999 then receiving an unrelated state-update reset the value to '250' and removed focus. Phones dropping and reconnecting make this frequent.",
+          "fix": "Skip re-rendering while document.activeElement is inside #override-list, or update only the input values that are not focused. Render the list only when the team count changes.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "host.html – Steal",
+          "title": "Steal can be applied repeatedly (a double-click steals 200), and the steal panel stays after stealing",
+          "detail": "stealFrom (host.html:481-485) has no once-guard, and the panel re-renders while the segment is still steal (621-625). Verified: a double-click emitted steal-execute twice, and #steal-ui stayed display:block. The award panel also offers '+100' to every team during a steal turn (segment.points=100), inviting double counting.",
+          "fix": "Track stealDoneForTurn on the client (reset on turn-start) and hide #steal-ui after one steal. Better, the server marks the challenge resolved and rejects repeats. Hide the +base award buttons for the steal segment.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "tv.html / host.html – Hot Seat end",
+          "title": "After the last Hot Seat question the TV keeps showing it, and the host shows 'Waiting for spin…'",
+          "detail": "The server sets phase 'challenge' with currentChallenge null and emits 'hotseat-complete' (server.js:284-287). The TV has no hotseat-complete listener, and its state-update branch skips 'challenge' phase with a null challenge. Verified: the TV still shows Q5 and 'Question 5 of 5'. The host (host.html:607-611) shows 'Waiting for spin…' while it should be prompting for awards (verified).",
+          "fix": "TV: socket.on('hotseat-complete', …) → show '🔥 Hot Seat complete!' and hide the progress line. Host: in updateChallenge, treat seg.type === 'hotseat' && !ch as 'Hot Seat complete – award +25 per correct answer'.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "tv.html – wheel after refresh/reconnect",
+          "title": "A refreshed or reconnected TV shows the wheel at rest on a segment boundary, not on the chosen segment; reconnecting mid-spin freezes the wheel",
+          "detail": "buildWheel (tv.html:325-362) recreates #wheel-group with no transform, and state-update never restores the rotation from state.currentSegment. At rest the pointer sits on the STEAL / Christmas Trivia boundary (measured fill #0e6655). A TV refreshed mid-spin shows 'Spin the wheel to begin!' with a static wheel (verified). If 'wheel-segments' arrives during a spin (socket reconnect), spinToTarget keeps animating the detached old group captured at line 374. Verified: after the spin the visible group's transform is null while currentWheelDeg = 1665.",
+          "fix": "After buildWheel, set the transform to rotate(currentWheelDeg). In state-update, when state.currentSegment exists and no spin is animating, compute its index (segments.findIndex(s => s.id === seg.id)) and set rotate(360 - (i+0.5)*30). In frame(), look up #wheel-group on each frame instead of capturing it once.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "player.html / host.html – Hot Seat reveal",
+          "title": "The hot-seat phone can briefly display the NEXT question's answer",
+          "detail": "The server emits 'hotseat-question' before the state-update that carries answerRevealed=false (server.js:283-292). player.html:595-601 merges the new question into the cached gameState, which still has answerRevealed:true from the previous reveal, and re-renders. Verified DOM state between the two messages: 'Q2/5: Q two?' with '✓ Answer: Answer TWO' visible. Whether a frame paints before the next message is timing-dependent. Same pattern at host.html:706-712.",
+          "fix": "In both hotseat-question handlers set gameState.answerRevealed = false before re-rendering, or drop the handlers and rely on the state-update that follows.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "player.html – reload",
+          "title": "A reload or accidental pull-to-refresh loses the player's identity, and they must re-type their name and re-pick a team",
+          "detail": "Identity lives only in memory (player.html:326-329). There is no localStorage and no overscroll-behavior, so Android Chrome and iOS 15+ pull-to-refresh reload the page mid-game.",
+          "fix": "Save {name, teamName, playerId} to localStorage on join (in try/catch) and auto-rejoin on load if that team still exists. Add html, body { overscroll-behavior-y: none; } to the player page.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "tv.html – hints",
+          "title": "Trivia hints are shown on the TV immediately with the question, and some nearly give the answer away",
+          "detail": "tv.html:461-463 appends 'Hint: …' as soon as the question appears. Example: 'In Home Alone, what is the main character's first name?' with the hint 'His last name is McCallister'. The host has no control over when it appears.",
+          "fix": "Only render the hint when a new state.hintShown flag is true, toggled by a 'Show hint' host button (perhaps at reduced points).",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "style.css – toast",
+          "title": "Long toasts overflow off both sides of small phones",
+          "detail": "style.css:293 sets #toast { white-space: nowrap }. Verified at 360px: '🏆 Great-Aunt Margaret from your team got it!' spans x = -24 to 384, so both ends are cut off (player_toast_long_360.png).",
+          "fix": "Use white-space: normal; max-width: calc(100vw - 32px); text-align: center; border-radius: 16px.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "contrast",
+          "title": "Team colors used as text fail contrast on the navy background, down to 2.17:1",
+          "detail": "Team names are drawn in t.color on #0a1628 at tv.html:577, host.html:678 and player.html:568. Computed ratios: #1a5276 2.17, #8e44ad 3.09, #7D6608 3.26, #c0392b 3.33, #1a7a3c 3.36, #2471a3 3.42, #117a65 3.45, #d35400 4.35. All fail 4.5:1 for the small text on the host and phone end screens, and team 8 fails even the large-text 3:1 on the TV. Green #1a7a3c and teal #117a65 are also hard to tell apart as dots.",
+          "fix": "Keep names white and use the team color only for a dot or border, or lighten the palette for text, e.g. mix with white to reach at least 4.5:1. Replace teal with a clearly distinct hue.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "accessibility",
+          "title": "Unlabelled inputs, controls only usable by mouse or touch, no live announcements",
+          "detail": "host.html:304-308 tabs are <div onclick> (verified: tagName DIV, tabIndex -1). player.html:369 team options are <div onclick> and cannot be reached by keyboard or switch access. #name-input (player.html:254-255) uses a <div class=form-label> rather than <label for>, and #new-team-input (host.html:287) has only a placeholder. The remove '✕' button (host.html:506) has no aria-label or confirmation. Turn changes, buzz results and toasts have no aria-live. style.css:270 removes the input outline (a gold border remains).",
+          "fix": "Use <button> for tabs and team options (or role=radio with tabindex=0 and a keydown handler). Use <label for=…>. Add aria-label=\"Remove team X\" plus confirm(). Add role=status aria-live=polite to #toast and #turn-status.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "player.html – viewport",
+          "title": "The player viewport disables pinch-zoom, which hurts low-vision relatives",
+          "detail": "player.html:5 sets maximum-scale=1, user-scalable=no. Android Chrome honours this. iOS Safari has ignored it since iOS 10. Double-tap zoom is already handled by body { touch-action: manipulation } (player.html:16), so the zoom lock adds nothing.",
+          "fix": "Use <meta name=viewport content=\"width=device-width, initial-scale=1\"> and keep touch-action: manipulation.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "host.html – lobby",
+          "title": "In the lobby the host cannot see who has joined, and Start Game allows teams with no players",
+          "detail": "renderPlayers only runs in the in-game branch (host.html:682-699). The lobby branch (666-669) shows team names only. A team with 0 players can never spin from a phone.",
+          "fix": "In renderLobbyTeams, show the player count and names per team, and warn on Start if any team has 0 players.",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "tv.html – readability",
+          "title": "The TV wheel is small and its labels are about 9.5px, with left-side labels upside down",
+          "detail": "tv.html:271 fixes the SVG at 380px, about 35% of a 1080p screen. Segment text uses font-size 5.5 in a 220-unit viewBox, about 9.5 CSS px (measured). Labels are rotated radially (tv.html:345-347), so the left half reads upside down (tv_stale_during_next_spin.png). Score names are 0.95rem. Much of this is hard to read from a sofa.",
+          "fix": "Size the wheel with CSS (width/height: min(70vh, 45vw)), raise the label font size to about 9-10 units and the challenge text to clamp(1.3rem, 2vw, 2.4rem). Flip labels whose mid-angle is between 90° and 270° by adding 180°.",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "tv.html – spin overlay",
+          "title": "The 'Spinning…' overlay is off-center because the pulse animation overrides translateX(-50%)",
+          "detail": "tv.html:165-177 centers with transform: translateX(-50%) but also runs animation: pulse, whose keyframes set transform: scale(...) (style.css:306-309) and replace the translate. Measured: the overlay center is at x 1174 vs tv-main center 1090.",
+          "fix": "Center with left:0; right:0; text-align:center (no transform), or wrap the text in an inner span that carries the pulse animation.",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "player.html – buzzer feel (iOS)",
+          "title": "The buzzer fires on click (on release) and gives no haptic or sound feedback; iOS may not show the :active press effect",
+          "detail": "player.html:303 uses onclick, which fires on release, so a player holding their finger down loses the race. There is no navigator.vibrate and no audio anywhere (verified). iOS Safari doesn't support vibrate at all, and audio there must be unlocked by a user gesture. iOS Safari also applies :active (style.css:215-218, 247-250) only when a touchstart listener exists (known WebKit behavior, not tested on a device).",
+          "fix": "Use buzzer.addEventListener('pointerdown', doBuzzer). Call navigator.vibrate?.(80) where supported. Add document.addEventListener('touchstart', () => {}, {passive: true}) for :active on iOS. For TV sounds (wheel ticks, buzz), add a 'Click to start' overlay on the TV that unlocks audio and enters fullscreen.",
+          "verified": false
+        },
+        {
+          "severity": "polish",
+          "area": "misc text/toasts",
+          "title": "Small text and toast glitches",
+          "detail": "host.html:478 shows '+-50 pts' for deductions and the un-doubled value during Double Down (verified '+-50 pts → Elves'). The toast() helpers (host.html:430-435, player.html:351-356) never clear the previous timer, so a round-start toast is replaced by turn-start and the later toast is hidden early. \"${name}'s turn\" renders 'Elves's turn'. The TV highlights team 0 as active in the lobby (tv.html:406). The TV's 'spin-result' handler is a no-op (543-545). Fonts load through a Google Fonts @import (style.css:1), so without internet the headings fall back to the system cursive font.",
+          "fix": "Format awards as (points > 0 ? '+' : '') + points, using the doubled value. In toast(), clearTimeout(window.__toastT) before setting a new timer. Use 'Up now: Elves'. Highlight the active team only when phase !== 'lobby'. Remove the dead handler. Self-host the two fonts.",
+          "verified": true
+        }
+      ]
+    },
+    {
+      "key": "game-design",
+      "summary": "GAME DESIGN REVIEW of Christmas Chaos (read-only; no project files touched). The core loop works: a player spins from their phone, the TV wheel animates in sync, and the host judges. As a game show, though, it has four critical problems.\n\n1. **Sound It Out shows the answer to the people guessing it.** The song title appears on the TV and on every phone of the active team.\n2. **Regular trivia is an open buzzer race, the same as ALL PLAY.** Half the wheel hands the spinning team's turn to whoever buzzes fastest.\n3. **The TV goes blank at Game Over.** A CSS bug hides the end screen, and the Double Down banner never shows either.\n4. **There is no Final Chaos round.** The game just stops after the last Next Turn.\n\nThere is also no text input on phones, no countdown timer and no sound.\n\nPacing: the game picks 3 rounds for 4–8 teams. My model's estimates are 12 turns, about 24 minutes of play, for 4 teams, and about 47 minutes for 8. That is half the 60–75 minute target, and each team spins only 3 times.\n\nBalance: what the spinning team can expect to win ranges from about 10–21 points (trivia, which someone else usually wins) to 150 (a dare). That is a 15x spread decided by the wheel.\n\nRunaway leader: suppose one team (say the teenagers) wins buzz races 3x as often as each other team. Under the current rules that team wins 51% of 4-team games (fair share 25%) and 43% of 6-team games (fair 17%). Under the proposed rules it wins 26% and 19%.\n\nDares come up rarely: P(no dare all game) is 11% with 4 teams, and 42% of teams never perform anything in their 3 spins.\n\n**Verified** by driving the real server with socket.io and headless Edge: Sound It Out leak, trivia hijack, no buzzer lockout after a wrong answer, all four Double Down leaks, steal from a 0-point team creating points from nothing, a double-clicked Next Turn skipping a team, no finale, blank TV end screen, hidden Double Down banner. All minute and percentage figures are Monte Carlo estimates from my assumed answer rates; I did not measure them.\n\n**60-second pitch for the redesign:** \"Spin on your phone. Your team plays what the wheel lands on. Answer before the clock runs out, or the other teams can steal. Some spins pick ONE of you at random to perform. Everyone answers ALL PLAY on their phone. After the last round, bet your points in Final Chaos.\"\n\n**Proposed wheel (12 slots):** Christmas Trivia x2, Pop Culture x1, Quick List x1, Dare x2, Showdown x1, Sound It Out x1, ALL PLAY (typed) x1, Hot Seat x1, Double Down x1, Grinch Steal x1. Set rounds to clamp(round(20/teams), 3, 6). Add the Final Chaos wager round.\n\nPer-segment values the model expects for the spinning team under the proposed table: trivia 128 (plus 33 to stealers), Showdown 108 (plus 100 to the opponent), Sound It Out 152, Quick List 178, Dare 184, Hot Seat 195, Grinch about ±100–127, ALL PLAY about 70 to each team. The finale changes the winner in about 42–45% of games.\n\nFiles are in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/review/game-design/:\n- test.js: flow test that forks server.js on port 3863 with preload.js\n- test2.js: TV visibility test\n- sim.js: current-rules model\n- sim2.js: current vs proposed model\n- screenshots: tv-sounditout.png, phone-active-teammate-sounditout.png, tv-gameend-settled.png\n\nThe test server was killed and port 3863 is free.",
+      "findings": [
+        {
+          "severity": "critical",
+          "area": "Sound It Out",
+          "title": "The team that has to guess the song sees its title on the TV and on their own phones",
+          "detail": "tv.html:442-445 always shows #sound-title = `songTitle — artist` on the TV. player.html:481-483 shows `Hum or whistle: \"<title>\"` to EVERY phone where isMyTurn is true, which includes the teammates who are supposed to guess. Verified: TV #sound-title visible with \"O Christmas Tree — Traditional\"; a Grinches teammate's phone shows the title. Other teams are told \"Listen carefully and guess the song!\" but get no buzzer (buzzer visible = false), so they have nothing to do either. Result: 100 free points with no tension on 1 of 12 wheel slots. Screenshots: tv-sounditout.png, phone-active-teammate-sounditout.png.",
+          "fix": "Pick a random hummer and send the secret to that phone only. In the server.js:144-148 sounditout branch: `const pool=Object.values(state.players).filter(p=>p.teamIndex===state.currentTeamIndex); const perf=pool.sort((a,b)=>(a.performed||0)-(b.performed||0))[0]` (or random among those tied for fewest); `perf.performed=(perf.performed||0)+1; state.performer={id:perf.id,name:perf.name}; io.to(perf.id).emit('secret',{text:`Hum: \"${q.songTitle}\" — ${q.artist}`});`. In publicState, redact currentChallenge (drop songTitle/answer) until answerRevealed. In tv.html, remove the sound-title block at 444-445 and show it only after reveal; show \"🎵 Grandma Carol is humming — Elves, guess it!\" with a 30 s timer instead. In player.html:481-483, use the 'secret' event instead of isMyTurn. When the timer runs out, open the buzzer to the other teams to steal 100 points.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "Trivia vs ALL PLAY",
+          "title": "Regular trivia is an open buzzer race, identical to ALL PLAY, so the spinning team rarely wins its own question",
+          "detail": "server.js:130-136 handles 'trivia' and 'allplay' in one branch, and both set buzzerOpen=true for every phone. The only differences are 100 vs 150 points and the category. Verified: on Elves' trivia turn, Reindeer's Bob buzzed and won. ALL PLAY state was identical ({buzzerOpen:true}). There is no lockout either: after a wrong answer the host clicks Open Buzzer (server.js:295-299 resets buzzerWinner), and the SAME team buzzed again. The buzzer opens the instant the question appears (server.js:134), so the fastest reader wins. Model (sim.js, estimate): a trivia spin is worth only 21/17/14/10 points to the team that spun it (4/5/6/8 teams), versus 62–73 to everyone else. 6 of 12 slots behave this way, so half of \"your turn\" belongs to someone else.",
+          "fix": "Trivia: on the spin result, set `state.buzzerOpen=false; state.answeringTeam=state.currentTeamIndex; state.lockedTeams=[]`, then start a 15 s timer. Give the host ✓ Correct / ✗ Wrong buttons. On ✓, award the full value to the active team. On ✗ or timeout, `state.lockedTeams.push(currentTeamIndex); state.buzzerOpen=true` with a 3 s 'read' delay, and steals are worth half. In buzzer-press, reject `state.lockedTeams.includes(player.teamIndex)`; when the host marks a steal wrong, push that team and reopen. Player: show the buzzer only if `buzzerOpen && !lockedTeams.includes(myTeamIndex)`. ALL PLAY becomes simultaneous typed answers from every team (see the text-answer finding), so the two segments are genuinely different.",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "TV moments",
+          "title": "The TV shows a blank screen at Game Over, and the Double Down banner never appears",
+          "detail": "tv.html:180-181 sets `#end-screen { display:none }`. The JS show()/hide() helpers (397-398, 522, 574) only toggle the `.hidden` class, so the ID rule keeps the screen hidden. Verified with headless Edge after game-end: #end-screen computed display = none, and the TV main area is empty. The header still reads \"Round 4 of 4 / Reindeer's turn\" (tv-gameend-settled.png). The same mismatch hides #double-down-banner (tv.html:199-200 display:none; the JS at 503-505 toggles .hidden instead of .show). Verified: computed display = none while doubleDownActive=true. The climax of the night happens on phones only.",
+          "fix": "tv.html:181: change `display: none;` to `display: flex;` and give the markup at line 290 `class=\"hidden\"`. tv.html:200: delete `display: none;` and the `.show` rule at line 211 (the markup at 276 already starts with class=\"hidden\"). In the game-end handler (573), also set round-label to 'Final Results' and clear turn-banner. Later, replace the instant list with a reverse-order podium reveal (see the finale finding).",
+          "verified": true
+        },
+        {
+          "severity": "critical",
+          "area": "Finale",
+          "title": "There is no Final Chaos round: the game ends abruptly after the last Next Turn",
+          "detail": "server.js:309-318: when round > totalRounds, phase becomes 'gameend' immediately and the sorted list is emitted. There is no wager, no final question, no typed answers, no dramatic reveal and no tiebreak. Verified: game-end fires straight from the last next-turn. Model (sim.js): the leader going into the last round wins 42–62% of games and the last-place team wins 1–5%, so trailing teams have nothing to play for at the end.",
+          "fix": "Add phases: 'final-intro' (TV: \"FINAL CHAOS\" plus the category, e.g. 'Christmas Movies'). Then 'final-wager': each team submits 0..max(score,300) on a phone, 30 s; \"Santa's loan\" means every team has something at stake; one wager per team, last submit wins. Then 'final-question': TV shows the question with a 45 s countdown and music, and each team types an answer. Then 'final-reveal': the host taps Next per team, ordered from lowest to highest score; TV shows the team's typed answer → ✓/✗ sound → wager → score counts up/down. Finally 'gameend' with a podium revealed 3rd → 2nd → 1st plus a fanfare. Tie → 'Sudden Death: closest number' typed question. Optionally freeze the TV scoreboard during the last regular round and reveal it just before the wager. Model (sim2.js): the finale changes the winner in about 42–45% of games. If that is too swingy, cap wagers at max(score/2, 300).",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Phone input",
+          "title": "No typed answers anywhere, despite the user asking for 'buzzer or type answers'",
+          "detail": "The only text inputs are the player name (player.html:255) and host fields. Verified: 0 input/textarea elements in the phone's #game-screen. In addition, every phone receives the answer: publicState sends the whole currentChallenge (verified: a Reindeer phone's state contained answer 'Scrooged'). Anyone curious can read it with dev tools, which matters more once typed answers are scored.",
+          "fix": "Add a generic typed-answer phase: `state.answerWindow={mode:'allplay'|'final'|'tiebreak', deadline, submissions:{[teamIndex]:{text,by}}}`. Phone: a textbox plus Submit, editable until the deadline; one answer per team, last teammate's submission wins; teammates see \"Ann submitted ✓\". Server auto-marks with normalize() (lowercase, strip punctuation and leading 'the/a', Levenshtein ≤2 for answers longer than 5 characters) plus an optional `accept:[]` array in questions.json. The host sees every answer with ✓/✗ toggles to override, and the TV reveals answers team by team. Redact `answer`/`songTitle` from publicState until reveal; the host gets them via `io.to(hostSocket)` or a separate 'host-state' event.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Pacing",
+          "title": "Default length is roughly half the 60–75 minute target, and each team gets only 3 spins",
+          "detail": "recommendedRounds (server.js:59-63) returns 3 for every count from 4 to 8 teams (lines 61-62 are the same branch twice). Model (sim.js, about 2 min/turn including spin, reading, banter; estimate): 4 teams = 12 turns ≈ 24 min of play (about 29 with setup), 5 = 15 turns ≈ 30, 6 = 18 ≈ 36, 8 = 24 ≈ 47. With no timers, turn length depends entirely on the host. A 60–75 min party needs about 20 turns, a ~9 min finale and ~5 min setup.",
+          "fix": "`function recommendedRounds(n){ return Math.max(3, Math.min(6, Math.round(20 / n))); }` gives 2–3 teams: 6, 4: 5, 5: 4, 6–8: 3. Show an estimate in the host lobby (`≈ ${Math.round(5 + teams*rounds*2.6 + 9)} min`). Add timers (see the timer finding) so turns stay at about 2.5 min. Model (sim2.js) with the proposed rules: 4 teams ≈ 58 min, 6 ≈ 54 min, 8 ≈ 67 min, finale included. For 9+ teams use 2 rounds.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Engagement of idle teams",
+          "title": "Non-active teams wait 10–14 minutes between turns with nothing to do on most spins",
+          "detail": "With about 2 min/turn, a team waits ~5 turns (≈10 min) between its spins with 6 teams, and ~14 min with 8. Their phones only do something on trivia/ALL PLAY (6/12 slots), and that engagement comes from hijacking the active team's turn. During Dare, Sound It Out, Hot Seat, Steal and Double Down (the other 6/12) the phone just says \"X's turn\" (player.html:451-453). Six dares already say the audience votes (dare-009, 011, 013, 014, 015, 016), but there is no way to vote.",
+          "fix": "Layer cheap hooks: (a) steal-on-miss for trivia and Sound It Out at half value (see trivia finding). (b) Other teams vote 👍/👎 on their phones for performance dares: 'vote-open' with a 15 s deadline, a live applause meter on TV, majority = Nailed it 200, otherwise Good try 100. (c) Grinch Steal and Showdown pull specific rival teams into the action. (d) A 'Round Break' between rounds: one typed ALL PLAY question for every team (100 points, 20 s), so every phone has something to do every ~8–12 minutes even with 8 teams.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Runaway leader",
+          "title": "Buzzer speed decides the game: one fast-thumbed team wins about half of all games",
+          "detail": "50% of spins are open buzz races worth 100–150 points, with no lockout and no read delay (server.js:130-136, 242-255, 295-299). Model (sim2.js, estimate): if one team wins buzz races 3x as often as each other team, it wins 51% of 4-team games (fair 25%), 43% of 6-team (fair 17%) and 37% of 8-team (fair 13%). There is no comeback mechanic: the steal target is whoever the host chooses, and there is no finale. Mixed-age families are hit hardest: phone-native teens beat grandparents on reaction time, not knowledge.",
+          "fix": "Active team answers first, with steals at half value and lockout (trivia finding). Typed simultaneous ALL PLAY where only a +50 bonus goes to the first correct answer. A 3 s read delay before any buzzer opens. Grinch Steal only from teams ahead of you, and a 1st-place team must gift 100 to last place. Final wager with a 300 minimum. Model with these rules: the fast team wins 26% / 19% / 14% (4/6/8 teams), close to its fair share.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Scoring balance",
+          "title": "Points per wheel slot vary 15x for the spinning team, so the wheel, not the players, decides each turn",
+          "detail": "Current table: trivia 100, Pop 100, Dare 150, Sound It Out 100, ALL PLAY 150, Hot Seat 25 x 5, Steal 100, Double Down 0 (server.js:18-31). Model (sim.js) of what the spinning team gets per slot: trivia 10–21, ALL PLAY 15–31 (both mostly go to other teams), Hot Seat 90, Steal +100 (and −90 to a rival), Sound It Out 105 (inflated by the leak), Dare 150. With 3 spins per team, P(a team never lands a dare) = 58%.",
+          "fix": "Adopt the recommended point table (separate finding). It narrows the spinning team's expected points to about 100–200 per slot (sim2.js): trivia 128 (+33 to stealers), Showdown 108 (+100 opponent), Sound It Out 152, Quick List 178, Dare 184, Hot Seat 195, Grinch about ±100–127, ALL PLAY ~70 to each team. Adding a choice (difficulty) lets skill and nerve matter.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Chaos / challenges",
+          "title": "Too few silly physical challenges: dares are only 2 of 12 slots",
+          "detail": "The user's brief was trivia plus silly/embarrassing physical challenges. Dare Card is 2/12 slots and Sound It Out 1/12. In a 4-team, 12-spin game: about 2.0 dares expected, P(zero dares all game) = 11.2%, and P(a given team never performs a dare or Sound It Out in its 3 spins) = 42%. Dares say 'one team member', so the team picks its usual extrovert; the shy relatives never perform.",
+          "fix": "Make performance 4/12 slots (Dare x2, Showdown x1, Sound It Out x1) plus a timed Hot Seat. With the longer game (about 20 spins) that is ~6–7 performance moments. The server picks a random performer each time, weighted toward players who have performed least: TV shows \"🎯 It's… GRANDMA CAROL!\" with a drumroll, and only that phone says \"YOU'RE UP\" plus any secret.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Double Down",
+          "title": "Double Down leaks to opponents, lasts beyond the turn, doubles penalties, and only doubles the first Hot Seat answer",
+          "detail": "server.js:160 sets a global flag; award-points (server.js:268) doubles the NEXT award to ANY team and then clears it. Verified: (1) Elves spun Double Down then trivia; Reindeer buzzed and got 200 for a 100-point question. (2) Snowmen's Double Down respin landed on Steal; steal-execute (273-278) did not use it up, it was still active on the next team's turn, and Grinches got 200 for +100 on Sound It Out. (3) A −50 under Double Down applied −100 and used up the bonus. (4) Hot Seat 5/5 earned 150, not 250. The TV text (tv.html:456 'Next correct answer or completed dare') does not match.",
+          "fix": "server.js:160: `state.doubleDown={teamIndex:state.currentTeamIndex}`. Award (268): `if(state.doubleDown && teamIndex===state.doubleDown.teamIndex && pts>0) pts*=2;` and do NOT clear it there. Clear it in next-turn (after line 306). publicState sends doubleDown. Banner: \"💫 ELVES' POINTS ARE DOUBLED THIS TURN!\" Hot Seat then doubles every correct answer naturally.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Steal",
+          "title": "Steal: the host picks the target, it can create points from nothing, and it can be clicked repeatedly",
+          "detail": "The host chooses the target (host.html:575-590; the phone says 'The host will pick a team…', player.html:495), so the best social moment, the spinning team choosing a victim, is taken from the players. server.js:273-278 floors the victim at 0 but always adds 100. Verified: stealing from a 0-point team gave Snowmen +100 while the victim stayed at 0. A second click applied again (Snowmen 200). There is no guard against one-sided dog-piling or the leader stealing more.",
+          "fix": "Rename it 'GRINCH!'. The spinning team picks on their phone: a 'steal-pick' event accepted only from the active team's sockets, with targets limited to teams with more points. Amount = Math.min(150, target.score). If the spinning team is in 1st, they must give 100 to last place ('the Grinch's heart grew'). After it runs, set state.phase='resolved' and reject further steals. TV: target's score flashes red, coins slide across, plus a sound.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Countdown timers",
+          "title": "No countdown timer anywhere, though every dare has a time limit in the data",
+          "detail": "Every dare in dares.json has `time` (20–90 s) but no client reads it (grep finds no `.time` usage in public/ or server.js). Trivia, Hot Seat and Sound It Out are untimed, so there is no tension and turns can run as long as the host lets them.",
+          "fix": "Server: `state.timer={endsAt:Date.now()+ms,label}` plus `serverNow` in every state-update (clients compute an offset to avoid phone clock skew); emit 'timer-end' with setTimeout. Host: a 'Start timer' button, defaulting to the dare's `time` or 15 s trivia / 30 s Sound It Out / 40 s Hot Seat. TV: a big ring countdown that turns red with beeps in the last 5 s. Phones: the same small countdown. On timer-end, auto-close typed answers and open steals.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Sound",
+          "title": "No sound at all: spin, landing, buzz, right/wrong, timer and winner are silent",
+          "detail": "No Audio, AudioContext, <audio> or vibrate anywhere in public/*.html. Game-show energy comes largely from audio cues (ticking wheel, buzzer honk, ding/wah-wah, drumroll, fanfare).",
+          "fix": "TV-only WebAudio synth effects (no asset files, about 60 lines): a tick each time a segment passes the pointer (in tv.html spinToTarget's frame loop, when Math.floor(deg/segDeg) changes), landing 'ta-da', buzz-in honk, correct ding-ding when the host awards positive points, wah-wah on negative, last-5-second beeps, drumroll plus fanfare at the finale. Add a one-time 'Click to start the show 🔊' overlay on the TV to satisfy browser autoplay rules.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "TV moments",
+          "title": "Landing, scoring and round changes are visually flat; the wheel is too small to read from the sofa",
+          "detail": "Landing: spinToTarget is called with onDone=null (tv.html:540), and the spin-result handler is empty (543-545), so there is no slice highlight or rule card; plain text appears 0.5 s later. Scoring: renderScoreboard (402-411) just replaces innerHTML: no '+200', no count-up, not sorted by rank (only the end screens sort), no leader crown. Rounds and turns only change header text (565-571). Wheel: 380 px (line 271) with 5.5-unit labels in a 220-unit viewBox, roughly 9–10 px text on a 1080p TV (tv-sounditout.png).",
+          "fix": "During a spin, enlarge the wheel to about 80vh with a dimmed background. On landing, flash the slice for 1 s, then show a 3 s rule card from a new `rule` field on each WHEEL_SEGMENTS entry (\"DARE — a random player performs. 200 / 100 / 0\"). Sort the scoreboard by score with a FLIP reorder animation, a floating '+200' on the team row, and 👑 on the leader. Full-screen interstitials: 'ROUND 2 OF 5', and 'ELVES — YOU'RE UP!' when a turn starts.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Dares (content and judging)",
+          "title": "Many dares' scoring rules can't be applied with the host's buttons; some spoil themselves or need another team",
+          "detail": "Host buttons are only +base, +50, −50, −100 (host.html:563-569). Dares require −25 (dare-005, 024), −10 per wrong (017), +20 per line (018), +25 per 10 'Ho's (023), half points = 75 (025), and 'audience scores 1–5. 30+ points = full' (014). Several compare teams when only one team plays: 'Fastest team… wins the bonus' (003), 'Most stacked wins' (007), 'First person on the team' (008), 'funniest pose (voted by other teams) wins the full 150' (015). dare-022 'Silent Night... Miming' names the song the teammates must guess, and the TV shows it (verified: it was drawn, and tv.html:437 renders title and description). dare-010/012/020 need a secret that the host must whisper.",
+          "fix": "Standardize every dare to Nailed it 200 / Good try 100 / Refused 0 (host buttons to match) and delete point arithmetic from the descriptions. Move the comparison dares (003, 007, 008, 015, 023) into the new Showdown segment. Add a `secret` field (010 movie, 012 reindeer, 020 gift, 022 song) delivered only to the performer's phone, and retitle 022 'Mime a Carol'.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Hot Seat",
+          "title": "Hot Seat is untimed and pays less than a dare",
+          "detail": "server.js:150-156 plus host.html:563-564: 5 untimed questions at 25 points each, max 125 (model average 90), versus 150 for a dare. The host clicks +25 and Next five times, and other teams just watch for about 2.5 minutes.",
+          "fix": "Make it a solo clock round: the server picks one random player from the active team, who answers alone, with a 40 s timer and as many questions as fit (queue about 10). The host gets big ✓ / ✗ / Pass buttons that award and advance in one click (server increments hotSeatIndex). 50 points per correct, max 300. TV shows a giant clock and running tally, with a sound on each answer. If it turns out too generous in play, use 40 points per correct.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Player agency",
+          "title": "The spinning team makes no decisions all game",
+          "detail": "The wheel is random, the host picks steal targets and dare options, and the team only presses SPIN. Decisions (risk vs. safety, who to target) are where tension and table talk come from. questions.json already has difficulty levels (Christmas 15 easy / 15 medium / 10 hard; Pop 10/9/6) that are never used.",
+          "fix": "Add four decisions, each a single phone tap. (1) Trivia: choose Easy 100 / Medium 200 / Hard 300 before the question is shown; use pickQuestion(category, difficulty) and fall back to the next difficulty when one runs out. (2) Grinch target. (3) Showdown opponent. (4) Final wager. Each decision needs a 10 s auto-pick so the game never stalls.",
+          "verified": true
+        },
+        {
+          "severity": "major",
+          "area": "Recommended point table",
+          "title": "Proposed segment and point table (12 slots plus finale)",
+          "detail": "• Christmas Trivia x2 / Pop Culture x1: active team picks Easy 100 / Medium 200 / Hard 300 and answers in 15 s. On a miss, other teams steal at half (50/100/150), one try per team, no penalty.\n• Quick List x1 (new): 'Name Santa's reindeer / Christmas movies / things in a stocking' in 30 s; host taps +1. 25 per item, max 250.\n• Dare x2: random performer. Nailed it 200 / Good try 100 / Refused 0; audience dares decided by other teams' phone votes.\n• Showdown x1 (new): active team picks an opponent; one random player each, head to head (oven-mitt wrap, candy-cane hook, Ho-Ho count). Winner 200, tie 100 each.\n• Sound It Out x1: random hummer with the secret on their phone only; team guesses in 30 s for 200. On timeout, others buzz to steal 100.\n• ALL PLAY x1: every team types an answer in 20 s. 100 to each correct team, +50 to the first correct.\n• Hot Seat x1: one random player alone, 40 s rapid-fire, pass allowed. 50 per correct, max 300.\n• Double Down x1: spin again; the active team's positive points this turn ×2, expiring at Next Turn.\n• Grinch Steal x1: active team takes min(150, target score) from any team ahead of them; if 1st, gives 100 to last place.\n• Round Break (between rounds, optional for 6+ teams): one typed ALL PLAY, 100.\n• Final Chaos: wager 0..max(score,300), typed answer in 45 s, ±wager, reveal from lowest score to highest. Tie → closest-number typed question.\nCurrent for comparison: trivia 100, ALL PLAY 150, Dare 150, Sound It Out 100, Hot Seat 25 x 5, Steal 100, Double Down 0.",
+          "fix": "Implement as WHEEL_SEGMENTS entries with new types ('list', 'showdown', 'grinch') and per-type `rule` text; new data files data/lists.json (~15 prompts) and showdown entries in dares.json (type:'showdown'). Model (sim2.js) expected points for the spinning team: trivia 128 (+33 stealers), Quick List 178, Dare 184, Showdown 108 (+100 opponent), Sound It Out 152, ALL PLAY ~70 to each team, Hot Seat 195, Grinch ±100–127. That range is about 2x, versus 15x today.",
+          "verified": false
+        },
+        {
+          "severity": "major",
+          "area": "Roadmap",
+          "title": "Improvements ranked by fun per effort (S ≈ under 1 h, M ≈ 2–4 h)",
+          "detail": "1. Fix the TV end-screen and Double Down banner CSS (S, 3 lines).\n2. Sound It Out secret goes to one random hummer; hide the title on TV (S).\n3. Trivia: active team answers first, steal-on-miss with lockout and a 3 s read delay (S/M).\n4. rounds = clamp(round(20/teams), 3, 6) (S, 1 line).\n5. Limit Double Down to the active team and turn (S, 6 lines).\n6. Countdown timer from server endsAt, using dares' existing `time` (S/M).\n7. TV sound effects via WebAudio plus an audio-unlock overlay (S/M).\n8. Random performer for dares, with secrets to their phone (S, reuses #2).\n9. Final Chaos wager plus typed answers plus reverse-order reveal (M; the biggest single fun gain).\n10. Typed ALL PLAY and Round Break (M, shares #9's code).\n11. Phone 👍/👎 voting on performance dares (M).\n12. Grinch Steal chosen by the active team, capped, one-shot (S).\n13. Pick-your-difficulty trivia (S, data already exists).\n14. TV landing flash, rule card, ranked animated scoreboard, round splash, bigger wheel (M).\n15. Timed solo Hot Seat (S).\n16. Quick List segment (S plus ~15 prompts).\n17. Showdown segment reusing the comparison dares (M).\n18. Standardize dare scoring 200/100/0 (S, content).\n19. Hint on demand, tiebreaker, rules cards (S each).",
+          "fix": "Do 1–8 first: about one evening of work, and they fix every critical issue. Then 9–11 deliver the user's explicit asks (typed answers, a finale, engaged idle teams). Items 12–19 are polish and variety.",
+          "verified": false
+        },
+        {
+          "severity": "minor",
+          "area": "Trivia difficulty",
+          "title": "The hint appears automatically on TV with every question, making questions too easy",
+          "detail": "tv.html:461-463 appends 'Hint: …' to every trivia question. Verified on screen: 'What 1988 Christmas movie stars Bill Murray… | Hint: It's a modern retelling of A Christmas Carol'. With buzzers open, this rewards fast readers even more and makes every question feel equally easy.",
+          "fix": "Hide hints by default. Add a host 'Give hint' button (emits 'hint-revealed'), or let the active team 'buy a hint' on their phone for half points. Sound It Out's hint stays host-only.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "Ending / ties",
+          "title": "Ties for 1st are common and not handled; medals are assigned arbitrarily",
+          "detail": "All awards are multiples of 50/100, and the model (sim.js) shows 10–14% of current games ending in a tie for 1st. The end screens (tv.html:575-578, host.html:673-677, player.html:562-570) give medals by sort position, so one tied team gets silver arbitrarily.",
+          "fix": "If the top scores are tied after the finale: 'SUDDEN DEATH — closest number wins'. Tied teams type a number on their phones (e.g. 'How many lights are on the Rockefeller Center tree?' ~50,000), the server picks the closest, and the TV reveals it. Show '🥇🥇' with 'TIE' if the host skips the tiebreaker.",
+          "verified": false
+        },
+        {
+          "severity": "minor",
+          "area": "Learnability",
+          "title": "No rules are shown anywhere, so families can't learn the game in 60 seconds",
+          "detail": "grep finds no 'rules' or 'how to play' text. The TV lobby (tv.html:260-265) shows only 'Waiting for host to start the game…'. Every segment's rules live only in the host's head.",
+          "fix": "The TV lobby rotates a 4-line card: '1) Spin on your phone. 2) Your team plays what it lands on — beat the clock or others steal. 3) Some spins pick ONE of you to perform. 4) Bet it all in FINAL CHAOS.' Add a one-line `rule` to each WHEEL_SEGMENTS entry and show it for 3 s on landing and on phones, so players learn each segment the first time it comes up.",
+          "verified": true
+        },
+        {
+          "severity": "minor",
+          "area": "Turn flow",
+          "title": "Double-clicking Next Turn skips a team's turn, and nothing reminds the host to award points first",
+          "detail": "server.js:306-334 accepts next-turn with no guard. Verified: two quick next-turn emits went Elves → Snowmen, skipping Reindeer entirely. For a family game, a skipped turn feels unfair and is hard to undo.",
+          "fix": "Have the client send `{expectedTeamIndex}` and ignore the event if it doesn't match state.currentTeamIndex. Disable the host button for 1 s after a click. If no points were awarded during the turn, ask 'Next turn without awarding points?'.",
+          "verified": true
+        },
+        {
+          "severity": "polish",
+          "area": "Phone experience",
+          "title": "Phones give no 'it's you' moment",
+          "detail": "When it's your team's turn there is only a 3 s toast (player.html:603-608). During the spin the phone shows only 'Spinning…'. There is no haptic or full-screen cue.",
+          "fix": "Full-screen 'YOUR TURN — SPIN!' with a swipe-up-to-spin gesture (cosmetic; the server still decides the result). '👀 Look at the TV!' while spinning. Use navigator.vibrate([200,100,200]) on Android (iOS ignores it). A full-screen gold 'YOU'RE UP, CAROL!' when picked as performer, with the secret shown under a press-and-hold to reveal.",
+          "verified": true
+        }
+      ]
+    }
+  ],
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Review"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "review:playtest",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a1ff48ed9f5902a10",
+      "model": "claude-opus-5-5",
+      "state": "done",
+      "startedAt": 1795748377701,
+      "queuedAt": 1795748377667,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "I played the game end to end. One host socket, one TV socke…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795749366882,
+      "tokens": 191869,
+      "toolCalls": 33,
+      "durationMs": 989179,
+      "resultPreview": "{\"summary\":\"I played the game end to end. One host socket, one TV socket and six player sockets (three teams) drove 96 spins over 5 games, and every wheel segment came up: hotseat 13, popculture 15, dare 14, christmas 24, doubledown 8, allplay 5, sounditout 7, steal 9. A Playwright pass in headless Edge checked what the real host, TV and phone pages showed. The spin-timeout races were run against …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "review:visual",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "adcc71b18220b3be3",
+      "model": "claude-opus-5-5",
+      "state": "done",
+      "startedAt": 1795748377701,
+      "queuedAt": 1795748377668,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "I audited the real screens in headless Edge: host at 1440x9…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795749426905,
+      "tokens": 240094,
+      "toolCalls": 62,
+      "durationMs": 1047182,
+      "resultPreview": "{\"summary\":\"I audited the real screens in headless Edge: host at 1440x900, TV at 1920x1080, three phones at 390x844, plus a 360x640 phone and the host page on a phone. Server ran on PORT=4102 and is now stopped. I played a full 5-team session through every state: lobby, my-turn, spinning, trivia buzzer open / won / revealed, ALL PLAY, dare, sound-it-out, hot seat, steal, double down, game end. Edg…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "review:server-code",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "a2b22e5b0365defed",
+      "model": "claude-opus-5-5",
+      "state": "done",
+      "startedAt": 1795748377702,
+      "queuedAt": 1795748377668,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "I reviewed server.js line by line without changing any proj…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795749021350,
+      "tokens": 104390,
+      "toolCalls": 23,
+      "durationMs": 641624,
+      "resultPreview": "{\"summary\":\"I reviewed server.js line by line without changing any project files, then tested it. Socket clients and headless Edge ran against a test server on PORT 47613, and a crash/restart script started its own server on 47614. Both servers have been stopped. Scripts and outputs are in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617bc11ff4c/scratchpad/rev…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "review:client-code",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "af05af234664c8be7",
+      "model": "claude-opus-5-5",
+      "state": "done",
+      "startedAt": 1795748377702,
+      "queuedAt": 1795748377669,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Read-only, line-by-line review of public/tv.html, host.html…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795749186199,
+      "tokens": 169809,
+      "toolCalls": 28,
+      "durationMs": 806471,
+      "resultPreview": "{\"summary\":\"Read-only, line-by-line review of public/tv.html, host.html, player.html and css/style.css. I ran the real server on PORT=3487 and drove it with socket.io-client plus headless Edge (Playwright), using either the real socket or a stubbed one, then stopped the server. All scripts and screenshots are in C:/Users/mleys/AppData/Local/Temp/claude/d489c8c283eb5306/1f6a997f-d385-4b62-994e-3617…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "review:game-design",
+      "phaseIndex": 1,
+      "phaseTitle": "Review",
+      "agentId": "ab94681a5c7985071",
+      "model": "claude-opus-5-5",
+      "state": "done",
+      "startedAt": 1795748377702,
+      "queuedAt": 1795748377669,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "GAME DESIGN REVIEW of Christmas Chaos (read-only; no projec…",
+      "promptPreview": "PROJECT: \"Christmas Chaos\" — a local-network party game for a family Christmas party (adults, mixed ages, 4–6+ teams, 60–75 minutes total).\nRequirements from the user: trivia plus silly/embarrassing physical challenges, fun competitiveness; each team spins a wheel FROM THEIR PHONES and everyone watches it spin on the TV; the host judges dares; players join on phones over the same Wi-Fi and use a b…",
+      "promptFramed": true,
+      "lastProgressAt": 1795749040692,
+      "tokens": 155772,
+      "toolCalls": 24,
+      "durationMs": 660963,
+      "resultPreview": "{\"summary\":\"GAME DESIGN REVIEW of Christmas Chaos (read-only; no project files touched). The core loop works: a player spins from their phone, the TV wheel animates in sync, and the host judges. As a game show, though, it has four critical problems.\\n\\n1. **Sound It Out shows the answer to the people guessing it.** The song title appears on the TV and on every phone of the active team.\\n2. **Regul…"
+    }
+  ],
+  "totalTokens": 861934,
+  "totalToolCalls": 170
+}

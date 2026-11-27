@@ -1,202 +1,654 @@
 [
   {
     "id": "dare-001",
-    "title": "Cookie Face Challenge",
-    "description": "Place an Oreo (or any cookie) on your forehead and move it to your mouth using ONLY your face muscles. No hands! You have 60 seconds.",
-    "props": ["1 Oreo or similar cookie"],
+    "title": "Silent Movie Star",
+    "who": "one",
+    "instructions": "Act out the Christmas movie or TV special on your phone for your team. No words, no sounds, no mouthing, no pointing at things in the room. Your team shouts guesses.",
+    "secret": {
+      "label": "Act out this Christmas movie or TV special, silently",
+      "options": [
+        "Home Alone",
+        "Elf",
+        "The Polar Express",
+        "The Santa Clause",
+        "Jingle All the Way",
+        "Miracle on 34th Street",
+        "It's a Wonderful Life",
+        "National Lampoon's Christmas Vacation",
+        "The Nightmare Before Christmas",
+        "A Charlie Brown Christmas",
+        "Gremlins",
+        "A Christmas Story"
+      ]
+    },
     "time": 60,
-    "type": "physical"
+    "props": [],
+    "judge": "Team says the title within 60 s (close enough counts, e.g. 'Christmas Vacation'); any word, sound or mouthing from the performer = fail.",
+    "tags": ["performance", "no-props"]
   },
   {
     "id": "dare-002",
-    "title": "Marshmallow Stack",
-    "description": "One team member must stack as many marshmallows as possible on another willing team member's forehead. Stack must stay up for 3 seconds to count. You have 45 seconds.",
-    "props": ["Bag of marshmallows"],
-    "time": 45,
-    "type": "physical"
+    "title": "Santa Belly Jumping Jacks",
+    "who": "one",
+    "instructions": "Stuff a pillow up your untucked shirt for a Santa belly. No hands on the pillow! Do 10 jumping jacks (or 10 squats, hands on your head). If it drops, start over!",
+    "secret": null,
+    "time": 60,
+    "props": ["A pillow or sofa cushion"],
+    "judge": "10 in a row with the pillow still in place and no hands on it within 60 s; 5 or more in a row = partial.",
+    "tags": ["physical", "minute-to-win-it"]
   },
   {
     "id": "dare-003",
-    "title": "Present Wrap Race",
-    "description": "Wrap a gift box using ONLY oven mitts. No removing the mitts until it's done! Fastest team to wrap it neatly wins the bonus.",
-    "props": ["A box", "Wrapping paper", "Tape", "Oven mitts"],
-    "time": 90,
-    "type": "physical"
+    "title": "Two-Headed Santa",
+    "who": "pair",
+    "instructions": "PAIR: link arms. You are now ONE Santa. The host picks 3 people from other teams to ask Santa a question. Answer each in a full sentence, one word each, taking turns.",
+    "secret": null,
+    "time": 60,
+    "props": [],
+    "judge": "Three answers, each a full sentence, strictly alternating one word per player; two good answers = partial.",
+    "tags": ["performance", "word", "whole-room", "no-props"]
   },
   {
     "id": "dare-004",
-    "title": "Santa Belly Jumping Jacks",
-    "description": "Stuff a sofa cushion or pillow under your shirt. Do 10 jumping jacks WITHOUT the pillow falling out. If it drops, start over. You have 60 seconds.",
-    "props": ["A pillow or sofa cushion"],
-    "time": 60,
-    "type": "physical"
+    "title": "Banned Words",
+    "who": "one",
+    "instructions": "Get your team to say the word on your phone. Don't say any part of it or any of the banned words shown with it. No gestures, no 'sounds like'.",
+    "secret": {
+      "label": "Get your team to say this word. Never say the banned words!",
+      "options": [
+        "CHIMNEY (banned: Santa, fireplace, smoke)",
+        "EGGNOG (banned: drink, cream, nutmeg)",
+        "TINSEL (banned: tree, shiny, sparkly)",
+        "NUTCRACKER (banned: ballet, soldier, wooden)",
+        "ICICLE (banned: ice, cold, drip)",
+        "ADVENT CALENDAR (banned: door, chocolate, December)",
+        "UGLY SWEATER (banned: knit, tacky, party)",
+        "SNOW GLOBE (banned: shake, glass, water)",
+        "NORTH POLE (banned: Santa, Arctic, south)",
+        "FRUITCAKE (banned: raisins, dense, regift)",
+        "WRAPPING PAPER (banned: present, gift, tape)",
+        "SLEIGH (banned: Santa, reindeer, ride)",
+        "HOT CHOCOLATE (banned: cocoa, marshmallow, mug)",
+        "STOCKING (banned: sock, hang, stuffer)"
+      ]
+    },
+    "time": 30,
+    "props": [],
+    "judge": "Team says the exact word within 30 s; saying a banned word or part of the answer = fail.",
+    "tags": ["word", "no-props"]
   },
   {
     "id": "dare-005",
-    "title": "Reindeer Antler Freeze",
-    "description": "ENTIRE team must hold both hands up on their head like antlers for a full 30 seconds. First person to drop them costs the team 25 points. Hold it! 🦌",
-    "props": [],
+    "title": "Reindeer Poker Face",
+    "who": "team",
+    "instructions": "WHOLE TEAM: hands on heads like antlers, straight faces, for 30 seconds. Other teams may pull faces and make noises from an arm's length away. No touching!",
+    "secret": null,
     "time": 30,
-    "type": "physical"
+    "props": [],
+    "judge": "Nobody on the team laughs out loud or drops their antlers for 30 s; exactly one person cracks = partial.",
+    "tags": ["performance", "whole-room", "no-props"]
   },
   {
     "id": "dare-006",
-    "title": "Jingle Bell Shake",
-    "description": "Tape a cup to the back of your pants (or tuck it in your waistband). Put 5 jingle bells or small balls in it. Shake them all out using ONLY hip movements — no hands. 30 seconds.",
-    "props": ["A plastic cup", "5 small balls or jingle bells", "Tape"],
-    "time": 30,
-    "type": "physical"
+    "title": "Cookie Face-Off",
+    "who": "one",
+    "instructions": "FACE-OFF against a challenger the host picks from another team. Cookie on your forehead: get it into your mouth using only your face. No hands! Dropped it? Put it back and keep going.",
+    "secret": null,
+    "time": 60,
+    "props": ["2 small, firm cookies (a cracker works for anyone avoiding cookies)"],
+    "judge": "Active player's cookie reaches their mouth before the challenger's; gets it there within 60 s but second = partial.",
+    "tags": ["physical", "minute-to-win-it", "whole-room"]
   },
   {
     "id": "dare-007",
-    "title": "Candy Cane Hook",
-    "description": "Hold a candy cane in your MOUTH (hook end out). Use it to fish and stack as many other candy canes as possible. No hands. 30 seconds. Most stacked wins.",
-    "props": ["5+ candy canes"],
-    "time": 30,
-    "type": "physical"
+    "title": "Who Am I?",
+    "who": "one",
+    "instructions": "Become the character on your phone: talk, move and act like them in the situation shown. Never say their name. Your team guesses who you are.",
+    "secret": {
+      "label": "Become this character. Never say their name!",
+      "options": [
+        "Santa Claus, stuck in a chimney",
+        "Mrs. Claus, bossing the elves around",
+        "The Easter Bunny, jealous of all the attention Santa gets",
+        "An overexcited kid at 5 a.m. on Christmas morning",
+        "A turkey who just found out what's for Christmas dinner",
+        "Olaf from Frozen, dreaming about summer",
+        "A gingerbread man, running away from everyone",
+        "A nutcracker soldier, on guard duty",
+        "An elf on the shelf, caught moving",
+        "A reindeer, on its first day at flight school",
+        "Jack Frost, painting frost on the windows",
+        "A Yeti, trying to be polite at a fancy party",
+        "A snowflake, falling for the very first time",
+        "A shopping-mall Santa, on his last nerve",
+        "The angel on top of the tree, scared of heights",
+        "A cat in a Santa hat, very unimpressed"
+      ]
+    },
+    "time": 45,
+    "props": [],
+    "judge": "Team names the character within 45 s (close enough, host's call; e.g. 'Olaf' or 'a reindeer'); the performer saying the name = fail.",
+    "tags": ["performance", "no-props"]
   },
   {
     "id": "dare-008",
-    "title": "Noodle the Gift",
-    "description": "Using only your NOSE (no hands), push a small wrapped gift box from one end of a table to the other and back. First person on the team to do it wins the points.",
-    "props": ["A small wrapped box"],
-    "time": 60,
-    "type": "physical"
+    "title": "Slow-Mo Snowball Fight",
+    "who": "team",
+    "instructions": "WHOLE TEAM: stage an epic snowball fight in SLOW MOTION. Slow-motion voices, slow-motion faces, and at least one dramatic slow-motion hit. Nobody speeds up!",
+    "secret": null,
+    "time": 30,
+    "props": [],
+    "judge": "Whole team stays in slow motion for 30 s with at least one dramatic 'hit'; anyone drifting to normal speed = partial.",
+    "tags": ["performance", "physical", "no-props"]
   },
   {
     "id": "dare-009",
-    "title": "Christmas Carol Karaoke",
-    "description": "Sing the entire first verse of a Christmas carol assigned by the host — IN A FULLY OPERATIC SINGING VOICE. The host (and audience) votes whether it was convincing enough for full points.",
+    "title": "Stand-Up Santa",
+    "who": "one",
+    "instructions": "Tell the terrible Christmas joke on your phone like a stand-up superstar. Other teams: keep a straight face! Make at least 2 of them laugh out loud. Smiles and groans don't count!",
+    "secret": {
+      "label": "Deliver this joke like a stand-up superstar",
+      "options": [
+        "What do you call a snowman with a six-pack? An abdominal snowman.",
+        "Who delivers presents to baby sharks? Santa Jaws.",
+        "What does Santa do in his garden? Hoe, hoe, hoe!",
+        "What do you call a cat on the beach at Christmas? Sandy Claws.",
+        "What do you get if you cross a snowman with a vampire? Frostbite.",
+        "What do you call a deer with no eyes? No idea!",
+        "How do sheep say Merry Christmas? Fleece Navidad!",
+        "What do elves learn at school? The elf-abet.",
+        "What kind of motorbike does Santa ride? A Holly Davidson.",
+        "Why did the turkey join the band? Because it had the drumsticks.",
+        "What kind of music do elves like best? Wrap music!",
+        "Why did Santa's helper go to the doctor? Low elf-esteem.",
+        "Why was the Christmas tree bad at knitting? It kept dropping its needles.",
+        "What do you call an old snowman? Water."
+      ]
+    },
+    "time": 30,
     "props": [],
-    "time": 60,
-    "type": "performance"
+    "judge": "At least 2 players from other teams laugh out loud within 30 s (smiles and groans don't count); exactly 1 = partial.",
+    "tags": ["performance", "whole-room", "no-props"]
   },
   {
     "id": "dare-010",
-    "title": "Mime the Christmas Movie",
-    "description": "Act out a Christmas movie for your teammates to guess — no words, no sounds, no mouthing it. 60 seconds. Host picks the movie from this list: Home Alone / Elf / The Grinch / A Christmas Story / Die Hard.",
-    "props": [],
+    "title": "Candy Cane Fishing",
+    "who": "one",
+    "instructions": "Stand 3 candy canes hook-up in a mug. Hold a 4th in your mouth, hook out, and use it to move them one at a time into a second mug. No hands!",
+    "secret": null,
     "time": 60,
-    "type": "performance"
+    "props": ["4 wrapped candy canes", "2 mugs"],
+    "judge": "All 3 candy canes land in the second mug within 60 s without hands; 1 or 2 moved = partial.",
+    "tags": ["physical", "minute-to-win-it"]
   },
   {
     "id": "dare-011",
-    "title": "Christmas Movie Quote Accent",
-    "description": "Recite a famous Christmas movie quote in a ridiculous accent chosen by the host. Options: Australian, robot, valley girl, Shakespearean, slow motion. The audience votes thumbs up or down.",
+    "title": "Mime Telephone",
+    "who": "team",
+    "instructions": "WHOLE TEAM: line up, backs turned, except Player 1, who has the phone. Player 1 taps the next player and silently mimes the activity; they mime it to the next, and so on. Last player guesses! No sounds!",
+    "secret": {
+      "label": "Silently mime this to the next teammate",
+      "options": [
+        "Untangling Christmas lights",
+        "Putting the star on top of the tree",
+        "Carving the turkey",
+        "Ice skating for the first time",
+        "Assembling a toy with no instructions",
+        "Sledding down a hill",
+        "Shoveling snow",
+        "Sneaking downstairs to peek at the presents",
+        "Leaving cookies and milk out for Santa",
+        "Writing a letter to Santa",
+        "Catching snowflakes on your tongue",
+        "Hanging ornaments on the tree",
+        "Wrapping a present that won't stay closed",
+        "Making a snow angel",
+        "Roasting marshmallows over a fire"
+      ]
+    },
+    "time": 90,
     "props": [],
-    "time": 30,
-    "type": "performance"
+    "judge": "The last player names the activity (close enough) within 90 s; right general idea = partial (host's call); any word or sound = fail.",
+    "tags": ["performance", "no-props"]
   },
   {
     "id": "dare-012",
-    "title": "Reindeer Impressions",
-    "description": "Get on all fours and crawl around like a reindeer. The rest of your team (and other teams) shout reindeer names at you. Act excited when they say your 'secret' reindeer name, chosen before you get down.",
-    "props": [],
+    "title": "Santa Says",
+    "who": "everyone",
+    "instructions": "Lead the WHOLE ROOM (seated or standing) in 'Santa Says'. Anyone who obeys a command that doesn't start with 'Santa says' is out. Catch 3 players from other teams. Gentle moves only!",
+    "secret": null,
     "time": 45,
-    "type": "performance"
+    "props": [],
+    "judge": "At least 3 players from other teams are caught within 45 s; 1 or 2 caught = partial.",
+    "tags": ["physical", "whole-room", "no-props"]
   },
   {
     "id": "dare-013",
-    "title": "30-Second Christmas Commercial",
-    "description": "Create and perform a 30-second TV commercial for a Christmas product chosen by the host. Options: a singing Christmas tree / inflatable lawn Santa / fruitcake / Christmas Snuggie. Full points if the audience claps.",
+    "title": "Soap Opera Moment",
+    "who": "one",
+    "instructions": "Read the line on your phone aloud like the star of a dramatic soap opera: gasps, long pauses, a stare into the distance. No giggling!",
+    "secret": {
+      "label": "Read this aloud like a soap-opera star",
+      "options": [
+        "Gravy. You promised me gravy. And now... the gravy boat is EMPTY.",
+        "I have a confession. I re-gifted your present. It was the candle YOU gave ME last year.",
+        "Someone ate the last chocolate in the advent calendar... and that someone... was ME.",
+        "The batteries. The toy needs batteries. And the batteries... are NOT included.",
+        "You put the star on the tree... without me? After everything we've been through?",
+        "These are not my slippers. Whose slippers are these? WHOSE SLIPPERS ARE THESE?",
+        "You said it was 'one size fits all.' It does not fit all. It does not fit... ME.",
+        "The Wi-Fi password. Please. I'm begging you. Tell me the Wi-Fi password.",
+        "I asked for a pony. And you got me... a PICTURE of a pony.",
+        "The Brussels sprouts. Nobody eats them. And yet, every year... there they are.",
+        "The TV remote is gone. Someone sat on that couch... and now it's gone forever.",
+        "You opened my present before Christmas morning? I don't even know who you are anymore.",
+        "The cookies are gone. The crumbs lead to this room. And one of you... has a milk mustache."
+      ]
+    },
+    "time": 30,
     "props": [],
-    "time": 60,
-    "type": "performance"
+    "judge": "Reads the whole line with at least one gasp, one dramatic pause and one stare into the distance, without giggling.",
+    "tags": ["performance", "no-props"]
   },
   {
     "id": "dare-014",
-    "title": "Christmas Rap Battle",
-    "description": "You have 45 seconds to prepare, then perform a rap verse about Christmas. It must include the words: Santa, chimney, and one reindeer name. The audience scores you 1–5. 30+ points = full dare points.",
-    "props": [],
-    "time": 90,
-    "type": "performance"
+    "title": "Snowman Wrap",
+    "who": "team",
+    "instructions": "WHOLE TEAM: wrap one teammate in toilet paper to turn them into a snowman, from shoulders to knees. Keep the face clear! Finish with a snowman pose.",
+    "secret": null,
+    "time": 60,
+    "props": ["2 rolls of toilet paper"],
+    "judge": "At the buzzer, the snowman is wrapped from shoulders to knees with no gap bigger than a hand (host checks from the front); mostly covered = partial.",
+    "tags": ["physical", "minute-to-win-it"]
   },
   {
     "id": "dare-015",
-    "title": "Elf on a Shelf Pose",
-    "description": "Strike the most creative 'Elf on a Shelf' pose and hold it for 15 seconds while everyone takes a photo. The funniest pose (voted by other teams) wins the full 150 points.",
+    "title": "Sound Effects Only",
+    "who": "one",
+    "instructions": "Make the sounds of the scene on your phone. Noises only: no words, no singing, and keep your hands behind your back. Your team guesses the scene.",
+    "secret": {
+      "label": "Make the sounds of this scene. No words, no hands!",
+      "options": [
+        "Reindeer landing on the roof",
+        "Blowing up an inflatable lawn Santa",
+        "Walking through deep, crunchy snow",
+        "A car that won't start on a frozen morning",
+        "Elves hammering in Santa's workshop",
+        "A blizzard howling outside",
+        "Dropping a whole tray of Christmas cookies",
+        "Fireworks at midnight on New Year's Eve",
+        "A cat knocking ornaments off the tree",
+        "A toddler opening a present that turns out to be socks",
+        "Popping a whole sheet of bubble wrap",
+        "A sleigh crash-landing in the snow",
+        "Frying bacon on Christmas morning",
+        "Santa snoring in his armchair"
+      ]
+    },
+    "time": 45,
     "props": [],
-    "time": 30,
-    "type": "performance"
+    "judge": "Team names the scene (close enough, host's call) within 45 s from the performer's noises alone.",
+    "tags": ["performance", "no-props"]
   },
   {
     "id": "dare-016",
-    "title": "White Elephant Reaction",
-    "description": "Act like you just opened a terrible White Elephant gift and are OVERJOYED about it. The gift is: an expired coupon book / a 1-pound block of Velveeta / a novelty toilet seat. Other teams rate your reaction 1-5.",
+    "title": "Christmas Rap Battle",
+    "who": "one",
+    "instructions": "FACE-OFF: the host picks a rapper from another team. You go first. 20 seconds each, rapping about Christmas, using the words 'turkey' and 'chimney'. The room claps a beat. Louder cheer wins!",
+    "secret": null,
+    "time": 60,
     "props": [],
-    "time": 30,
-    "type": "performance"
+    "judge": "Raps for about 20 s using both words and wins the louder cheer; raps with both words but loses the cheer = partial.",
+    "tags": ["performance", "musical", "whole-room", "no-props"]
   },
   {
     "id": "dare-017",
-    "title": "Speed Reindeer",
-    "description": "WHOLE TEAM: Name all 9 of Santa's reindeer in 30 seconds. You can shout them out in any order — just get all 9. Each wrong answer costs 10 points. Missing any = no dare points.",
+    "title": "Living Christmas Card",
+    "who": "team",
+    "instructions": "Show the scene on your phone to your team only. Take 15 seconds to pose as that Christmas card, then FREEZE. The other teams shout guesses. First to guess right wins 50 too!",
+    "secret": {
+      "label": "Show only your team, then freeze as this Christmas card",
+      "options": [
+        "Carol singers at the front door",
+        "Santa's sleigh taking off",
+        "The family photo going wrong",
+        "Kids catching Santa in the living room",
+        "Building a snowman",
+        "Elves on a toy production line",
+        "Everyone asleep on the couch after Christmas dinner",
+        "Opening presents on Christmas morning",
+        "Hanging up stockings by the fireplace",
+        "A New Year's Eve countdown",
+        "A Christmas tree falling over",
+        "Shoppers grabbing the last toy on the shelf",
+        "Waiting in line to see Santa"
+      ]
+    },
+    "time": 45,
     "props": [],
-    "time": 30,
-    "type": "team"
+    "judge": "Another team names the scene (close enough) within 45 s while the team stays frozen and silent, and the host gives the guessers 50; nobody gets it = host reveals the card, a clear match = partial.",
+    "tags": ["performance", "whole-room", "no-props"]
   },
   {
     "id": "dare-018",
-    "title": "Christmas Carol First Lines",
-    "description": "The host names 5 Christmas carols one at a time. Your whole team must sing ONLY the first line of each. 20 points per correct first line. You have 10 seconds per song.",
-    "props": [],
-    "time": 60,
-    "type": "team"
+    "title": "Spoon on the Nose",
+    "who": "one",
+    "instructions": "Hang a spoon from the tip of your nose, no hands, for 10 full seconds while the room counts. Tip: breathe on the spoon and tilt your head back first.",
+    "secret": null,
+    "time": 45,
+    "props": ["A metal teaspoon"],
+    "judge": "Spoon hangs from the nose, hands-free, for a 10-second room count within 45 s; 5 seconds or more = partial.",
+    "tags": ["physical", "minute-to-win-it"]
   },
   {
     "id": "dare-019",
-    "title": "Christmas Alphabet Blitz",
-    "description": "Name a Christmas-related word for every letter of the alphabet — as a team, shouting them out. You can skip 3 letters max. 90 seconds. If you finish, full points. No repeats allowed.",
+    "title": "Secret Voice",
+    "who": "one",
+    "instructions": "Read this line in the secret voice on your phone: 'Dinner is in five minutes, the turkey is enormous, and nobody touches the last cookie!' Repeat it as often as needed. Team guesses the voice.",
+    "secret": {
+      "label": "Read the line on the TV in this voice",
+      "options": [
+        "A pirate",
+        "A robot",
+        "A cowboy",
+        "A sports commentator",
+        "A movie-trailer narrator",
+        "A breaking-news anchor",
+        "A cartoon villain",
+        "A toddler having a tantrum",
+        "A whispering spy",
+        "A ghost",
+        "An auctioneer",
+        "A very sleepy person",
+        "A fitness instructor",
+        "An airline pilot making an announcement",
+        "A drill sergeant",
+        "A surfer dude"
+      ]
+    },
+    "time": 45,
     "props": [],
-    "time": 90,
-    "type": "team"
+    "judge": "Team names the voice (close enough) within 45 s; the performer only says the line and never describes the voice.",
+    "tags": ["performance", "no-props"]
   },
   {
     "id": "dare-020",
-    "title": "Gift Description Game",
-    "description": "One team member describes a Christmas gift without saying what it is (and can't say any part of its name). Team has 30 seconds to guess. If they get it right, full points. Host picks the gift.",
+    "title": "Boy Band Debut",
+    "who": "team",
+    "instructions": "WHOLE TEAM: sing the first verse of 'Deck the Halls' as a boy band, with one synchronized dance move, one dramatic solo line, and a big final pose.",
+    "secret": null,
+    "time": 45,
     "props": [],
-    "time": 30,
-    "type": "team"
+    "judge": "Everyone sings the verse with a synchronized move, a solo line and a final pose; missing one of the three = partial.",
+    "tags": ["musical", "performance", "no-props"]
   },
   {
     "id": "dare-021",
-    "title": "Christmas Spelling Bee Backwards",
-    "description": "One team member must spell one of these words BACKWARDS, out loud, within 20 seconds: CHRISTMAS / REINDEER / MISTLETOE / SNOWFLAKE / STOCKINGS. Host picks the word. No writing it down!",
+    "title": "The Worst Gift Ever",
+    "who": "one",
+    "instructions": "You just unwrapped the terrible gift on your phone. Be wildly OVERJOYED: gush, hug it, explain how you'll use it, but never say what it is. Your team guesses the gift.",
+    "secret": {
+      "label": "React with pure joy to this gift. Never say what it is!",
+      "options": [
+        "A single used sock",
+        "A giant block of cheese",
+        "A toilet brush",
+        "Last year's calendar",
+        "A framed photo of the person who gave it",
+        "A bag of potatoes",
+        "An empty box",
+        "A jar of pickles",
+        "A rubber chicken",
+        "A traffic cone",
+        "A broken umbrella",
+        "A sweater for a dog (you don't have a dog)",
+        "A singing fish on a plaque",
+        "A lump of coal",
+        "A half-eaten sandwich"
+      ]
+    },
+    "time": 45,
     "props": [],
-    "time": 20,
-    "type": "mental"
+    "judge": "Team names the gift (close enough) within 45 s while the performer stays joyful; saying the gift's name = fail.",
+    "tags": ["performance", "no-props"]
   },
   {
     "id": "dare-022",
-    "title": "Silent Night... Miming",
-    "description": "One team member mimes the entire song 'Silent Night' from start to finish without any sound. Teammates must identify which song it is within 20 seconds of them starting.",
+    "title": "Wildlife Documentary",
+    "who": "pair",
+    "instructions": "PAIR: one whispers like a nature-documentary narrator; the other is the 'camera crew', tiptoeing up to each 'wild animal'. Narrate the room in its natural habitat. Feature at least 3 people. Keep it kind!",
+    "secret": null,
+    "time": 30,
     "props": [],
-    "time": 45,
-    "type": "performance"
+    "judge": "30 s of nonstop whispered narration featuring at least 3 people while the 'camera crew' sneaks up on each; giggling or breaking character = partial.",
+    "tags": ["performance", "whole-room", "no-props"]
   },
   {
     "id": "dare-023",
-    "title": "Ho Ho How Many?",
-    "description": "In 30 seconds, one team member must say 'Ho Ho Ho' as many times as possible. Other teams count out loud. For every 10 'Ho's = 25 bonus points on top of dare points.",
-    "props": [],
-    "time": 30,
-    "type": "physical"
+    "title": "Nose the Present",
+    "who": "one",
+    "instructions": "Push a small box from one end of a cleared table to the other and back, using only your nose. No hands! Falls off? Put it back where it fell.",
+    "secret": null,
+    "time": 60,
+    "props": ["A small box (wrapped or not)", "A cleared table"],
+    "judge": "Box reaches the far end and comes back within 60 s, touched only by the nose; one way only = partial.",
+    "tags": ["physical", "minute-to-win-it"]
   },
   {
     "id": "dare-024",
-    "title": "Christmas Freeze Dance",
-    "description": "The host plays 20 seconds of a Christmas song. When it stops, everyone on the ACTIVE TEAM must freeze. Last one to freeze costs the team 25 points. Host plays 3 rounds of this.",
-    "props": ["Ability to play music (phone/speaker)"],
-    "time": 90,
-    "type": "physical"
+    "title": "Genre Swap",
+    "who": "one",
+    "instructions": "Sing the chorus of 'Jingle Bells' in the music style on your phone. Commit fully, but never say the style! Your team guesses it.",
+    "secret": {
+      "label": "Sing the 'Jingle Bells' chorus in this style",
+      "options": [
+        "Opera",
+        "Heavy metal",
+        "Country",
+        "Rap",
+        "Lullaby",
+        "Broadway show-stopper",
+        "Disco",
+        "1950s rock 'n' roll",
+        "Gospel choir",
+        "1980s power ballad",
+        "Yodeling",
+        "Cheerleader chant",
+        "Sea shanty",
+        "Jazz crooner"
+      ]
+    },
+    "time": 45,
+    "props": [],
+    "judge": "Team names the style (close enough) within 45 s while the performer sings the real words; saying the style = fail.",
+    "tags": ["musical", "performance", "no-props"]
   },
   {
     "id": "dare-025",
-    "title": "Santa's Voice Reading",
-    "description": "Read the opening of ''Twas the Night Before Christmas' in your BEST Santa voice for 30 seconds straight. Host reads along — if you drop the Santa voice at any point, they call you out and you lose half the points. Ho ho ho!",
-    "props": ["This text: 'Twas the night before Christmas, when all through the house, not a creature was stirring, not even a mouse. The stockings were hung by the chimney with care, in hopes that St. Nicholas soon would be there...'"],
+    "title": "Helping Hands",
+    "who": "pair",
+    "instructions": "PAIR: Player 1 puts their hands behind their back; Player 2 stands behind and becomes their arms. Host a cooking show: 'How to bake perfect Christmas cookies.' Mime everything. End with a taste test.",
+    "secret": null,
+    "time": 45,
+    "props": [],
+    "judge": "Player 1 talks for the full 45 s while Player 2's arms act it all out, ending with a taste test; long silences, giggling fits or no taste test = partial.",
+    "tags": ["performance", "physical", "no-props"]
+  },
+  {
+    "id": "dare-026",
+    "title": "One-Breath Ho Ho Ho",
+    "who": "one",
+    "instructions": "Take ONE deep breath, then say 'Ho ho ho, Merry Christmas!' as many times as you can before you breathe again. The whole room counts out loud.",
+    "secret": null,
     "time": 30,
-    "type": "performance"
+    "props": [],
+    "judge": "8 or more full phrases on one breath; 5 to 7 = partial.",
+    "tags": ["performance", "whole-room", "no-props"]
+  },
+  {
+    "id": "dare-027",
+    "title": "Plate-Head Picasso",
+    "who": "one",
+    "instructions": "Put a paper plate on your head and draw the thing on your phone on it, without looking. No talking, no gestures, no letters or numbers. Your team guesses.",
+    "secret": {
+      "label": "Draw this on the plate on your head",
+      "options": [
+        "Christmas tree",
+        "Snowman",
+        "Candy cane",
+        "Wrapped present",
+        "Star",
+        "Mittens",
+        "Santa hat",
+        "Stocking",
+        "Bell",
+        "Igloo",
+        "Angel",
+        "Wreath",
+        "Candle",
+        "Snowflake",
+        "Penguin",
+        "Holly"
+      ]
+    },
+    "time": 45,
+    "props": ["A paper plate (or paper on a hardback book)", "A marker or pen"],
+    "judge": "Team names the drawing within 45 s; talking, gesturing or writing letters/numbers = fail.",
+    "tags": ["performance"]
+  },
+  {
+    "id": "dare-028",
+    "title": "The Maestro",
+    "who": "everyone",
+    "instructions": "Give each team a Christmas sound (jingle, ho-ho-ho, reindeer stomp, howling wind, or invent more). Then CONDUCT the room: cue each team, go loud, go soft, then cut everyone off with one fist.",
+    "secret": null,
+    "time": 60,
+    "props": [],
+    "judge": "Every team plays on cue with a loud-to-soft change, and the room goes silent at once on the final cut-off; a ragged cut-off = partial.",
+    "tags": ["musical", "performance", "whole-room", "no-props"]
+  },
+  {
+    "id": "dare-029",
+    "title": "Jingle Jiggle",
+    "who": "one",
+    "instructions": "Tie an empty tissue box to your lower back with a belt or scarf, with 5 small items inside. Wiggle, jiggle and jump until every item is out. No hands!",
+    "secret": null,
+    "time": 60,
+    "props": ["An empty tissue box", "A belt or scarf", "5 ping-pong balls, wrapped candies or balled-up socks"],
+    "judge": "All 5 items out of the box within 60 s without hands; 3 or 4 out = partial.",
+    "tags": ["physical", "minute-to-win-it"]
+  },
+  {
+    "id": "dare-030",
+    "title": "Late-Night Infomercial",
+    "who": "pair",
+    "instructions": "PAIR: make a 30-second TV ad for the secret product shown on your phone. One is the over-the-top host, one the amazed customer. Say its name, invent a slogan, give a price, and shout 'But wait, there's more!'",
+    "secret": {
+      "label": "Sell this product together. Say its name loud and proud!",
+      "options": [
+        "Tinsel that vacuums itself up",
+        "Reindeer-scented air freshener",
+        "Canned snow for people in hot countries",
+        "A Santa detector alarm",
+        "Heated socks for snowmen",
+        "A robot that writes your thank-you notes",
+        "Turkey-flavored toothpaste",
+        "An elf-sized treadmill",
+        "A sled with seat belts and airbags",
+        "A Christmas tree that waters itself",
+        "A cookie jar with a lie detector",
+        "Inflatable guests to fill empty chairs at dinner",
+        "A doorbell that only rings for Santa",
+        "Glow-in-the-dark wrapping paper"
+      ]
+    },
+    "time": 30,
+    "props": [],
+    "judge": "The 30 s ad includes the product name, a slogan, a price and 'But wait, there's more!' with both players in character; two or three of the four, or breaking character = partial.",
+    "tags": ["performance", "no-props"]
+  },
+  {
+    "id": "dare-031",
+    "title": "Christmas A to Z",
+    "who": "team",
+    "instructions": "WHOLE TEAM: take turns in order, each saying a Christmas word that starts with the next letter: A, B, C... Stuck for 3 seconds? The next teammate takes that letter. Reach M!",
+    "secret": null,
+    "time": 60,
+    "props": [],
+    "judge": "The team gives a Christmas word (host's call) for every letter A through M within 60 s; getting at least A through G = partial.",
+    "tags": ["word", "no-props"]
+  },
+  {
+    "id": "dare-032",
+    "title": "Tongue Twister",
+    "who": "one",
+    "instructions": "Say 'Santa's short suit shrunk' five times fast, out loud and clear, without a single slip. You get two tries.",
+    "secret": null,
+    "time": 30,
+    "props": [],
+    "judge": "Five clean repetitions in a row, at speed, on either try; three or four clean in a row = partial.",
+    "tags": ["word", "no-props"]
+  },
+  {
+    "id": "dare-033",
+    "title": "Oven-Mitt Wrap",
+    "who": "one",
+    "instructions": "Wearing oven mitts, wrap the box in paper using the pre-torn tape strips. The mitts stay on the whole time! No cardboard showing at the buzzer.",
+    "secret": null,
+    "time": 90,
+    "props": ["Oven mitts (or thick winter gloves)", "A small box", "Wrapping paper, cut to size", "6 strips of tape, pre-torn and stuck to the table edge"],
+    "judge": "No cardboard visible and the paper stays on when the host lifts the box; mostly covered = partial.",
+    "tags": ["physical", "minute-to-win-it"]
+  },
+  {
+    "id": "dare-034",
+    "title": "Christmas Catwalk",
+    "who": "pair",
+    "instructions": "PAIR: the model struts a runway across the room in the secret walk style on their phone: 3 poses, there and back. The partner commentates like a fashion-show host. Your team guesses the style!",
+    "secret": {
+      "label": "Strut the runway in this style. Don't tell your partner!",
+      "options": [
+        "A penguin in a hurry",
+        "A reindeer in high heels",
+        "A toddler in a puffy snowsuit",
+        "Santa, very full after Christmas dinner",
+        "A superhero coming in to land",
+        "Someone walking barefoot on Lego",
+        "A cat that just woke up",
+        "A tightrope walker",
+        "A soldier on parade",
+        "A cartoon burglar tiptoeing",
+        "A ballerina",
+        "Someone carrying way too many shopping bags",
+        "Someone walking into a freezing blizzard",
+        "A chicken"
+      ]
+    },
+    "time": 45,
+    "props": [],
+    "judge": "The team names the walk style (close enough) within 45 s while the model struts and the partner keeps commentating; right general idea = partial; the model saying the style = fail.",
+    "tags": ["performance", "no-props"]
+  },
+  {
+    "id": "dare-035",
+    "title": "Interpretive Dance",
+    "who": "one",
+    "instructions": "Perform an interpretive dance called 'The Life of a Christmas Tree': grow from a tiny seedling, get chopped down, decorated, admired, then dragged to the curb in January. Topple gently: no hitting the floor!",
+    "secret": null,
+    "time": 45,
+    "props": [],
+    "judge": "All five stages (seedling, chopped, decorated, admired, curb) shown with full commitment within 45 s; three or four stages, or giggling out of character = partial.",
+    "tags": ["performance", "physical", "no-props"]
+  },
+  {
+    "id": "dare-036",
+    "title": "Whole-Room Freeze Dance",
+    "who": "everyone",
+    "instructions": "EVERYONE dances to Christmas music, seated or standing. When the host pauses it, FREEZE. Anyone still moving, or the last to freeze, is out. Three rounds.",
+    "secret": null,
+    "time": 90,
+    "props": ["A phone or speaker playing Christmas music"],
+    "judge": "After round 3, at least half the active team is still in; at least one active-team player still in = partial.",
+    "tags": ["physical", "musical", "whole-room"]
   }
 ]

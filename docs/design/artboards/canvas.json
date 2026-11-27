@@ -1,0 +1,92 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-27T01:54:22Z" },
+  "title": "Christmas Chaos Redesign",
+  "launch": { "view": "canvas", "page": "tv" },
+  "pages": [
+    { "id": "tv", "name": "Big screen (TV)" },
+    { "id": "phones", "name": "Phones" },
+    { "id": "host", "name": "Host laptop" },
+    { "id": "system", "name": "Design system" }
+  ],
+  "boards": {
+    "TV-Lobby.dc.html": { "x": 0, "y": 0, "w": 1920, "h": 1080, "title": "TV · Lobby & join", "page": "tv" },
+    "TV-TurnIntro.dc.html": { "x": 2000, "y": 0, "w": 1920, "h": 1080, "title": "TV · Turn intro", "page": "tv" },
+    "TV-Spinning.dc.html": { "x": 4000, "y": 0, "w": 1920, "h": 1080, "title": "TV · Spinning", "page": "tv" },
+    "TV-Spin.dc.html": { "x": 6000, "y": 0, "w": 1920, "h": 1080, "title": "TV · Wheel lands", "page": "tv" },
+
+    "TV-Difficulty.dc.html": { "x": 0, "y": 1480, "w": 1920, "h": 1080, "title": "TV · Pick difficulty", "page": "tv" },
+    "Main.dc.html": { "x": 2000, "y": 1480, "w": 1920, "h": 1080, "title": "TV · Question in play", "page": "tv" },
+    "TV-StealBuzz.dc.html": { "x": 4000, "y": 1480, "w": 1920, "h": 1080, "title": "TV · Steal buzzer", "page": "tv" },
+    "TV-Correct.dc.html": { "x": 6000, "y": 1480, "w": 1920, "h": 1080, "title": "TV · Correct!", "page": "tv" },
+
+    "TV-Dare.dc.html": { "x": 0, "y": 2960, "w": 1920, "h": 1080, "title": "TV · Dare in play", "page": "tv" },
+    "TV-SoundItOut.dc.html": { "x": 2000, "y": 2960, "w": 1920, "h": 1080, "title": "TV · Sound It Out", "page": "tv" },
+    "TV-RapidList.dc.html": { "x": 4000, "y": 2960, "w": 1920, "h": 1080, "title": "TV · Rapid List", "page": "tv" },
+    "TV-HotSeat.dc.html": { "x": 6000, "y": 2960, "w": 1920, "h": 1080, "title": "TV · Hot Seat", "page": "tv" },
+    "TV-DareVote.dc.html": { "x": 8000, "y": 2960, "w": 1920, "h": 1080, "title": "TV · Room vote", "page": "tv" },
+    "TV-Showdown.dc.html": { "x": 10000, "y": 2960, "w": 1920, "h": 1080, "title": "TV · Showdown", "page": "tv" },
+
+    "TV-AllPlay.dc.html": { "x": 0, "y": 4440, "w": 1920, "h": 1080, "title": "TV · All Play (typing)", "page": "tv" },
+    "TV-DoubleDown.dc.html": { "x": 2000, "y": 4440, "w": 1920, "h": 1080, "title": "TV · Double Down", "page": "tv" },
+    "TV-StealPick.dc.html": { "x": 4000, "y": 4440, "w": 1920, "h": 1080, "title": "TV · Grinch Steal", "page": "tv" },
+    "TV-RoundBreak.dc.html": { "x": 6000, "y": 4440, "w": 1920, "h": 1080, "title": "TV · Round break", "page": "tv" },
+    "TV-AllPlayReveal.dc.html": { "x": 8000, "y": 4440, "w": 1920, "h": 1080, "title": "TV · All Play reveal", "page": "tv" },
+    "TV-GrinchGift.dc.html": { "x": 10000, "y": 4440, "w": 1920, "h": 1080, "title": "TV · Grinch gift (leader)", "page": "tv" },
+
+    "TV-FinalWager.dc.html": { "x": 0, "y": 5920, "w": 1920, "h": 1080, "title": "TV · Final Chaos wager", "page": "tv" },
+    "TV-FinalReveal.dc.html": { "x": 2000, "y": 5920, "w": 1920, "h": 1080, "title": "TV · Final reveal", "page": "tv" },
+    "TV-Podium.dc.html": { "x": 4000, "y": 5920, "w": 1920, "h": 1080, "title": "TV · Final results", "page": "tv" },
+
+    "Phone-Join.dc.html": { "x": 0, "y": 0, "w": 390, "h": 844, "title": "Phone · Join a team", "page": "phones", "is_interactive": true },
+    "Phone-Waiting.dc.html": { "x": 470, "y": 0, "w": 390, "h": 844, "title": "Phone · Waiting lobby", "page": "phones" },
+    "Phone-Spin.dc.html": { "x": 940, "y": 0, "w": 390, "h": 844, "title": "Phone · Your turn", "page": "phones" },
+    "Phone-Watching.dc.html": { "x": 1410, "y": 0, "w": 390, "h": 844, "title": "Phone · Watching", "page": "phones" },
+    "Phone-Difficulty.dc.html": { "x": 1880, "y": 0, "w": 390, "h": 844, "title": "Phone · Pick difficulty", "page": "phones" },
+    "Phone-Buzzer.dc.html": { "x": 2350, "y": 0, "w": 390, "h": 844, "title": "Phone · Buzzer", "page": "phones", "is_interactive": true },
+
+    "Phone-Secret.dc.html": { "x": 0, "y": 1244, "w": 390, "h": 844, "title": "Phone · Secret card", "page": "phones", "is_interactive": true },
+    "Phone-StealPick.dc.html": { "x": 470, "y": 1244, "w": 390, "h": 844, "title": "Phone · Grinch Steal pick", "page": "phones" },
+    "Phone-FinalWager.dc.html": { "x": 940, "y": 1244, "w": 390, "h": 844, "title": "Phone · Final wager", "page": "phones" },
+    "Phone-FinalAnswer.dc.html": { "x": 1410, "y": 1244, "w": 390, "h": 844, "title": "Phone · Final answer", "page": "phones" },
+    "Phone-GameOver.dc.html": { "x": 1880, "y": 1244, "w": 390, "h": 844, "title": "Phone · Game over", "page": "phones" },
+    "Phone-AllPlayAnswer.dc.html": { "x": 2350, "y": 1244, "w": 390, "h": 844, "title": "Phone · All Play answer", "page": "phones" },
+
+    "Phone-Vote.dc.html": { "x": 0, "y": 2488, "w": 390, "h": 844, "title": "Phone · Room vote", "page": "phones", "is_interactive": true },
+    "Phone-Showdown.dc.html": { "x": 470, "y": 2488, "w": 390, "h": 844, "title": "Phone · Called up for Showdown", "page": "phones" },
+
+    "Host-Lobby.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Host · Lobby setup", "page": "host", "expand": "fill" },
+    "Host.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Host · Running a turn", "page": "host", "expand": "fill" },
+    "Host-Dare.dc.html": { "x": 3040, "y": 0, "w": 1440, "h": 900, "title": "Host · Judging a dare", "page": "host", "expand": "fill" },
+    "Host-RapidList.dc.html": { "x": 0, "y": 1300, "w": 1440, "h": 900, "title": "Host · Rapid List", "page": "host", "expand": "fill" },
+    "Host-FinalReveal.dc.html": { "x": 1520, "y": 1300, "w": 1440, "h": 900, "title": "Host · Final reveal", "page": "host", "expand": "fill" },
+    "Host-AllPlay.dc.html": { "x": 3040, "y": 1300, "w": 1440, "h": 900, "title": "Host · Marking All Play", "page": "host", "expand": "fill" },
+
+    "System.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Design system", "page": "system" }
+  },
+  "order": [
+    "TV-Lobby.dc.html", "TV-TurnIntro.dc.html", "TV-Spinning.dc.html", "TV-Spin.dc.html",
+    "TV-Difficulty.dc.html", "Main.dc.html", "TV-StealBuzz.dc.html", "TV-Correct.dc.html",
+    "TV-Dare.dc.html", "TV-SoundItOut.dc.html", "TV-RapidList.dc.html", "TV-HotSeat.dc.html", "TV-DareVote.dc.html", "TV-Showdown.dc.html",
+    "TV-AllPlay.dc.html", "TV-DoubleDown.dc.html", "TV-StealPick.dc.html", "TV-RoundBreak.dc.html", "TV-AllPlayReveal.dc.html", "TV-GrinchGift.dc.html",
+    "TV-FinalWager.dc.html", "TV-FinalReveal.dc.html", "TV-Podium.dc.html",
+    "Phone-Join.dc.html", "Phone-Waiting.dc.html", "Phone-Spin.dc.html", "Phone-Watching.dc.html", "Phone-Difficulty.dc.html", "Phone-Buzzer.dc.html",
+    "Phone-Secret.dc.html", "Phone-StealPick.dc.html", "Phone-FinalWager.dc.html", "Phone-FinalAnswer.dc.html", "Phone-GameOver.dc.html", "Phone-AllPlayAnswer.dc.html",
+    "Phone-Vote.dc.html", "Phone-Showdown.dc.html",
+    "Host-Lobby.dc.html", "Host.dc.html", "Host-Dare.dc.html", "Host-RapidList.dc.html", "Host-FinalReveal.dc.html", "Host-AllPlay.dc.html",
+    "System.dc.html"
+  ],
+  "notes": {
+    "tvRow1": { "x": 0, "y": -280, "text": "Lobby and the spin", "kind": "title1", "maxW": 7920, "page": "tv" },
+    "tvRow2": { "x": 0, "y": 1200, "text": "Trivia: pick, answer, steal, reveal", "kind": "title1", "maxW": 7920, "page": "tv" },
+    "tvRow3": { "x": 0, "y": 2680, "text": "Wheel results, room vote and Showdown", "kind": "title1", "maxW": 11920, "page": "tv" },
+    "tvRow4": { "x": 0, "y": 4160, "text": "All Play, specials and the round break", "kind": "title1", "maxW": 11920, "page": "tv" },
+    "tvRow5": { "x": 0, "y": 5640, "text": "Final Chaos and the podium", "kind": "title1", "maxW": 5920, "page": "tv" },
+    "phRow1": { "x": 0, "y": -280, "text": "Joining and taking a turn", "kind": "title1", "maxW": 2740, "page": "phones" },
+    "phRow2": { "x": 0, "y": 964, "text": "Secrets, steals, All Play and the finale", "kind": "title1", "maxW": 2740, "page": "phones" },
+    "phRow3": { "x": 0, "y": 2208, "text": "Room vote and Showdown", "kind": "title1", "maxW": 860, "page": "phones" },
+    "hoRow1": { "x": 0, "y": -280, "text": "Setup and running turns", "kind": "title1", "maxW": 4480, "page": "host" },
+    "hoRow2": { "x": 0, "y": 1020, "text": "Lists, All Play and the finale", "kind": "title1", "maxW": 4480, "page": "host" }
+  },
+  "designSystems": []
+}

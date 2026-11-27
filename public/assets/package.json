@@ -1,0 +1,6 @@
+{
+  "name": "christmas-chaos-assets",
+  "private": true,
+  "type": "module",
+  "description": "Browser ES modules shared by the TV, host and player pages. 'type: module' lets node:test import them without warnings."
+}
