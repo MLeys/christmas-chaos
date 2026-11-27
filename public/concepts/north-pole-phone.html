@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Christmas Chaos — North Pole Workshop (phone concept)</title>
+<style>
+@font-face { font-family: "Bagel Fat One"; src: url("/fonts/bagel-fat-one/bagel-fat-one-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Figtree"; src: url("/fonts/figtree/figtree-latin-wght-normal.woff2") format("woff2"); font-weight: 300 900; font-display: swap; }
+:root { --snow:#F6F9FD; --snowbank:#E3ECF6; --candy:#D42A2A; --candy-deep:#A51D1F; --holly:#1F7A4A; --holly-deep:#155C37; --tinsel:#EDB321; --tinsel-deep:#C48A0A; --ink:#1C2333; --ink-soft:#4A5568;
+  --display:"Bagel Fat One", system-ui, sans-serif; --ui:"Figtree", system-ui, sans-serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: linear-gradient(180deg, #EAF2FB 0%, var(--snow) 40%); color: var(--ink); font-family: var(--ui); -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.wrap { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; padding: 70px 20px 24px; position: relative; overflow: hidden; }
+.garland { position: absolute; left: -10px; right: -10px; top: -10px; height: 76px; pointer-events: none; }
+
+.tag { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 20px; padding: 10px 16px 10px 10px; box-shadow: 0 2px 0 #E2E9F2, 0 10px 24px rgba(28,35,51,.10); position: relative; }
+.tag::before { content: ""; position: absolute; right: 18px; top: -16px; width: 3px; height: 24px; background: repeating-linear-gradient(var(--candy) 0 6px, #fff 6px 12px); border-radius: 2px; }
+.tag img { width: 52px; height: 52px; }
+.tag .who { flex: 1; min-width: 0; }
+.tag .team { font-weight: 900; font-size: 20px; color: var(--candy); }
+.tag .me { font-size: 16px; color: var(--ink-soft); font-weight: 600; }
+.tag .pts { font-family: var(--display); font-size: 30px; font-variant-numeric: tabular-nums; }
+
+h1 { font-family: var(--display); font-weight: 400; font-size: 40px; line-height: 1.05; color: var(--candy); text-align: center; margin: 34px 0 6px; }
+.sub { text-align: center; font-size: 19px; font-weight: 600; color: var(--ink-soft); margin: 0 0 26px; }
+
+/* peppermint SPIN */
+.mint { position: relative; width: 290px; height: 290px; margin: 0 auto; border: 0; padding: 0; border-radius: 50%; background: none; cursor: pointer; filter: drop-shadow(0 18px 24px rgba(165,29,31,.28)); transition: transform .5s cubic-bezier(.3,.7,.4,1); }
+.mint:active { transform: scale(.95); transition-duration: 60ms; }
+.mint .candy { position: absolute; inset: 0; border-radius: 50%;
+  background: repeating-conic-gradient(from -8deg, var(--candy) 0 22.5deg, #fff 22.5deg 45deg);
+  box-shadow: inset 0 0 0 8px #fff, inset 0 -10px 24px rgba(0,0,0,.12), inset 0 10px 20px rgba(255,255,255,.6); }
+.mint .shine { position: absolute; left: 18%; top: 12%; width: 40%; height: 22%; border-radius: 50%; background: rgba(255,255,255,.45); filter: blur(4px); transform: rotate(-20deg); }
+.mint .core { position: absolute; inset: 70px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: 0 4px 10px rgba(0,0,0,.12); }
+.mint .core span { font-family: var(--display); font-size: 52px; color: var(--candy); line-height: 1; }
+.mint .wrapper-l, .mint .wrapper-r { position: absolute; top: 50%; width: 64px; height: 90px; transform: translateY(-50%); background: linear-gradient(90deg, rgba(255,255,255,.95), rgba(220,232,246,.95)); clip-path: polygon(0 0, 100% 30%, 100% 70%, 0 100%, 18% 50%); z-index: -1; }
+.mint .wrapper-l { left: -48px; transform: translateY(-50%) scaleX(-1); }
+.mint .wrapper-r { right: -48px; }
+
+/* red ornament BUZZ preview */
+.preview { margin-top: auto; padding-top: 26px; display: flex; align-items: center; gap: 16px; }
+.preview p { margin: 0; font-size: 16px; color: var(--ink-soft); font-weight: 600; }
+.buzz { position: relative; width: 120px; height: 132px; flex: none; }
+.buzz .cap { position: absolute; left: 44px; top: 0; width: 32px; height: 20px; border-radius: 5px 5px 3px 3px; background: linear-gradient(90deg, var(--tinsel-deep), var(--tinsel), var(--tinsel-deep)); }
+.buzz .ball { position: absolute; left: 0; top: 14px; width: 120px; height: 120px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #FF7A7A 0%, var(--candy) 46%, var(--candy-deep) 100%); box-shadow: 0 10px 20px rgba(165,29,31,.3); display: grid; place-items: center; font-family: var(--display); font-size: 30px; color: #fff; }
+
+.scores { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.s { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 14px; padding: 8px 10px; font-size: 15px; font-weight: 700; box-shadow: 0 6px 14px rgba(28,35,51,.06); }
+.s img { width: 28px; height: 28px; }
+.s b { margin-left: auto; font-family: var(--display); font-weight: 400; font-size: 20px; }
+.s.me { outline: 3px solid var(--candy); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <svg class="garland" viewBox="0 0 430 80" preserveAspectRatio="none" aria-hidden="true" id="garland"></svg>
+
+  <div class="tag"><img src="/assets/art/deer.png" alt=""><div class="who"><div class="team">Team Rudolph</div><div class="me">You’re Aunt Linda</div></div><div class="pts">1,150</div></div>
+
+  <h1>Your team is up!</h1>
+  <p class="sub">Tap the peppermint to spin the wheel on the TV.</p>
+
+  <button class="mint" type="button" aria-label="Spin the wheel">
+    <span class="candy"></span><span class="shine"></span>
+    <span class="core"><span>Spin</span></span>
+  </button>
+
+  <div class="preview"><div class="buzz" aria-hidden="true"><span class="cap"></span><span class="ball">Buzz</span></div><p>When a steal opens, this red ornament becomes your buzzer. First tap wins.</p></div>
+
+  <div class="scores">
+    <div class="s me"><img src="/assets/art/deer.png" alt="">Team Rudolph<b>1,150</b></div>
+    <div class="s"><img src="/assets/art/tree.png" alt="">The Grinches<b>900</b></div>
+    <div class="s"><img src="/assets/art/bell.png" alt="">Jingle Bell Rockers<b>750</b></div>
+    <div class="s"><img src="/assets/art/santa.png" alt="">Naughty List<b>650</b></div>
+  </div>
+</div>
+<script>
+const NS = 'http://www.w3.org/2000/svg', g = document.getElementById('garland');
+let d = 'M0 10'; const sw = 3, W = 430; for (let i = 0; i < sw; i++) { const a = i * W / sw, b = (i + 1) * W / sw; d += ` Q ${(a + b) / 2} 58 ${b} 10`; }
+for (const [s, w, da] of [['#1B5E3B', 16, null], ['#2E8B57', 13, '2 6'], ['#43A36B', 9, '1 7']]) { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); p.setAttribute('fill', 'none'); p.setAttribute('stroke', s); p.setAttribute('stroke-width', w); p.setAttribute('stroke-linecap', 'round'); if (da) p.setAttribute('stroke-dasharray', da); g.appendChild(p); }
+const path = g.lastChild, len = path.getTotalLength(), cols = ['#D42A2A', '#EDB321', '#2E7BE0', '#1F9D57', '#F28C28'];
+for (let i = 0; i < 11; i++) { const q = path.getPointAtLength(len * (i + .5) / 11); const e = document.createElementNS(NS, 'g'); e.setAttribute('transform', `translate(${q.x} ${q.y + 5})`); e.innerHTML = `<rect x="-3" y="-1" width="6" height="5" rx="1" fill="#7A6A44"/><ellipse cx="0" cy="11" rx="5" ry="8" fill="${cols[i % 5]}"/><ellipse cx="-1.5" cy="8" rx="1.5" ry="3" fill="#fff" opacity=".55"/>`; g.appendChild(e); }
+</script>
+</body>
+</html>
