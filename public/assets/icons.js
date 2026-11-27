@@ -255,15 +255,21 @@ export function icon(name, opts = {}) {
   );
 }
 
+/** Art bigger than this (design px) is lazy-loaded unless eager:true. */
+export const ART_LAZY_OVER = 96;
+
 /**
  * A 3D illustration as an <img> string (decorative unless `alt` is given).
  * @param {string} id  art id (see ART); unknown ids render sparkles
- * @param {{size?:number|string, alt?:string, className?:string, eager?:boolean}} [opts] size in design px (emitted in rem)
+ * @param {{size?:number|string, alt?:string, className?:string, eager?:boolean}} [opts] size in design px (emitted in rem).
+ *   eager: small art (≤ 96 px — chips, headers, mascots, list icons) loads eagerly by default so it never pops in
+ *   after a screen change; bigger hero art is lazy unless you pass eager:true.
  */
 export function artImg(id, opts = {}) {
-  const { size = 48, alt = '', className = '', eager = false } = opts || {};
+  const { size = 48, alt = '', className = '', eager: eagerOpt } = opts || {};
   const len = toRem(size, 48);
   const n = Number(size);
+  const eager = eagerOpt ?? !(Number.isFinite(n) && n > ART_LAZY_OVER);
   const dims = Number.isFinite(n) && n > 0 ? ` width="${Math.round(n)}" height="${Math.round(n)}"` : '';
   const cls = `art${className ? ' ' + escAttr(className) : ''}`;
   const a11y = alt ? ` alt="${escAttr(alt)}"` : ' alt="" aria-hidden="true"';

@@ -153,7 +153,7 @@ In `turnResult` the finished challenge stays in `state.challenge` with `stage:'d
 |---|---|---|
 | `trivia` (0 Christmas Trivia `category:'christmas'`; 2 Pop Culture `'popculture'`; **4 Christmas Movies `'movies'`**) | `pickDifficulty` → `question` → [`steal`] → `done` | team picks (phone or host) → 20 s timer auto-starts → `judge correct` = done; `judge wrong` **or time-out** = `steal`: `buzz.armingUntil` = now+3 s, then `buzz.open` (10 s `steal` timer) → buzz → judge → correct = done (stealer gets `stealPoints`), wrong = team locked, host `openSteal` to re-arm for the rest; steal timer runs out / no teams left / `reveal` = done (`missed`). Movies questions carry `movie` (+ `movieYear`) once the question is shown (TV sub-chip) |
 | `sounditout` (5) | `perform` → [`steal`] → `done` | 30 s `sound` timer is **prepared, host starts it**; performer's phone has `secret`; correct = 200; wrong or time-out = steal for 100 (same buzz mechanics) |
-| `dare` (1,8) | `perform` → [`vote`] → `done` | dare timer (dare.time) prepared, host starts it; host `dareResult` directly, or `openVote` → 15 s vote → closes (timer / all voted / `closeVote`) → scored. `dareResult` again in `done` re-judges |
+| `dare` (1,8) | `perform` → [`vote`] → `done` | a team with one player never draws a `pair` dare (also on Swap); dare timer (dare.time) prepared, host starts it; host `dareResult` directly, or `openVote` → 15 s vote → closes (timer / all voted / `closeVote`) → scored. `dareResult` again in `done` re-judges |
 | `showdown` (7) | `pickRival` → `battle` → `done` | team picks a rival (phone or host; `previewTarget` → `eyeing`) → one player from each team called up (`performer`, `rival`) → timer prepared, host starts → `showdownResult` |
 | `rapidlist` (9) | `list` → `done` | 30 s timer prepared (host starts, or first tick starts it); ticks are scored live; time-out or `continue` = done; ticks still allowed in `done` |
 | `hotseat` (3) | `hotseat` → `done` | 45 s timer prepared (host starts, or the first mark starts it); `hotseat.question` is public only once the clock started; done after Q6 or time-out (or `continue`) |
@@ -292,7 +292,7 @@ final: null | {category, categoryLabel, question|null, wagers:[{teamId, locked, 
                current: teamId|null, done, answer|null},
                // wagers[].max = max(score,300) (public: depends only on the score); amounts stay hidden until revealed
 podium: null | {standings:[{teamId, score, place}],
-                awards:[{key, title, playerId|null, name, teamId|null, detail, art, tie}],   // (comedy) max 6, only when earned
+                awards:[{key, title, playerId|null, playerIds:[], name, teamId|null, teamIds:[], detail, art, tie}],   // (comedy) max 6, only when earned
                 stats:{players:[{playerId, teamId, buzzWins, firsts, wrongAnswers, steals, performances, perfectHotSeat, buzzChances}],
                        teams:[{teamId, steals, stealCount, wrong, timesLed, worstRank|null, climb}]}},     (ext) see §10
 quip: null | {id, key, text, tone:'cheer'|'tease'|'drama'|'pun'|null, teamId|null},   (ext, comedy) the TV's funny line for
@@ -370,7 +370,8 @@ can: {spin, pickDifficulty, buzz, pickTarget, previewTarget, submitAnswer, wager
 - Podium places share ties (`place = 1 + number of teams with a higher score`).
 - **Funny awards** (comedy, `podium.awards`, docs/design/COMEDY.md §2): only when earned, at most 6, shown in this order
   (the Lump of Coal is the finale). A two-way tie is shared (`name` "A and B", `tie:true`, `playerId:null`, `teamId` only
-  if both are on the same team, detail says "each"); a bigger tie means nobody stood out, so no award. When all 7 are
+  if both are on the same team, detail says "each"; `playerIds` lists every winning player and `teamIds` every winning team,
+  so pages decide "is this mine / my team’s" from those, never from the joined `name`); a bigger tie means nobody stood out, so no award. When all 7 are
   earned, one drops out: a shared one if any, else the Rudolph Award.
 
   | key | title | `art` | who / when earned | example `detail` |
@@ -1644,8 +1645,8 @@ is shortened. Examples 1–23 were captured before the comedy layer: every view 
       {"teamId": "t2", "score": 0, "place": 3}
     ],
     "awards": [
-      {"key": "fastestFinger", "title": "Fastest Finger", "playerId": "p4", "name": "Sam", "teamId": "t3", "detail": "1 buzz won · 1 first answer — thumbs faster than Santa’s sleigh", "art": "zap", "tie": false},
-      {"key": "starPerformer", "title": "Star Performer", "playerId": "p4", "name": "Sam", "teamId": "t3", "detail": "3 performances · 250 pts — the elves want an encore", "art": "masks", "tie": false}
+      {"key": "fastestFinger", "title": "Fastest Finger", "playerId": "p4", "playerIds": ["p4"], "name": "Sam", "teamId": "t3", "teamIds": ["t3"], "detail": "1 buzz won · 1 first answer — thumbs faster than Santa’s sleigh", "art": "zap", "tie": false},
+      {"key": "starPerformer", "title": "Star Performer", "playerId": "p4", "playerIds": ["p4"], "name": "Sam", "teamId": "t3", "teamIds": ["t3"], "detail": "3 performances · 250 pts — the elves want an encore", "art": "masks", "tie": false}
     ],
     "stats": "… (see example 25)"
   },
@@ -1723,11 +1724,11 @@ publicView `podium` (Fastest Finger was a three-way tie at 1 buzz each, so nobod
 {
   "standings": [{"teamId": "t2", "score": 400, "place": 1}, {"teamId": "t1", "score": 200, "place": 2}, {"teamId": "t3", "score": 200, "place": 2}],
   "awards": [
-    {"key": "starPerformer", "title": "Star Performer", "playerId": "p6", "name": "Zoe", "teamId": "t3", "detail": "1 dare · 200 pts — the elves want an encore", "art": "masks", "tie": false},
-    {"key": "grinchOfTheYear", "title": "Grinch of the Year", "playerId": null, "name": "Team Elf", "teamId": "t2", "detail": "Stole 100 points — heart still two sizes too small", "art": "money", "tie": false},
-    {"key": "comebackKid", "title": "Comeback Kid", "playerId": null, "name": "Team Elf", "teamId": "t2", "detail": "From 3rd to 1st — and won the whole thing!", "art": "sled", "tie": false},
-    {"key": "rudolph", "title": "Rudolph Award", "playerId": null, "name": "Team Grinch", "teamId": "t3", "detail": "Led 2 of 2 rounds — guided the sleigh all night", "art": "deer", "tie": false},
-    {"key": "lumpOfCoal", "title": "Lump of Coal Award", "playerId": "p2", "name": "Leo", "teamId": "t1", "detail": "4 wrong answers — Santa noticed", "art": "snowman", "tie": false}
+    {"key": "starPerformer", "title": "Star Performer", "playerId": "p6", "playerIds": ["p6"], "name": "Zoe", "teamId": "t3", "teamIds": ["t3"], "detail": "1 dare · 200 pts — the elves want an encore", "art": "masks", "tie": false},
+    {"key": "grinchOfTheYear", "title": "Grinch of the Year", "playerId": null, "playerIds": [], "name": "Team Elf", "teamId": "t2", "teamIds": ["t2"], "detail": "Stole 100 points — heart still two sizes too small", "art": "money", "tie": false},
+    {"key": "comebackKid", "title": "Comeback Kid", "playerId": null, "playerIds": [], "name": "Team Elf", "teamId": "t2", "teamIds": ["t2"], "detail": "From 3rd to 1st — and won the whole thing!", "art": "sled", "tie": false},
+    {"key": "rudolph", "title": "Rudolph Award", "playerId": null, "playerIds": [], "name": "Team Grinch", "teamId": "t3", "teamIds": ["t3"], "detail": "Led 2 of 2 rounds — guided the sleigh all night", "art": "deer", "tie": false},
+    {"key": "lumpOfCoal", "title": "Lump of Coal Award", "playerId": "p2", "playerIds": ["p2"], "name": "Leo", "teamId": "t1", "teamIds": ["t1"], "detail": "4 wrong answers — Santa noticed", "art": "snowman", "tie": false}
   ],
   "stats": {
     "players": [

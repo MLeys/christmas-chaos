@@ -19,12 +19,12 @@ A Christmas party game show for the whole family. The **wheel spins on the TV**,
 Open **PowerShell** (or Terminal) and run:
 
 ```powershell
-git clone -b v2-redesign https://github.com/MLeys/christmas-chaos.git
+git clone https://github.com/MLeys/christmas-chaos.git
 cd christmas-chaos
 npm install
 ```
 
-No git? On the GitHub page, switch the branch to **v2-redesign**, click **Code → Download ZIP**, unzip it, open PowerShell in that folder and run `npm install`.
+No git? On the GitHub page click **Code → Download ZIP**, unzip it, open PowerShell in that folder and run `npm install`.
 
 **Let phones through the firewall (Windows, one time, needs admin):**
 
@@ -108,6 +108,8 @@ npm test                          # game engine + end-to-end socket tests
 node --test test/assets.test.js   # front-end helpers (wheel, timers, fx)
 npm run test:ui                   # plays a whole game in headless Edge and screenshots every screen
 ```
+
+`npm run test:ui` needs Microsoft Edge installed and takes about 8 minutes; screenshots land in `test/screens/`. Set `UI_HEADED=1` to watch the browsers, `UI_QUICK=0` to skip the 720p / small-phone pass. Quip authors can write `{teamVerb:wins|win}` so plural team names read correctly.
 
 Architecture, protocol and design docs: `PROTOCOL.md`, `docs/SPEC.md`, `docs/TECH.md`, `docs/design/`. Continuing work in a new chat: see `HANDOFF.md`.
 

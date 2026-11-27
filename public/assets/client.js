@@ -108,6 +108,48 @@ export function possessive(name) {
   return /s$/i.test(s) ? `${s}’` : `${s}’s`;
 }
 
+/* ---- team-name grammar: the SAME code as src/grammar.js (keep the two identical; both are tested) ---- */
+
+/** Singular words that end in "s" (a team called "Merry Christmas" or "Santa Claus" is one team). */
+const SINGULAR_S = /(?:^|[^\p{L}])(?:christmas|xmas|nicholas|thomas|atlas|texas|vegas|elvis|chris|paris|news)$/iu;
+
+/**
+ * True for a team name that reads as a plural noun: it ends in "s" (ignoring trailing punctuation), but not in a
+ * possessive "'s" / "’s", a double "ss" (Boss), "us" (Santa Claus, Krampus) or a known singular word (Merry Christmas).
+ * "The Grinches", "Jingle Bell Rockers", "Elves" -> true; "Team Rudolph", "Elf Help", "Naughty List", "Frosty's Crew" -> false.
+ * Several names joined with "and" are plural, but pass that yourself: a team may be called "Milk and Cookie".
+ */
+export function isPluralTeam(name) {
+  const s = String(name ?? '').trim().replace(/[^\p{L}\p{N}]+$/u, '');
+  if (!/s$/i.test(s)) return false;
+  if (/['’]s$/i.test(s) || /ss$/i.test(s) || /us$/i.test(s)) return false;
+  return !SINGULAR_S.test(s);
+}
+
+/** The verb form that agrees with a team name: verb('The Grinches', 'wins', 'win') -> "win". */
+export function verb(name, singular, plural) {
+  return isPluralTeam(name) ? plural : singular;
+}
+export const isAre = (name) => verb(name, 'is', 'are');
+export const hasHave = (name) => verb(name, 'has', 'have');
+export const wasWere = (name) => verb(name, 'was', 'were');
+
+const IRREGULAR_VERBS = { is: 'are', has: 'have', was: 'were', does: 'do', goes: 'go' };
+/** The plural (base) form of a singular present-tense verb: wins -> win, catches -> catch, tries -> try, is -> are. */
+export function pluralOf(singular) {
+  const v = String(singular ?? '');
+  const lower = v.toLowerCase();
+  if (IRREGULAR_VERBS[lower]) return IRREGULAR_VERBS[lower];
+  if (/[^aeiou]ies$/i.test(v)) return v.slice(0, -3) + 'y';
+  if (/(ss|sh|ch|x|z|o)es$/i.test(v)) return v.slice(0, -2);
+  if (/s$/i.test(v) && !/ss$/i.test(v)) return v.slice(0, -1);
+  return v;
+}
+/** "Name verb" with the verb agreeing: subject('The Grinches', 'is') -> "The Grinches are" (pass the singular form). */
+export function subject(name, singular) {
+  return `${name} ${verb(name, singular, pluralOf(singular))}`;
+}
+
 /** 1 -> "1st", 2 -> "2nd", 11 -> "11th", 23 -> "23rd". */
 export function ordinal(n) {
   const v = Math.trunc(Number(n) || 0);
@@ -162,29 +204,55 @@ const RING_R = 54;
 const RING_C = 2 * Math.PI * RING_R; // 339.29
 
 /**
+ * What a timer ring shows right now: 'ready' (prepared, the host has not started it: full ring + the full
+ * duration), 'paused', 'over' (started and ran out), 'run', or 'idle' (no timer).
+ * `started` is optional in old payloads: only an explicit `started:false` counts as ready.
+ */
+export function timerState(timer, now = Date.now()) {
+  if (!timer) return 'idle';
+  if (timer.started === false && !timer.running) return 'ready';
+  const left = timerRemaining(timer, now);
+  if (left <= 0) return timer.started || timer.ended ? 'over' : 'idle';
+  return timer.running ? 'run' : 'paused';
+}
+
+/** Ring numbers for a state: {frac, text, secs}. A ready timer shows the full duration on a full ring. */
+function ringNumbers(timer, now, state) {
+  if (state === 'ready') {
+    const s = Math.ceil((Number(timer.durationMs) || Number(timer.remainingMs) || 0) / 1000);
+    return { frac: 1, secs: s, text: s < 60 ? String(s) : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` };
+  }
+  return { frac: timerFraction(timer, now), secs: timerSeconds(timer, now), text: timerText(timer, now) };
+}
+
+const RING_UNITS = { ready: 'Ready', paused: 'Paused' };
+
+/**
  * The ornament timer (NORTH-POLE.md §4): a shiny red bauble with a gold cap + loop, the number in Bagel Fat One
  * white and a gold progress ring; it pulses fast in the last 5 s. Class names are the old .timer-ring ones.
  * The cap + loop stick out ~20% of the size above the ball, so leave headroom.
- * @param {object|null} timer  state.timer {running, endsAt, durationMs, remainingMs, label}
+ * States (classes): .is-ready (prepared, not started: full ring, full seconds, "ready") · .is-paused · .is-warn
+ * (≤ 5 s) · .is-over (ran out).
+ * @param {object|null} timer  state.timer {running, endsAt, durationMs, remainingMs, label, started, ended}
  * @param {number} now          server time (client.serverNow())
- * @param {{size?:number, unit?:string, ink?:boolean, tone?:'candy'|'holly'|'gold', className?:string}} [opts]
+ * @param {{size?:number, unit?:string, readyUnit?:string, ink?:boolean, tone?:'candy'|'holly'|'gold', className?:string}} [opts]
  *   size = ball diameter in design px (default 124; the TV concept uses 150). Under 90 px the unit is dropped.
  */
 export function timerRing(timer, now = Date.now(), opts = {}) {
-  const { size = 124, unit = 'seconds', ink = false, tone = 'candy', className = '' } = opts;
-  const frac = timerFraction(timer, now);
-  const secs = timerText(timer, now);
-  const warn = timerWarn(timer, now);
-  const paused = !!timer && !timer.running && timerRemaining(timer, now) > 0;
+  const { size = 124, unit = 'seconds', readyUnit = RING_UNITS.ready, ink = false, tone = 'candy', className = '' } = opts;
+  const state = timerState(timer, now);
+  const { frac, text: secs } = ringNumbers(timer, now, state);
+  const warn = state === 'run' && timerWarn(timer, now);
   const compact = Number(size) < 90; // phone-size rings drop the SECONDS label
-  const cls = ['timer-ring', compact && 'timer-ring--compact', warn && 'is-warn', paused && 'is-paused', ink && 'timer-ring--ink', tone === 'holly' && 'timer-ring--holly', tone === 'gold' && 'timer-ring--gold', className]
+  const cls = ['timer-ring', compact && 'timer-ring--compact', warn && 'is-warn', state === 'paused' && 'is-paused', state === 'ready' && 'is-ready', state === 'over' && 'is-over', ink && 'timer-ring--ink', tone === 'holly' && 'timer-ring--holly', tone === 'gold' && 'timer-ring--gold', className]
     .filter(Boolean)
     .join(' ');
   const offset = (RING_C * (1 - frac)).toFixed(1);
-  return h`<div class="${cls}" style="--ring-size:${+(Number(size) / 16 || 7.75).toFixed(4)}rem" role="timer" aria-label="${secs} seconds left" data-timer-ring>
+  const unitText = state === 'ready' ? readyUnit : state === 'paused' ? RING_UNITS.paused : unit;
+  return h`<div class="${cls}" style="--ring-size:${+(Number(size) / 16 || 7.75).toFixed(4)}rem" role="timer" aria-label="${state === 'ready' ? `${secs} seconds, waiting to start` : `${secs} seconds left`}" data-timer-ring>
   <span class="timer-ring__loop" aria-hidden="true"></span><span class="timer-ring__cap" aria-hidden="true"></span>
   <svg viewBox="-5 -5 134 134" aria-hidden="true" focusable="false"><circle class="timer-ring__track" cx="62" cy="62" r="54" fill="none" stroke-width="10"/><circle class="timer-ring__arc" cx="62" cy="62" r="54" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${offset}" transform="rotate(-90 62 62)"/><g class="timer-ring__head" style="${headStyle(frac)}"><circle cx="62" cy="8" r="8.5"/><circle cx="62" cy="8" r="4"/></g></svg>
-  <div class="timer-ring__center"><span class="timer-ring__num">${secs}</span><span class="timer-ring__unit">${paused ? 'Paused' : unit}</span></div>
+  <div class="timer-ring__center"><span class="timer-ring__num">${secs}</span><span class="timer-ring__unit">${unitText}</span></div>
 </div>`;
 }
 
@@ -197,25 +265,26 @@ function headStyle(frac) {
  * Update an existing timer ring in place (no re-render, no flicker). Returns the whole seconds shown,
  * so callers can beep when the number changes.
  */
-export function updateTimerRing(el, timer, now = Date.now(), { unit = 'seconds' } = {}) {
+export function updateTimerRing(el, timer, now = Date.now(), { unit = 'seconds', readyUnit = RING_UNITS.ready } = {}) {
   const ring = el?.matches?.('[data-timer-ring]') ? el : el?.querySelector?.('[data-timer-ring]');
   if (!ring) return 0;
-  const frac = timerFraction(timer, now);
-  const text = timerText(timer, now);
-  const warn = timerWarn(timer, now);
-  const paused = !!timer && !timer.running && timerRemaining(timer, now) > 0;
-  ring.classList.toggle('is-warn', warn);
-  ring.classList.toggle('is-paused', paused);
+  const state = timerState(timer, now);
+  const { frac, text, secs } = ringNumbers(timer, now, state);
+  ring.classList.toggle('is-warn', state === 'run' && timerWarn(timer, now));
+  ring.classList.toggle('is-paused', state === 'paused');
+  ring.classList.toggle('is-ready', state === 'ready');
+  ring.classList.toggle('is-over', state === 'over');
   ring.querySelector('.timer-ring__arc')?.setAttribute('stroke-dashoffset', (RING_C * (1 - frac)).toFixed(1));
   const head = ring.querySelector('.timer-ring__head');
   if (head) head.style.transform = `rotate(${(360 * frac).toFixed(1)}deg)`;
   const num = ring.querySelector('.timer-ring__num');
   if (num && num.textContent !== text) num.textContent = text;
   const u = ring.querySelector('.timer-ring__unit');
-  const unitText = paused ? 'Paused' : unit;
+  const unitText = state === 'ready' ? readyUnit : state === 'paused' ? RING_UNITS.paused : unit;
   if (u && u.textContent !== unitText) u.textContent = unitText;
-  ring.setAttribute('aria-label', `${text} seconds left`);
-  return timerSeconds(timer, now);
+  ring.setAttribute('aria-label', state === 'ready' ? `${text} seconds, waiting to start` : `${text} seconds left`);
+  // a ready timer is not counting: report 0 so callers never beep on it
+  return state === 'ready' ? 0 : secs;
 }
 
 /* ================================================================== markup helpers ============ */
@@ -335,24 +404,28 @@ export function peppermint({ label = 'Spin', ariaLabel = 'Spin the wheel', spinn
 
 const BUZZ_STATES = {
   armed: { word: 'Buzz', icon: '', sub: '' },
+  arming: { word: '3', icon: '', sub: 'Get ready' },
   first: { word: 'You’re first!', icon: 'check', sub: 'Answer out loud' },
   other: { word: '', icon: '', sub: 'buzzed first' },
   locked: { word: 'Locked out', icon: 'lock', sub: '' },
 };
 
 /**
- * Ornament BUZZ button (phone). state: 'armed' (sway + glint) · 'first' (holly, check) · 'other' (silver + name) ·
- * 'locked' (dim silver + lock). Only 'armed' is a pressable <button>; the others are role="img".
- * @param {{state?:'armed'|'first'|'other'|'locked', name?:string, word?:string, sub?:string, ariaLabel?:string, className?:string, attrs?:any}} [o]
+ * Ornament BUZZ button (phone). state: 'armed' (sway + glint) · 'arming' (the 3-2-1 before the buzzers go live:
+ * a still, slightly dim ornament with the big `count`; patch `.ornament-btn__word` in place as it counts down) ·
+ * 'first' (holly, check) · 'other' (silver + name) · 'locked' (dim silver + lock).
+ * Only 'armed' is a pressable <button>; the others are role="img".
+ * @param {{state?:'armed'|'arming'|'first'|'other'|'locked', count?:number|string, name?:string, word?:string, sub?:string, ariaLabel?:string, className?:string, attrs?:any}} [o]
  */
-export function ornamentBuzz({ state = 'armed', name = '', word, sub, ariaLabel, className = '', attrs = '' } = {}) {
+export function ornamentBuzz({ state = 'armed', count, name = '', word, sub, ariaLabel, className = '', attrs = '' } = {}) {
   const st = BUZZ_STATES[state] ? state : 'armed';
   const d = BUZZ_STATES[st];
-  const w = word ?? d.word;
+  const w = word ?? (st === 'arming' && count != null ? String(count) : d.word);
   const sb = sub ?? d.sub;
   const cls = ['ornament-btn', `is-${st}`, className].filter(Boolean).join(' ');
-  const inner = h`<span class="ornament-btn__loop" aria-hidden="true"></span><span class="ornament-btn__cap" aria-hidden="true"></span><span class="ornament-btn__ball">${d.icon ? ic(d.icon, { size: st === 'first' ? 72 : 60, stroke: 3, color: 'currentColor' }) : ''}${st === 'other' && name ? h`<span class="ornament-btn__name">${name}</span>` : ''}${w ? h`<span class="ornament-btn__word"${st !== 'armed' ? raw(' style="font-size:calc(var(--size) * .13)"') : ''}>${w}</span>` : ''}${sb ? h`<span class="ornament-btn__sub">${sb}</span>` : ''}</span>`;
-  const label = ariaLabel ?? (st === 'armed' ? 'Buzz in' : st === 'first' ? 'You buzzed first. Answer out loud.' : st === 'other' ? `${name || 'Another team'} buzzed first` : 'Buzzer locked');
+  const small = st !== 'armed' && st !== 'arming'; // long words ("You’re first!") get the small cut
+  const inner = h`<span class="ornament-btn__loop" aria-hidden="true"></span><span class="ornament-btn__cap" aria-hidden="true"></span><span class="ornament-btn__ball">${d.icon ? ic(d.icon, { size: st === 'first' ? 72 : 60, stroke: 3, color: 'currentColor' }) : ''}${st === 'other' && name ? h`<span class="ornament-btn__name">${name}</span>` : ''}${w ? h`<span class="ornament-btn__word"${small ? raw(' style="font-size:calc(var(--size) * .13)"') : ''}>${w}</span>` : ''}${sb ? h`<span class="ornament-btn__sub">${sb}</span>` : ''}</span>`;
+  const label = ariaLabel ?? (st === 'armed' ? 'Buzz in' : st === 'arming' ? 'The buzzers arm in a moment' : st === 'first' ? 'You buzzed first. Answer out loud.' : st === 'other' ? `${name || 'Another team'} buzzed first` : 'Buzzer locked');
   return st === 'armed'
     ? h`<button type="button" class="${cls}" aria-label="${label}" ${attrs}>${inner}</button>`
     : h`<div class="${cls}" role="img" aria-label="${label}" ${attrs}>${inner}</div>`;
@@ -363,15 +436,18 @@ const BOW_SVG = '<svg viewBox="0 0 100 60" aria-hidden="true" focusable="false">
 
 /**
  * A wrapped present (difficulty picker, wheel-land unwrap, wagers, podium blocks).
- * @param {{color?:string, ribbon?:string, size?:'sm'|'md'|'lg', label?:string, points?:string|number, inside?:string,
+ * @param {{color?:string, ribbon?:string, size?:'sm'|'md'|'lg'|number, bow?:number, label?:string, points?:string|number, inside?:string,
  *          state?:'closed'|'unwrapping'|'open'|'sealed', button?:boolean, ariaLabel?:string, className?:string, attrs?:any}} [o]
+ *   size: 'sm' 144 · 'md' 192 · 'lg' 240 px wide, or a width in design px (sets --w; the bow follows the nearest
+ *   named size unless `bow` is given — bigger bow = harder). Pages can also size it with CSS: .x .present { --w }.
  *   inside: 3D art id revealed when it unwraps. button: render a <button> (difficulty picker).
  */
-export function present({ color = '#D42A2A', ribbon = '#EDB321', size = 'md', label = '', points = '', inside = '', state = 'closed', button = false, ariaLabel = '', className = '', attrs = '' } = {}) {
-  const sz = ['sm', 'md', 'lg'].includes(size) ? size : 'md';
+export function present({ color = '#D42A2A', ribbon = '#EDB321', size = 'md', bow, label = '', points = '', inside = '', state = 'closed', button = false, ariaLabel = '', className = '', attrs = '' } = {}) {
+  const px = typeof size === 'number' && size > 0 ? size : null;
+  const sz = px ? (px < 168 ? 'sm' : px < 216 ? 'md' : 'lg') : ['sm', 'md', 'lg'].includes(size) ? size : 'md';
   const st = { unwrapping: 'is-unwrapping', open: 'is-open', sealed: 'is-sealed' }[state] || '';
   const cls = ['present', `present--${sz}`, st, className].filter(Boolean).join(' ');
-  const style = `--present:${safeColor(color, '#D42A2A')};--ribbon:${safeColor(ribbon, '#EDB321')}`;
+  const style = `--present:${safeColor(color, '#D42A2A')};--ribbon:${safeColor(ribbon, '#EDB321')}${px ? `;--w:${+(px / 16).toFixed(4)}rem` : ''}${Number(bow) > 0 ? `;--bow:${+Number(bow).toFixed(3)}` : ''}`;
   const body = h`${inside ? h`<span class="present__inside">${raw(artImg(inside, { size: 120, eager: true }))}</span>` : ''}<span class="present__box" aria-hidden="true"></span><span class="present__lid" aria-hidden="true"><span class="present__bow">${raw(BOW_SVG)}</span></span>${label || points !== '' ? h`<span class="present__label">${label}${points !== '' ? h`<b>${points}</b>` : ''}</span>` : ''}`;
   return button
     ? h`<button type="button" class="${cls}" style="${style}" aria-label="${ariaLabel || [label, points].filter(Boolean).join(' ')}" ${attrs}>${body}</button>`
@@ -380,7 +456,9 @@ export function present({ color = '#D42A2A', ribbon = '#EDB321', size = 'md', la
 
 /**
  * A Christmas stocking in a team colour. Lobby: pass team (its mascot peeks out of the cuff). Hot Seat progress:
- * state 'full' (holly ✓), 'coal' (✗), 'empty' (dashed).
+ * state 'full' (holly ✓), 'coal' (charcoal stocking + ✗), 'empty' (dashed).
+ * Width: `size` (design px, default 96) is only a default (--stocking-w); pages can size it with CSS
+ * (`.my-row .stocking { --w: 2.75rem }`) without !important.
  * @param {{color?:string, team?:object, mascot?:string, state?:''|'full'|'coal'|'empty', label?:string, size?:number, hung?:boolean, ariaLabel?:string}} [o]
  */
 export function stocking({ color, team, mascot: m, state = '', label = '', size = 96, hung = false, ariaLabel = '' } = {}) {
@@ -389,16 +467,17 @@ export function stocking({ color, team, mascot: m, state = '', label = '', size 
   const cls = ['stocking', state && `is-${state}`, hung && 'is-hung'].filter(Boolean).join(' ');
   const badge = state === 'full' ? ic('check', { size: 24, stroke: 3.4, color: '#FFFFFF' }) : state === 'coal' ? ic('x', { size: 24, stroke: 3.4, color: '#FFFFFF' }) : '';
   const a11y = ariaLabel ? raw(`role="img" aria-label="${esc(ariaLabel)}"`) : raw('aria-hidden="true"');
-  return h`<span class="${cls}" style="--stocking:${c};--w:${+(Number(size) / 16 || 6).toFixed(4)}rem" ${a11y}>${mas && !state ? raw(artImg(mas.art, { size: Math.round(Number(size) * 0.64), className: 'stocking__peek', eager: true })) : ''}<svg viewBox="0 0 100 140" aria-hidden="true" focusable="false"><path class="stocking__body" d="M20 30 H74 V84 C74 92 79 97 87 101 C99 108 101 124 90 132 C81 139 68 138 57 132 L31 118 C21 112 20 104 20 95 Z"/><path class="stocking__trim" d="M57 132 C68 138 81 139 90 132 C97 127 99 118 96 111 C90 117 80 120 69 116 C64 121 60 127 57 132 Z" opacity=".9"/><path class="stocking__shade" d="M20 30 H32 V112 C24 108 20 102 20 95 Z"/><rect class="stocking__cuff" x="12" y="10" width="70" height="26" rx="11"/><path d="M14 30 H80" stroke="#E3ECF6" stroke-width="4" stroke-linecap="round"/><circle cx="76" cy="9" r="6" fill="none" stroke="#C48A0A" stroke-width="3"/></svg>${badge ? h`<span class="stocking__badge">${badge}</span>` : ''}${label ? h`<span class="stocking__label">${label}</span>` : ''}</span>`;
+  return h`<span class="${cls}" style="--stocking:${c};--stocking-w:${+(Number(size) / 16 || 6).toFixed(4)}rem" ${a11y}>${mas && !state ? raw(artImg(mas.art, { size: Math.round(Number(size) * 0.64), className: 'stocking__peek', eager: true })) : ''}<svg viewBox="0 0 100 140" aria-hidden="true" focusable="false"><path class="stocking__body" d="M20 30 H74 V84 C74 92 79 97 87 101 C99 108 101 124 90 132 C81 139 68 138 57 132 L31 118 C21 112 20 104 20 95 Z"/><path class="stocking__trim" d="M57 132 C68 138 81 139 90 132 C97 127 99 118 96 111 C90 117 80 120 69 116 C64 121 60 127 57 132 Z" opacity=".9"/><path class="stocking__shade" d="M20 30 H32 V112 C24 108 20 102 20 95 Z"/><rect class="stocking__cuff" x="12" y="10" width="70" height="26" rx="11"/><path d="M14 30 H80" stroke="#E3ECF6" stroke-width="4" stroke-linecap="round"/><circle cx="76" cy="9" r="6" fill="none" stroke="#C48A0A" stroke-width="3"/></svg>${badge ? h`<span class="stocking__badge">${badge}</span>` : ''}${label ? h`<span class="stocking__label">${label}</span>` : ''}</span>`;
 }
 
 /**
  * Sleigh-bell meter (room vote): a strap filling to `fill` (0..1) with the 3D bell riding the end.
- * @param {{label:string, count?:number|string, fill?:number, tone?:'holly'|'tinsel'|'candy', ringing?:boolean}} o
+ * @param {{label:string, count?:number|string, fill?:number, tone?:'holly'|'tinsel'|'candy', ringing?:boolean, size?:'md'|'sm'}} o
+ *   size 'sm' = the compact host / phone meter (.bell-meter--sm).
  */
-export function bellMeter({ label = '', count = '', fill = 0, tone = 'holly', ringing = false } = {}) {
+export function bellMeter({ label = '', count = '', fill = 0, tone = 'holly', ringing = false, size = 'md' } = {}) {
   const f = Math.max(0, Math.min(1, Number(fill) || 0));
-  const cls = ['bell-meter', `bell-meter--${['holly', 'tinsel', 'candy'].includes(tone) ? tone : 'holly'}`, ringing && 'is-ringing'].filter(Boolean).join(' ');
+  const cls = ['bell-meter', `bell-meter--${['holly', 'tinsel', 'candy'].includes(tone) ? tone : 'holly'}`, size === 'sm' && 'bell-meter--sm', ringing && 'is-ringing'].filter(Boolean).join(' ');
   return h`<div class="${cls}" style="--fill:${f.toFixed(3)}" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(f * 100)}"><div class="bell-meter__head"><span class="bell-meter__label">${label}</span><span class="bell-meter__count">${count}</span></div><div class="bell-meter__track"><div class="bell-meter__fill"></div>${raw(artImg('bell', { size: 60, className: 'bell-meter__bell', eager: true }))}</div></div>`;
 }
 
@@ -412,6 +491,20 @@ export function santaList({ title = 'Santa’s list', items = [], total, size = 
   const done = list.filter((i) => i.done).length;
   const rows = Array.from({ length: n }, (_, k) => list[k] || { text: '', done: false });
   return h`<div class="santa-list${size === 'sm' ? ' santa-list--sm' : ''}"><div class="santa-list__head"><span class="santa-list__title">${title}</span><span class="santa-list__count">${done} of ${n}</span></div><ol class="santa-list__items">${rows.map((r) => h`<li class="${r.done ? 'is-done' : 'is-empty'}">${r.text || raw('&nbsp;')}</li>`)}</ol></div>`;
+}
+
+/**
+ * The podium awards ceremony clock, shared by the TV (which runs the show) and the phones (which keep each award a
+ * secret until the TV has revealed it): a lead-in on the podium, then per award a drumroll and the reveal.
+ */
+export const AWARD_CEREMONY = Object.freeze({ lead: 6200, each: 6600, drum: 2100 });
+
+/** How many awards the TV has revealed `elapsedMs` after the podium appeared (0..n). */
+export function awardsRevealed(elapsedMs, n) {
+  const C = AWARD_CEREMONY;
+  const t = Number(elapsedMs) - C.lead - C.drum;
+  if (!(t >= 0)) return 0;
+  return Math.min(Math.max(0, Math.trunc(Number(n) || 0)), Math.floor(t / C.each) + 1);
 }
 
 /** Turn dots for the header: done (gold), current (ring), upcoming (dim). */
@@ -579,7 +672,7 @@ export function secretCard({ label = 'Your secret', value = '', rule = '', tag =
 /** Font size for the secret value so long titles still fit the 352 px card (76 px for short ones, like the artboard). */
 export function secretFontSize(value) {
   const t = String(value ?? '');
-  const longest = Math.max(0, ...t.split(/s+/).map((w) => w.length));
+  const longest = Math.max(0, ...t.split(/\s+/).map((w) => w.length));
   if (t.length <= 12 && longest <= 7) return 'min(4.75rem, 19vw)';
   if (t.length <= 20 && longest <= 9) return 'min(3.5rem, 14vw)';
   if (t.length <= 32 && longest <= 12) return 'min(2.75rem, 11vw)';

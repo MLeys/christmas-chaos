@@ -40,13 +40,13 @@
     {"id":"turn-10","text":"Next up: {team}, fresh from the North Pole and ready to rumble.","tone":"cheer"},
     {"id":"turn-11","text":"{team}, be the Kevin McCallister of this turn: small plan, big chaos.","tone":"pun"},
     {"id":"turn-12","text":"{team}, the wheel is dozing. Wake it up!","tone":"tease"},
-    {"id":"turn-13","text":"Places, everyone! {team} is about to make some bold choices.","tone":"tease"},
+    {"id":"turn-13","text":"Places, everyone! Bold choices incoming from {team}.","tone":"tease"},
     {"id":"turn-14","text":"{team}, you're on! Remember: confidence is 90% of a wrong answer.","tone":"tease"},
     {"id":"turn-15","text":"{team}, this is your moment. Make it worth a Christmas-card brag.","tone":"cheer"},
     {"id":"turn-16","text":"All eyes on {team}. Yes, even the dog's.","tone":"tease"},
     {"id":"turn-17","text":"{team}, show us what you've got. Unless it's fruitcake. Nobody wants fruitcake.","tone":"tease"},
     {"id":"turn-18","text":"{team}, Santa called. He said 'good luck' and also 'do better than last year.'","tone":"tease"},
-    {"id":"turn-19","text":"{team} is up! Quick, everybody look supportive.","tone":"tease"},
+    {"id":"turn-19","text":"You're up, {team}! Quick, everybody look supportive.","tone":"tease"},
     {"id":"turn-20","text":"{team}: spin like nobody's watching. Everybody's watching.","tone":"tease"},
     {"id":"turn-21","text":"{team}, the wheel has 12 slots and at least 11 of them are fine.","tone":"tease"},
     {"id":"turn-22","text":"Lights, camera, {team}! Somebody plug in the Griswold lights.","tone":"pun"},
@@ -56,19 +56,19 @@
     {"id":"turn-26","text":"{team}! The crowd goes wild! (The crowd is your family. They're trying.)","tone":"cheer"}
   ],
   "spinStart": [
-    {"id":"spin-01","text":"{player} spins! Round and round and round it goes…","tone":"drama"},
-    {"id":"spin-02","text":"And {player} spins! The suspense is thicker than holiday fudge.","tone":"drama"},
-    {"id":"spin-03","text":"Wheeeee! {player} has unleashed the wheel.","tone":"cheer"},
+    {"id":"spin-01","text":"{player} {playerVerb:spins|spin}! Round and round and round it goes…","tone":"drama"},
+    {"id":"spin-02","text":"And {player} {playerVerb:spins|spin}! The suspense is thicker than holiday fudge.","tone":"drama"},
+    {"id":"spin-03","text":"Wheeeee! {player} {playerVerb:has|have} unleashed the wheel.","tone":"cheer"},
     {"id":"spin-04","text":"Spinning! Close your eyes and think happy thoughts. Not about dares.","tone":"tease"},
     {"id":"spin-05","text":"{player} spun it like they're opening the biggest present under the tree.","tone":"tease"},
     {"id":"spin-06","text":"Around it goes! Somebody hold Rudolph back, he wants a turn.","tone":"pun"},
     {"id":"spin-07","text":"Spinnnning… the most dramatic thing to happen since the turkey.","tone":"drama"},
-    {"id":"spin-08","text":"{player} spins! Fun fact: the wheel cannot be bribed. We checked.","tone":"tease"},
+    {"id":"spin-08","text":"{player} {playerVerb:spins|spin}! Fun fact: the wheel cannot be bribed. We checked.","tone":"tease"},
     {"id":"spin-09","text":"Here we go! Every slot is a gift. Some of them are socks.","tone":"pun"},
     {"id":"spin-10","text":"That wheel is moving faster than Santa on Christmas Eve!","tone":"cheer"},
-    {"id":"spin-11","text":"{player} has spun the wheel. There's no going back now.","tone":"tease"},
+    {"id":"spin-11","text":"{player} {playerVerb:has|have} spun the wheel. There's no going back now.","tone":"tease"},
     {"id":"spin-12","text":"Look at it go! Just like everybody's New Year's resolutions.","tone":"pun"},
-    {"id":"spin-13","text":"{player} spins with the confidence of someone who hasn't noticed the Dare slot.","tone":"tease"},
+    {"id":"spin-13","text":"{player} {playerVerb:spins|spin} with the confidence of someone who hasn't noticed the Dare slot.","tone":"tease"},
     {"id":"spin-14","text":"Twirling like the Sugar Plum Fairy! The Nutcracker is jealous.","tone":"pun"},
     {"id":"spin-15","text":"Round and round, like Cousin Eddie's RV looking for a parking spot.","tone":"pun"},
     {"id":"spin-16","text":"And it's spinning! Everyone, hold your breath. Not literally.","tone":"tease"},
@@ -218,7 +218,7 @@
   ],
   "land.doubledown": [
     {"id":"land-double-01","text":"DOUBLE DOWN! Everything's twice as nice. Like seconds at Christmas dinner.","tone":"pun"},
-    {"id":"land-double-02","text":"Double Down! {team} spins again, and every point counts double. Greedy? Festive.","tone":"cheer"},
+    {"id":"land-double-02","text":"Double Down! Spin again, {team}: every point counts double. Greedy? Festive.","tone":"cheer"},
     {"id":"land-double-03","text":"Double Down! Two times the points, two times the drama.","tone":"drama"},
     {"id":"land-double-04","text":"Double Down! Twice the reward. Same amount of panic.","tone":"tease"},
     {"id":"land-double-05","text":"Double Down! Not the Jelly of the Month Club, Clark. It's double points!","tone":"pun"},
@@ -273,7 +273,7 @@
     {"id":"hard-01","text":"HARD?! Somebody's feeling brave. Or overconfident. We'll see!","tone":"drama"},
     {"id":"hard-02","text":"Hard! Triple-dog-dare accepted.","tone":"pun"},
     {"id":"hard-03","text":"Hard! Go big or go home. You're already home. So go big!","tone":"cheer"},
-    {"id":"hard-04","text":"Hard! {team} is reaching for the star on top of the tree!","tone":"cheer"},
+    {"id":"hard-04","text":"Hard! {team}, reaching for the star on top of the tree!","tone":"cheer"},
     {"id":"hard-05","text":"Hard! The elves just gasped. One dropped a candy cane.","tone":"drama"},
     {"id":"hard-06","text":"Hard! Bold. Daring. Possibly a mistake. We love it!","tone":"tease"},
     {"id":"hard-07","text":"Hard! Either this goes brilliantly, or it becomes a great story.","tone":"tease"},
@@ -283,7 +283,7 @@
   ],
   "correct": [
     {"id":"correct-01","text":"Correct! Somewhere, an angel just got its wings.","tone":"pun"},
-    {"id":"correct-02","text":"YES! {team} takes {points}! Sleigh bells, please!","tone":"cheer"},
+    {"id":"correct-02","text":"YES! {points} points for {team}! Sleigh bells, please!","tone":"cheer"},
     {"id":"correct-03","text":"Correct! That answer is going straight on the fridge.","tone":"cheer"},
     {"id":"correct-04","text":"Nailed it! Santa's moving you up the nice list.","tone":"cheer"},
     {"id":"correct-05","text":"Correct! The elves are doing a little dance right now.","tone":"cheer"},
@@ -301,8 +301,8 @@
     {"id":"correct-17","text":"Correct! Somebody hang that answer on the tree.","tone":"cheer"},
     {"id":"correct-18","text":"Correct! The reindeer are nodding. Approvingly. It's hard to tell with reindeer.","tone":"tease"},
     {"id":"correct-19","text":"Correct! Smoother than Bing Crosby on a snowy evening.","tone":"pun"},
-    {"id":"correct-20","text":"Yes! {team} earns {points}. Treat yourselves to an extra cookie.","tone":"cheer"},
-    {"id":"correct-21","text":"Correct! Mark it down, elves. {team} knows their stuff.","tone":"cheer"},
+    {"id":"correct-20","text":"Yes! {points} for {team}. Treat yourselves to an extra cookie.","tone":"cheer"},
+    {"id":"correct-21","text":"Correct! Mark it down, elves. Nobody knows their stuff like {team}.","tone":"cheer"},
     {"id":"correct-22","text":"Correct! Jolly good. Emphasis on jolly.","tone":"pun"},
     {"id":"correct-23","text":"A Christmas miracle! Okay, just a correct answer. But still!","tone":"tease"},
     {"id":"correct-24","text":"Right! That's {points} points and a lifetime of bragging.","tone":"cheer"},
@@ -310,7 +310,7 @@
     {"id":"correct-26","text":"Correct! That's the most wonderful answer of the year.","tone":"pun"}
   ],
   "correctHard": [
-    {"id":"correct-hard-01","text":"A HARD one, nailed! Somebody check if {team} is secretly Santa.","tone":"tease"},
+    {"id":"correct-hard-01","text":"A HARD one, nailed! Somebody check {team} for a Santa suit.","tone":"tease"},
     {"id":"correct-hard-02","text":"Correct on hard! That's like threading a needle with mittens on.","tone":"pun"},
     {"id":"correct-hard-03","text":"WOW! {points} points! The elves are adding {team} to the Hall of Fame.","tone":"cheer"},
     {"id":"correct-hard-04","text":"Hard question, easy win! Show-offs. Lovable show-offs.","tone":"tease"},
@@ -386,16 +386,16 @@
     {"id":"steal-open-10","text":"Leftover points! Who wants 'em? Buzz first, answer right.","tone":"cheer"}
   ],
   "stealWon": [
-    {"id":"steal-won-01","text":"STOLEN! {team} swoops in for {points}! Ka-ching!","tone":"cheer"},
-    {"id":"steal-won-02","text":"{team} steals it! Merry Christmas, ya filthy animals!","tone":"pun"},
+    {"id":"steal-won-01","text":"STOLEN! {team}, swooping in for {points}! Ka-ching!","tone":"cheer"},
+    {"id":"steal-won-02","text":"Stolen by {team}! Merry Christmas, ya filthy animals!","tone":"pun"},
     {"id":"steal-won-03","text":"Snatched! {team} grabbed those points like the last cookie on the plate.","tone":"pun"},
     {"id":"steal-won-04","text":"Steal successful! The Wet Bandits are jealous.","tone":"pun"},
-    {"id":"steal-won-05","text":"{team} takes the steal! The Grinch just nodded with respect.","tone":"tease"},
-    {"id":"steal-won-06","text":"Ka-ching! {team} pockets {points}. Smooth. Very smooth.","tone":"cheer"},
+    {"id":"steal-won-05","text":"The steal goes to {team}! The Grinch just nodded with respect.","tone":"tease"},
+    {"id":"steal-won-06","text":"Ka-ching! {points} into the pockets of {team}. Smooth. Very smooth.","tone":"cheer"},
     {"id":"steal-won-07","text":"Christmas is about sharing. Today, {other} shared with {team}.","tone":"tease"},
     {"id":"steal-won-08","text":"{team} with the steal! Sneakier than Santa down a chimney.","tone":"pun"},
-    {"id":"steal-won-09","text":"Stolen! {team} is checking the scoreboard twice.","tone":"tease"},
-    {"id":"steal-won-10","text":"{team} steals it! Somebody get them a tiny burglar hat.","tone":"tease"}
+    {"id":"steal-won-09","text":"Stolen! {team} {teamVerb:is|are} checking the scoreboard twice.","tone":"tease"},
+    {"id":"steal-won-10","text":"A steal for {team}! Somebody get them a tiny burglar hat.","tone":"tease"}
   ],
   "stealMissed": [
     {"id":"steal-miss-01","text":"Steal missed! The points stay under the tree. Unclaimed. Lonely.","tone":"tease"},
@@ -465,7 +465,7 @@
     {"id":"show-win-03","text":"Winner! {player} is the undisputed champion of this living room.","tone":"cheer"},
     {"id":"show-win-04","text":"{player} takes it! Somebody make them a tinsel crown.","tone":"cheer"},
     {"id":"show-win-05","text":"SHOWDOWN WINNER: {player}! The crowd goes mild! No, wild!","tone":"pun"},
-    {"id":"show-win-06","text":"{team} wins the face-off! {other}, there's always next Christmas.","tone":"tease"},
+    {"id":"show-win-06","text":"Face-off to {team}! {other}, there's always next Christmas.","tone":"tease"},
     {"id":"show-win-07","text":"Champion! {player} won with the grace of a figure-skating snowman.","tone":"pun"},
     {"id":"show-win-08","text":"{player} wins! The runner-up gets a hug. The winner gets a hug AND the points.","tone":"cheer"}
   ],
@@ -483,7 +483,7 @@
     {"id":"hot-perfect-02","text":"A perfect Hot Seat! {player}, are you an elf in disguise?","tone":"tease"},
     {"id":"hot-perfect-03","text":"Flawless! {player} answered like Santa reading his own list.","tone":"pun"},
     {"id":"hot-perfect-04","text":"Perfect score! Somebody check {player}'s sleeves for an encyclopedia.","tone":"tease"},
-    {"id":"hot-perfect-05","text":"Every single one! {player} is hotter than chestnuts on an open fire.","tone":"pun"},
+    {"id":"hot-perfect-05","text":"Every single one! {player} {playerVerb:is|are} hotter than chestnuts on an open fire.","tone":"pun"},
     {"id":"hot-perfect-06","text":"PERFECT! {team}, you may now carry {player} around the room. Carefully.","tone":"cheer"},
     {"id":"hot-perfect-07","text":"Perfection! The Hot Seat is now officially on fire.","tone":"pun"}
   ],
@@ -515,7 +515,7 @@
     {"id":"list-small-07","text":"Small but mighty! Like an elf. A very quiet elf.","tone":"cheer"}
   ],
   "doubleDown": [
-    {"id":"double-01","text":"DOUBLED! Those points just got a twin. {team} banks {points}!","tone":"cheer"},
+    {"id":"double-01","text":"DOUBLED! Those points just got a twin. {points} in the bank for {team}!","tone":"cheer"},
     {"id":"double-02","text":"Double Down pays off! Twice the points, twice the swagger.","tone":"cheer"},
     {"id":"double-03","text":"Ka-ching ka-ching! That's the sound of doubled points.","tone":"pun"},
     {"id":"double-04","text":"Doubled! Like seeing two mall Santas. Lucky, and slightly suspicious.","tone":"pun"},
@@ -524,44 +524,44 @@
     {"id":"double-07","text":"Two for the price of one! Best Christmas sale ever.","tone":"pun"}
   ],
   "grinchSteal": [
-    {"id":"grinch-steal-01","text":"{team} steals {points} from {other}! You're a mean one, {team}!","tone":"pun"},
+    {"id":"grinch-steal-01","text":"{points} stolen from {other}! You're a mean one, {team}!","tone":"pun"},
     {"id":"grinch-steal-02","text":"{other} just got Grinched! {points} points, gone, up the chimney.","tone":"drama"},
     {"id":"grinch-steal-03","text":"Stolen! {team} took {other}'s points AND the Who-hash.","tone":"pun"},
     {"id":"grinch-steal-04","text":"{team} swiped {points} from {other}. The Grinch is applauding from Mount Crumpit.","tone":"pun"},
     {"id":"grinch-steal-05","text":"{other}, check your stockings! {team} just made off with {points}.","tone":"tease"},
     {"id":"grinch-steal-06","text":"Grinched! {other}, your points just left in a Santa suit.","tone":"pun"},
-    {"id":"grinch-steal-07","text":"{team} takes {points} from {other}. Not very Christmas-y. VERY funny.","tone":"tease"},
-    {"id":"grinch-steal-08","text":"{other} has been robbed! Somebody call the Whoville police. They're adorable.","tone":"tease"}
+    {"id":"grinch-steal-07","text":"{points} points, from {other} to {team}. Not very Christmas-y. VERY funny.","tone":"tease"},
+    {"id":"grinch-steal-08","text":"{other} {otherVerb:has|have} been robbed! Somebody call the Whoville police. They're adorable.","tone":"tease"}
   ],
   "grinchGift": [
-    {"id":"grinch-gift-01","text":"{team}'s heart grew three sizes today! {last} gets {points} points!","tone":"pun"},
-    {"id":"grinch-gift-02","text":"A Christmas miracle! {team} gifts {points} to {last}. Aww!","tone":"cheer"},
+    {"id":"grinch-gift-01","text":"{team}'s heart grew three sizes today! {points} points for {last}!","tone":"pun"},
+    {"id":"grinch-gift-02","text":"A Christmas miracle! A gift of {points} from {team} to {last}. Aww!","tone":"cheer"},
     {"id":"grinch-gift-03","text":"The Grinch had a change of heart! {last}, merry Christmas!","tone":"cheer"},
-    {"id":"grinch-gift-04","text":"{team} is too far ahead to steal, so they're sharing. How very Who of them.","tone":"pun"},
-    {"id":"grinch-gift-05","text":"Generosity! {team} gifts {points} to {last}. Somebody pass the roast beast.","tone":"pun"},
+    {"id":"grinch-gift-04","text":"{team} {teamVerb:is|are} too far ahead to steal, so they're sharing. How very Who of them.","tone":"pun"},
+    {"id":"grinch-gift-05","text":"Generosity! {points} from {team} to {last}. Somebody pass the roast beast.","tone":"pun"},
     {"id":"grinch-gift-06","text":"{last}, you've got mail! It's {points} points from your friendly neighborhood leader.","tone":"tease"},
     {"id":"grinch-gift-07","text":"Look at {team}, spreading cheer! The Whos down in Whoville approve.","tone":"cheer"}
   ],
   "leadChange": [
-    {"id":"lead-01","text":"New leader! {leader} takes the top spot! Somebody adjust the crown.","tone":"drama"},
-    {"id":"lead-02","text":"{leader} is in first! The crown has been passed. Gently, please.","tone":"cheer"},
-    {"id":"lead-03","text":"Change at the top! {leader} leads. {other}, how does second place taste?","tone":"tease"},
-    {"id":"lead-04","text":"Plot twist! {leader} takes the lead! The Hallmark writers didn't see that coming.","tone":"drama"},
-    {"id":"lead-05","text":"{leader} grabs the lead! Somebody put a star on top of that team.","tone":"pun"},
+    {"id":"lead-01","text":"New leader! The top spot goes to {leader}! Somebody adjust the crown.","tone":"drama"},
+    {"id":"lead-02","text":"First place: {leader}! The crown has been passed. Gently, please.","tone":"cheer"},
+    {"id":"lead-03","text":"Change at the top! {leader} in the lead. {other}, how does second place taste?","tone":"tease"},
+    {"id":"lead-04","text":"Plot twist! The lead goes to {leader}! The Hallmark writers didn't see that coming.","tone":"drama"},
+    {"id":"lead-05","text":"{leader} {leaderVerb:grabs|grab} the lead! Somebody put a star on top of that team.","tone":"pun"},
     {"id":"lead-06","text":"There's a new top elf in town: {leader}!","tone":"pun"},
-    {"id":"lead-07","text":"{leader} is the new leader! Uneasy lies the head that wears the Santa hat.","tone":"pun"},
-    {"id":"lead-08","text":"Shake-up! {leader} is now first. {other}, the Grinch Steal slot is still out there…","tone":"tease"},
-    {"id":"lead-09","text":"{leader} is leading! Enjoy it. The wheel is watching.","tone":"tease"},
-    {"id":"lead-10","text":"And {leader} takes the lead! The scoreboard just did a double take.","tone":"drama"},
+    {"id":"lead-07","text":"All hail the new leader: {leader}! Uneasy lies the head that wears the Santa hat.","tone":"pun"},
+    {"id":"lead-08","text":"Shake-up! {leader}, now in first. {other}, the Grinch Steal slot is still out there…","tone":"tease"},
+    {"id":"lead-09","text":"{leader} {leaderVerb:is|are} leading! Enjoy it. The wheel is watching.","tone":"tease"},
+    {"id":"lead-10","text":"And {leader} {leaderVerb:takes|take} the lead! The scoreboard just did a double take.","tone":"drama"},
     {"id":"lead-11","text":"Top spot: {leader}! Remember this moment. Screenshot it, even.","tone":"tease"},
     {"id":"lead-12","text":"{leader} on top! Like the star on the tree: shiny and slightly wobbly.","tone":"pun"}
   ],
   "bigComeback": [
-    {"id":"comeback-01","text":"What a comeback! {team} is the Christmas miracle we needed!","tone":"cheer"},
-    {"id":"comeback-02","text":"{team} is rising like a gingerbread house on a sugar high!","tone":"pun"},
+    {"id":"comeback-01","text":"{team}: the Christmas miracle we needed!","tone":"cheer"},
+    {"id":"comeback-02","text":"{team} {teamVerb:is|are} rising like a gingerbread house on a sugar high!","tone":"pun"},
     {"id":"comeback-03","text":"COMEBACK! {team} went from coal to gold!","tone":"pun"},
     {"id":"comeback-04","text":"Look at {team} climb! Faster than Santa up a chimney.","tone":"cheer"},
-    {"id":"comeback-05","text":"{team} is back in it! Never count out a team with snacks.","tone":"tease"},
+    {"id":"comeback-05","text":"{team} {teamVerb:is|are} back in it! Never count out a team with snacks.","tone":"tease"},
     {"id":"comeback-06","text":"Rudolph was underestimated too. Look at {team} now!","tone":"pun"},
     {"id":"comeback-07","text":"{team} went from Charlie Brown tree to Rockefeller tree!","tone":"pun"},
     {"id":"comeback-08","text":"Comeback alert! {team}'s score just grew three sizes!","tone":"pun"}
@@ -577,16 +577,16 @@
     {"id":"last-08","text":"{last}, the whole North Pole is rooting for the underdog. Woof!","tone":"cheer"}
   ],
   "roundBreak": [
-    {"id":"break-01","text":"Hot cocoa break! {leader} is leading. {last}, the cocoa is especially for you.","tone":"tease"},
+    {"id":"break-01","text":"Hot cocoa break! {leader} in the lead. {last}, the cocoa is especially for you.","tone":"tease"},
     {"id":"break-02","text":"End of the round! {leader}, enjoy the view from the top while it lasts.","tone":"tease"},
     {"id":"break-03","text":"Break time! Stretch, snack and plot your revenge.","tone":"cheer"},
-    {"id":"break-04","text":"Round over! {leader} is on top. Everyone else is 'saving their best for later.'","tone":"tease"},
+    {"id":"break-04","text":"Round over! {leader} on top. Everyone else is 'saving their best for later.'","tone":"tease"},
     {"id":"break-05","text":"Intermission! {last}, every great comeback starts with a snack break.","tone":"cheer"},
-    {"id":"break-06","text":"Round break! {leader} is ahead, but the Grinch is still on the wheel.","tone":"drama"},
+    {"id":"break-06","text":"Round break! {leader} {leaderVerb:is|are} ahead, but the Grinch is still on the wheel.","tone":"drama"},
     {"id":"break-07","text":"Refill the cocoa, check the scores, and talk a little trash. Gently.","tone":"tease"},
     {"id":"break-08","text":"Cookie break! {leader}, don't get too comfy. {last}, get comfy, then strike.","tone":"tease"},
     {"id":"break-09","text":"That's a round! The elves are tallying. Some of them are crying. Happy tears.","tone":"tease"},
-    {"id":"break-10","text":"Round complete! {leader} leads, {last} trails, and everyone's still smiling. Mostly.","tone":"tease"}
+    {"id":"break-10","text":"Round complete! {leader} {leaderVerb:leads|lead}, {last} {lastVerb:trails|trail}, and everyone's still smiling. Mostly.","tone":"tease"}
   ],
   "finalIntro": [
     {"id":"final-01","text":"It's time for FINAL CHAOS! Everything comes down to this.","tone":"drama"},
@@ -600,26 +600,26 @@
   ],
   "finalAllIn": [
     {"id":"allin-01","text":"{team} went ALL IN! That's either genius or the start of a great story.","tone":"drama"},
-    {"id":"allin-02","text":"ALL IN! {team} is living on the edge. The edge of the sleigh.","tone":"pun"},
+    {"id":"allin-02","text":"ALL IN! {team} {teamVerb:is|are} living on the edge. The edge of the sleigh.","tone":"pun"},
     {"id":"allin-03","text":"{team} bet everything! Bold. Brave. Possibly bonkers.","tone":"tease"},
-    {"id":"allin-04","text":"All in! {team} has the confidence of a kid on Christmas morning.","tone":"cheer"},
+    {"id":"allin-04","text":"All in! {team} {teamVerb:has|have} the confidence of a kid on Christmas morning.","tone":"cheer"},
     {"id":"allin-05","text":"ALL IN! {team} just took the triple-dog dare.","tone":"pun"},
-    {"id":"allin-06","text":"Everything on the line! {team} is playing for keeps.","tone":"drama"},
+    {"id":"allin-06","text":"Everything on the line! {team}, playing for keeps.","tone":"drama"},
     {"id":"allin-07","text":"{team} went all in! Santa just leaned forward in his chair.","tone":"drama"},
-    {"id":"allin-08","text":"{team} is all in! The elves can't watch. They're watching through their fingers.","tone":"tease"}
+    {"id":"allin-08","text":"All in from {team}! The elves can't watch. They're watching through their fingers.","tone":"tease"}
   ],
   "finalZeroBet": [
     {"id":"zerobet-01","text":"{team} bet ZERO! Safer than a sweater over a sweater.","tone":"tease"},
-    {"id":"zerobet-02","text":"Zero! {team} is the 'I'll just have a tiny slice' of wagers.","tone":"tease"},
+    {"id":"zerobet-02","text":"Zero! {team} {teamVerb:is|are} the 'I'll just have a tiny slice' of wagers.","tone":"tease"},
     {"id":"zerobet-03","text":"{team} bet nothing! Very cautious. Very strategic. Very Scrooge.","tone":"pun"},
-    {"id":"zerobet-04","text":"A zero bet! {team} is keeping their points gift-wrapped.","tone":"pun"},
-    {"id":"zerobet-05","text":"Nothing ventured, nothing lost! {team} plays it cool as a snowman.","tone":"pun"},
+    {"id":"zerobet-04","text":"A zero bet! {team}, keeping their points gift-wrapped.","tone":"pun"},
+    {"id":"zerobet-05","text":"Nothing ventured, nothing lost! {team} {teamVerb:plays|play} it cool as a snowman.","tone":"pun"},
     {"id":"zerobet-06","text":"{team} bet zero. The elves respect it. They don't understand it, but they respect it.","tone":"tease"},
-    {"id":"zerobet-07","text":"Zero on the line! {team} is as cautious as a snowman near a fireplace.","tone":"pun"}
+    {"id":"zerobet-07","text":"Zero on the line! {team} {teamVerb:is|are} as cautious as a snowman near a fireplace.","tone":"pun"}
   ],
   "finalCorrect": [
     {"id":"final-right-01","text":"{team} got it! {answer}! Up, up and away go the points!","tone":"cheer"},
-    {"id":"final-right-02","text":"Correct! {team} cashes in. Fa-la-la-la-LOOT!","tone":"pun"},
+    {"id":"final-right-02","text":"Correct! Cash in, {team}! Fa-la-la-la-LOOT!","tone":"pun"},
     {"id":"final-right-03","text":"YES! {team} nailed the final! Somebody hang their name on the tree.","tone":"cheer"},
     {"id":"final-right-04","text":"Right! {team} just wrapped up a very big present for themselves.","tone":"pun"},
     {"id":"final-right-05","text":"Correct! {team}'s wager pays off. The elves owe each other cookies.","tone":"tease"},
@@ -638,14 +638,14 @@
     {"id":"final-wrong-08","text":"Wrong! {team}, we'll call it a generous donation to the Christmas spirit.","tone":"tease"}
   ],
   "podium": [
-    {"id":"podium-01","text":"{leader} wins Christmas! Please accept this imaginary trophy made of tinsel.","tone":"cheer"},
+    {"id":"podium-01","text":"{leader} {leaderVerb:wins|win} Christmas! Please accept this imaginary trophy made of tinsel.","tone":"cheer"},
     {"id":"podium-02","text":"Your champions: {leader}! Bragging rights valid through next December.","tone":"cheer"},
-    {"id":"podium-03","text":"{leader} takes the crown! Everyone else: it's the thought that counts.","tone":"tease"},
+    {"id":"podium-03","text":"The crown goes to {leader}! Everyone else: it's the thought that counts.","tone":"tease"},
     {"id":"podium-04","text":"Congratulations, {leader}! Santa's moving you to the very top of the nice list.","tone":"cheer"},
     {"id":"podium-05","text":"And the winner is… {leader}! Everyone else: there's always next year's rematch.","tone":"tease"},
-    {"id":"podium-06","text":"{leader} wins! Cue the confetti, the cocoa and the extremely humble victory speech.","tone":"tease"},
+    {"id":"podium-06","text":"Victory for {leader}! Cue the confetti, the cocoa and the extremely humble victory speech.","tone":"tease"},
     {"id":"podium-07","text":"Victory for {leader}! Victory dance optional. Strongly encouraged.","tone":"cheer"},
-    {"id":"podium-08","text":"{leader} is the Christmas Chaos champion! Frame it. Put it on the mantel.","tone":"pun"}
+    {"id":"podium-08","text":"{leader}: Christmas Chaos champions! Frame it. Put it on the mantel.","tone":"pun"}
   ],
   "undo": [
     {"id":"undo-01","text":"Undo! The host has rewound time. Like a VHS of Home Alone.","tone":"tease"},

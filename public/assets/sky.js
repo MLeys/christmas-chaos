@@ -161,7 +161,7 @@ export function snowfall(container, opts = {}) {
 export const BULB_COLORS = Object.freeze(['#D42A2A', '#EDB321', '#2E7BE0', '#1F9D57', '#F28C28', '#C2185B']);
 /** Garland modes (svg[data-mode]); all CSS-driven in tokens.css. */
 export const GARLAND_MODES = Object.freeze(['twinkle', 'chase', 'spin', 'lit', 'flash', 'blink', 'off']);
-const GARLAND_SIZES = { tv: 1, host: 0.62, phone: 0.53 };
+const GARLAND_SIZES = { tv: 1, host: 0.5, phone: 0.53 };
 
 /** Point on a quadratic Bézier. */
 function quad(p0, c, p1, t) {

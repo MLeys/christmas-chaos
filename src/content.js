@@ -17,6 +17,9 @@
  * Plus the comedy bank (an OBJECT, optional — missing file = no quips, the game still works):
  *   quips.json      { <moment key>: [{id, text, tone?:'cheer'|'tease'|'drama'|'pun', when?:{}}] }   (docs/design/COMEDY.md §1)
  *     text placeholders: {team} {player} {points} {answer} {other} {leader} {last} {segment};
+ *     a verb that must agree with a name: {teamVerb:wins|win} (also otherVerb, leaderVerb, lastVerb, playerVerb):
+ *     the plural form is used for a plural team name ("The Grinches") or several joined names ("A and B");
+ *     "{team}'s" becomes "The Grinches'" by itself;
  *     {answer} is only allowed in correct / correctHard / finalCorrect (the server fills it only after the reveal).
  */
 const fs = require('fs');
@@ -38,6 +41,10 @@ const QUIP_KEYS = Object.freeze([
 const QUIP_PLACEHOLDERS = Object.freeze(['team', 'player', 'points', 'answer', 'other', 'leader', 'last', 'segment']);
 /** The only moments whose lines may name the answer (filled only once it is public). */
 const QUIP_ANSWER_KEYS = Object.freeze(['correct', 'correctHard', 'finalCorrect']);
+/** Placeholders a {<name>Verb:singular|plural} marker can agree with ({teamVerb:wins|win}). */
+const QUIP_VERB_SUBJECTS = Object.freeze(['team', 'other', 'leader', 'last', 'player']);
+/** The inside of a verb marker: "teamVerb:wins|win" (both forms required, no braces or bars inside). */
+const QUIP_VERB_RE = /^([a-zA-Z]+)Verb:([^{}|]+)\|([^{}|]+)$/;
 const QUIP_TONES = Object.freeze(['cheer', 'tease', 'drama', 'pun']);
 
 const FILES = {
@@ -219,7 +226,14 @@ function validateQuip(key, it) {
   if (it.when !== undefined && (it.when === null || typeof it.when !== 'object' || Array.isArray(it.when))) e.push('when must be an object');
   if (typeof it.text === 'string') {
     for (const m of it.text.matchAll(/\{([^{}]*)\}/g)) {
-      if (!QUIP_PLACEHOLDERS.includes(m[1])) e.push(`unknown placeholder {${m[1]}}`);
+      const v = QUIP_VERB_RE.exec(m[1]);
+      if (v) {
+        if (!QUIP_VERB_SUBJECTS.includes(v[1])) e.push(`{${v[1]}Verb:…} must agree with one of ${QUIP_VERB_SUBJECTS.join(' / ')}`);
+        else if (!it.text.includes(`{${v[1]}}`)) e.push(`{${v[1]}Verb:…} needs {${v[1]}} in the same line`);
+        continue;
+      }
+      if (/Verb:/.test(m[1])) e.push(`bad verb marker {${m[1]}} (use {teamVerb:wins|win})`);
+      else if (!QUIP_PLACEHOLDERS.includes(m[1])) e.push(`unknown placeholder {${m[1]}}`);
       else if (m[1] === 'answer' && !QUIP_ANSWER_KEYS.includes(key)) e.push('{answer} is only allowed in ' + QUIP_ANSWER_KEYS.join(' / '));
     }
   }
@@ -308,5 +322,5 @@ function contentStats(content, used) {
 
 module.exports = {
   loadContent, validateItem, drawFrom, isQuickQuestion, contentStats, triviaPool, FILES, MIN_COUNTS, FALLBACK, TRIVIA_CATEGORIES,
-  loadQuips, validateQuip, QUIP_FILE, QUIP_KEYS, QUIP_PLACEHOLDERS, QUIP_ANSWER_KEYS, QUIP_TONES,
+  loadQuips, validateQuip, QUIP_FILE, QUIP_KEYS, QUIP_PLACEHOLDERS, QUIP_ANSWER_KEYS, QUIP_TONES, QUIP_VERB_SUBJECTS, QUIP_VERB_RE,
 };

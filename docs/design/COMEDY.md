@@ -10,6 +10,9 @@ chance to get a laugh, but never slow the game down (quips ≤ 2 lines, animatio
 ## 1. Quips (data/quips.json — written by the content team)
 A bank of short funny lines, keyed by moment, each with `{id, text, tone:'cheer'|'tease'|'drama'|'pun', when?:{...}}`.
 Placeholders: `{team}`, `{player}`, `{points}`, `{answer}`, `{other}` (another team), `{leader}`, `{last}`, `{segment}`.
+Team names can be plural ("The Grinches"), so avoid a verb right after a name ("You're up, {team}!", "The lead goes to
+{leader}!"); when you need one, write `{teamVerb:is|are}` (also `otherVerb`, `leaderVerb`, `lastVerb`, `playerVerb`): the
+server picks the form that agrees (several joined names are plural). `{team}'s` becomes "The Grinches'" by itself.
 Moments (keys): `lobbyIdle`, `gameStart`, `turnIntro`, `spinStart`, `land.<segmentType>` (trivia, movies, popculture, dare,
 showdown, sounditout, rapidlist, hotseat, allplay, doubledown, grinch), `pickEasy`, `pickMedium`, `pickHard`, `correct`,
 `correctHard`, `wrong`, `wrongEasy` (missed an easy one), `timeUp`, `stealOpen`, `stealWon`, `stealMissed`, `nobodyBuzzed`,

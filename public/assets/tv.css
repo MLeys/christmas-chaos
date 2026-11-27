@@ -121,14 +121,7 @@ body.tv { background: var(--snow); }
 @keyframes tv-quip-talk { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-7deg) translateY(-0.125rem); } 75% { transform: rotate(6deg); } }
 
 /* ---------- small shared pieces ---------- */
-/* Legibility floor (≥ 28 px at 1080p for anything players read): lift the shared 20–26 px labels on the TV. */
-.tv-app .chip, .tv-app .chip--md { font-size: 1.75rem; }
-.tv-app .chip--md { --chip-art: 2.25rem; min-height: 3rem; }
-.tv-app .film-cue { font-size: 1.75rem; }
-.tv-tags .score-tag__name { font-size: 1.75rem; }
-.tv-tags .score-tag__upnow { top: -1.5rem; padding: 0.25rem 0.875rem; font-size: 1.75rem; line-height: 1.1; }
-.tv-tags:has(> :nth-child(7)) .score-tag__name { font-size: 1.75rem; }
-.tv-tags:has(> :nth-child(7)) .score-tag__upnow { font-size: 1.75rem; }
+/* The ≥ 28 px legibility floor for chips, the film cue and score-tag names now lives in tokens.css (html[data-surface='tv']). */
 .chip .x2 { display: inline-block; margin-left: 0.5rem; padding: 0.125rem 0.625rem; border-radius: var(--r-chip); background: var(--candy); color: #FFFFFF; font-size: 1em; }
 .chip--steal { --chip-bg: var(--ember); --chip-ink: var(--paper-ink); }
 .upnext { display: inline-flex; align-items: center; gap: 0.75rem; flex: none; padding: 0.375rem 1.5rem 0.375rem 1.25rem; border-radius: var(--r-chip); background: var(--paper); box-shadow: 0 0.25rem 0 var(--snowbank), var(--shadow-soft); color: var(--paper-ink); }
@@ -197,7 +190,6 @@ ul.stockings { position: relative; display: flex; justify-content: space-around;
 .lobby-stocking { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.625rem; }
 .lobby-stocking__hang { position: relative; display: flex; justify-content: center; }
 .lobby-stocking__hang::before { content: ''; position: absolute; left: 50%; top: -6.5rem; width: 0.25rem; height: 6.5rem; margin-left: 0.5rem; background: var(--tinsel-deep); border-radius: 0.125rem; }
-.lobby-stocking .stocking { --w: 8.25rem; }
 .is-two .mantels { gap: 0.75rem; }
 .is-two ul.stockings { padding-top: 3.75rem; }
 .is-two .lobby-stocking { gap: 0.375rem; }
@@ -680,7 +672,7 @@ ul.stockings { position: relative; display: flex; justify-content: space-around;
 .ap-lock { grid-area: 1 / 2 / 3 / 3; align-self: center; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem; border-radius: 1.5rem; background: var(--snowbank); color: var(--paper-ink); font: 800 1.875rem/1 var(--font-ui); }
 .village { position: absolute; left: 0; right: 0; bottom: 0; height: 35rem; }
 .village::before { content: ''; position: absolute; left: -2rem; right: -2rem; bottom: -1rem; height: 15rem; border-radius: 50% 50% 0 0 / 40% 40% 0 0; background: linear-gradient(180deg, #FFFFFF, #EEF4FB); box-shadow: 0 -0.5rem 2rem rgba(143, 168, 200, 0.25); }
-.village__count { position: absolute; left: 0; right: 0; top: 1rem; text-align: center; z-index: 2; font: 700 2rem/1 var(--font-ui); color: var(--ink-soft); }
+.village__count { position: absolute; left: 0; right: 0; top: 4rem;   /* clear of a 3-line question card */ text-align: center; z-index: 2; font: 700 2rem/1 var(--font-ui); color: var(--ink-soft); }
 .village__count strong { color: var(--paper-ink); font-weight: 900; }
 ul.houses { position: absolute; left: var(--side); right: var(--side); top: 7.5rem; display: flex; align-items: flex-start; justify-content: center; gap: 2rem; margin: 0; padding: 0; list-style: none; }
 .house { --hw: 19rem; position: relative; flex: 0 1 var(--hw); min-width: 0; display: flex; flex-direction: column; align-items: center; animation: tv-in 600ms var(--ease-out) both; animation-delay: calc(var(--i) * 70ms); }

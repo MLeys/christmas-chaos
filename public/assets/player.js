@@ -15,7 +15,8 @@
 import {
   connect, h, raw, ic, art, mascot, setHTML, toast, onPress, secretCard, bindSecretCard, timerRing, updateTimerRing,
   timerSeconds, timerWarn, formatPoints, formatDelta, plural, ordinal, listJoin, possessive, vibrate, wakeLock,
-  animateNumber, qsa, peppermint, ornamentBuzz, present, stocking, slotChip, reducedMotion,
+  animateNumber, qsa, peppermint, ornamentBuzz, present, stocking, slotChip, reducedMotion, isPluralTeam, subject,
+  AWARD_CEREMONY, awardsRevealed,
 } from './client.js';
 import { safeColor, hasArt } from './icons.js';
 import { garland, snowfall, snowbank, starfield } from './sky.js';
@@ -53,6 +54,7 @@ const ui = {
   pendingLevel: null,  // difficulty tapped while the pick is in flight
   rot: {},             // funny-line index per list
   seen: new Set(),     // result screens we already celebrated / commiserated
+  ceremony: null,      // {t0, timers} podium awards ceremony running on the TV (awards stay secret until revealed there)
 };
 
 let S = null;          // latest playerView
@@ -186,7 +188,6 @@ const mmss = (sec) => {
 };
 const initial = (name) => (String(name || '?').trim()[0] || '?').toUpperCase();
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : '');
-const verbS = (name) => (/s$/i.test(String(name || '')) ? '' : 's');   // "The Grinches get" / "Team Rudolph gets"
 /** The server's current quip as {text, mine} (mine = it is about your team), optionally only for some moment keys. */
 const quipOf = (s, keys) => {
   const q = s.quip;
@@ -427,6 +428,11 @@ function deriveBuzzer(s, my) {
   };
 }
 
+/** Double Down: the active team's points this turn are ×2 (never another team's). */
+function myMult(s, my) {
+  return my && my.id === s.activeTeamId && my.multiplier > 1 ? my.multiplier : 1;
+}
+
 /* ---------- performer: secret present ---------- */
 function secretLabel(label) {
   const l = String(label || '').toLowerCase();
@@ -441,19 +447,20 @@ function deriveSecret(s, my, kind) {
   const c = s.challenge;
   const sec = s.secret;
   const isSong = kind === 'sound';
+  const pts = c.points * myMult(s, my);
   return {
     id: 'secret',
     data: {
       kind,
       cid: c.id,
-      chip: chip(segOf(s), isSong ? `Sound It Out · ${c.points}` : `Dare · ${c.points}`),
+      chip: chip(segOf(s), isSong ? `Sound It Out · ${pts}` : `Dare · ${pts}`),
       name: s.me.name,
       team: my.name,
       dare: !isSong && c.dare ? c.dare.title : null,
       label: isSong ? 'Your song' : secretLabel(sec.label),
       value: sec.value,
       rule: isSong ? `No words — hum it!${sec.detail ? ` (${sec.detail})` : ''}` : sec.label,
-      points: c.points,
+      points: pts,
       partner: c.partner && c.partner.playerId !== s.me.playerId ? c.partner.name : c.partner && c.performer && !isMe(s, c.performer) ? c.performer.name : null,
     },
   };
@@ -464,15 +471,16 @@ function derivePerform(s, my) {
   const c = s.challenge;
   const d = c.dare || null;
   const other = isMe(s, c.performer) ? c.partner : c.performer;
+  const pts = c.points * myMult(s, my);
   return {
     id: 'perform',
     data: {
-      chip: chip(segOf(s), d ? `Dare · ${c.points}` : undefined),
+      chip: chip(segOf(s), d ? `Dare · ${pts}` : undefined),
       title: d ? d.title : segOf(s)?.label || 'Your moment',
       instructions: d ? d.instructions : c.rule,
       props: d ? d.props || [] : [],
       partner: other && other.name ? other.name : null,
-      points: c.points,
+      points: pts,
       team: my.name,
     },
   };
@@ -530,17 +538,18 @@ function deriveCalledUp(s, my) {
     ? c.rival ? { name: c.rival.name || 'Their player', team: teamLite(teamOf(s, c.rival.teamId)) } : null
     : c.performer ? { name: c.performer.name, team: teamLite(teamOf(s, c.performer.teamId)) } : null;
   const sd = c.showdown || {};
+  const pts = c.points * myMult(s, my);
   return {
     id: 'calledup',
     data: {
-      chip: chip(segOf(s), `Showdown · ${formatPoints(c.points)} to win`),
+      chip: chip(segOf(s), `Showdown · ${formatPoints(pts)} to win`),
       me: { name: s.me.name, team: teamLite(my) },
       opp,
       title: sd.title || 'Head to head',
       instructions: sd.instructions || '',
       winner: sd.winner && sd.winner.length <= 60 ? sd.winner : '',
       props: sd.props || [],
-      points: c.points,
+      points: pts,
     },
   };
 }
@@ -552,7 +561,7 @@ function deriveHotseat(s, my) {
   return {
     id: 'hotseat',
     data: {
-      chip: chip(segOf(s), `Hot Seat · ${hs.each || 50} each`),
+      chip: chip(segOf(s), `Hot Seat · ${(hs.each || 50) * myMult(s, my)} each`),
       name: s.me.name,
       team: my.name,
       started: !!c.started,
@@ -561,7 +570,7 @@ function deriveHotseat(s, my) {
       total: hs.total,
       results: hs.results,
       banked: hs.banked || 0,
-      each: hs.each,
+      each: (hs.each || 50) * myMult(s, my),
       color: my.color,
     },
   };
@@ -710,8 +719,19 @@ function derivePodium(s, my) {
   const place = mine ? mine.place : my.rank;
   const meName = s.me ? s.me.name : '';
   const namesOf = (a) => String(a.name || '').split(/,\s*|\s+and\s+|\s*&\s*/).map((x) => x.trim()).filter(Boolean);
-  const isMine = (a) => a.teamId === my.id || (s.me && a.playerId === s.me.playerId) || (!a.teamId && (namesOf(a).includes(meName) || namesOf(a).includes(my.name)));
-  const awards = Array.isArray(P.awards) ? P.awards.filter((a) => a && a.title) : [];
+  // playerIds / teamIds list everyone who shares an award (a tie); playerId / teamId are only set for a single winner
+  const idsOf = (a, many, one) => (Array.isArray(a[many]) && a[many].length ? a[many] : a[one] ? [a[one]] : []);
+  const isYou = (a) => !!(s.me && idsOf(a, 'playerIds', 'playerId').includes(s.me.playerId));
+  const isMine = (a) => {
+    const pids = idsOf(a, 'playerIds', 'playerId');
+    const tids = idsOf(a, 'teamIds', 'teamId');
+    if (pids.length || tids.length) return isYou(a) || tids.includes(my.id);
+    return namesOf(a).includes(meName) || namesOf(a).includes(my.name); // an old save without ids
+  };
+  const all = Array.isArray(P.awards) ? P.awards.filter((a) => a && a.title) : [];
+  // the TV runs the awards ceremony (drumroll, then the name): show each award here only once the TV has revealed it
+  const shown = ui.ceremony ? awardsRevealed(performance.now() - ui.ceremony.t0, all.length) : all.length;
+  const awards = all.slice(0, shown);
   const awardArt = (a) => (a.art && hasArt(a.art) ? a.art : AWARD_ART[a.key] || 'trophy');
   return {
     id: 'podium',
@@ -720,9 +740,10 @@ function derivePodium(s, my) {
       score: mine ? mine.score : my.score,
       team: teamLite(my),
       tied: (P.standings || []).filter((r) => r.place === place).length > 1,
-      awards: awards.filter(isMine).map((a) => ({ key: a.key || '', title: a.title, name: a.name || '', detail: a.detail || '', art: awardArt(a), you: !!(s.me && a.playerId === s.me.playerId) || (!a.playerId && namesOf(a).includes(meName)) })),
-      others: awards.filter((a) => !isMine(a)).map((a) => ({ title: a.title, name: a.name || '', art: awardArt(a), team: a.teamId ? teamOf(s, a.teamId)?.name || '' : '' })),
+      awards: awards.filter(isMine).map((a) => ({ key: a.key || '', title: a.title, name: a.name || '', detail: a.detail || '', art: awardArt(a), you: isYou(a) || (!idsOf(a, 'playerIds', 'playerId').length && !idsOf(a, 'teamIds', 'teamId').length && namesOf(a).includes(meName)) })),
+      others: awards.filter((a) => !isMine(a)).map((a) => ({ title: a.title, name: a.name || '', art: awardArt(a), team: listJoin(idsOf(a, 'teamIds', 'teamId').map((id) => teamOf(s, id)?.name).filter(Boolean), 'and') })),
       standings: (P.standings || []).map((r) => ({ ...teamLite(teamOf(s, r.teamId)), place: r.place, score: r.score, you: r.teamId === my.id })),
+      awardsLeft: all.length - shown,
       quip: quipOf(s, ['podium']),
     },
   };
@@ -788,7 +809,7 @@ function happening(s, my, act, mine) {
         out.question = true;
         if (c.movie) out.lines.push({ icon: 'film', text: `From ${c.movie}${c.movieYear ? ` (${c.movieYear})` : ''}` });
         if (c.hint) out.lines.push({ icon: 'lightbulb', text: `Hint: ${c.hint}` });
-        if (c.stage === 'question') out.body = mine ? 'Answer out loud — the host is listening.' : `If ${actName} miss${verbS(actName) ? 'es' : ''} it, you can steal it for ${c.stealPoints}.`;
+        if (c.stage === 'question') out.body = mine ? 'Answer out loud — the host is listening.' : `If ${subject(actName, 'misses')} it, you can steal it for ${c.stealPoints}.`;
         if (c.stage === 'steal') out.body = c.buzz && c.buzz.winner ? `${c.buzz.winner.name} buzzed first to steal it for ${c.stealPoints}.` : `Steal! The other teams can buzz in for ${c.stealPoints}.`;
       }
       break;
@@ -798,7 +819,7 @@ function happening(s, my, act, mine) {
       const who = c.performer ? c.performer.name : 'Someone';
       if (c.stage === 'perform') {
         out.title = `${who} is humming a song`;
-        out.body = mine ? 'Shout out the title! No words from the hummer.' : `${actName} ha${verbS(actName) ? 's' : 've'} 30 seconds to name it. Miss it and you can steal it for ${c.stealPoints}.`;
+        out.body = mine ? 'Shout out the title! No words from the hummer.' : `${subject(actName, 'has')} 30 seconds to name it. Miss it and you can steal it for ${c.stealPoints}.`;
       } else if (c.stage === 'steal') {
         out.title = 'Name that tune — steal!';
         out.body = c.buzz && c.buzz.winner ? `${c.buzz.winner.name} buzzed first.` : `Other teams can buzz in for ${c.stealPoints}.`;
@@ -865,7 +886,7 @@ function happening(s, my, act, mine) {
       out.timer = false;
       if (c.stage === 'pickTarget') {
         out.title = 'Grinch Steal!';
-        out.body = `${mine ? 'Your team is' : `${actName} ${/s$/i.test(actName) ? 'are' : 'is'}`} choosing a team to rob…`;
+        out.body = `${mine ? 'Your team is' : subject(actName, 'is')} choosing a team to rob…`;
         if (c.eyeing && c.eyeing.by) {
           const eyed = teamOf(s, c.eyeing.teamId);
           out.lines.push({ icon: 'crosshair', text: `${c.eyeing.by.name} is eyeing ${eyed && eyed.id === my.id ? 'your team!' : eyed ? eyed.name : 'a team'}` });
@@ -878,14 +899,14 @@ function happening(s, my, act, mine) {
       } else if (c.gift) {
         const to = teamOf(s, c.gift.toTeamId);
         out.title = 'The Grinch’s heart grew three sizes!';
-        out.body = `${actName} ${/s$/i.test(actName) ? 'are' : 'is'} in the lead, so ${formatPoints(c.gift.amount)} goes to ${to ? (to.id === my.id ? 'your team' : to.name) : 'last place'} instead.`;
+        out.body = `${subject(actName, 'is')} in the lead, so ${formatPoints(c.gift.amount)} goes to ${to ? (to.id === my.id ? 'your team' : to.name) : 'last place'} instead.`;
       }
       break;
     }
     case 'doubledown':
       out.chip = chip(seg, 'Double Down · ×2');
       out.title = 'Double Down!';
-      out.body = `${mine ? 'Your team spins' : `${actName} spin${verbS(actName)}`} again — everything ${mine ? 'you win' : 'they win'} this turn is doubled.`;
+      out.body = `${mine ? 'Your team spins' : subject(actName, 'spins')} again — everything ${mine ? 'you win' : 'they win'} this turn is doubled.`;
       out.timer = false;
       break;
     case 'allplay':
@@ -920,6 +941,7 @@ function happening(s, my, act, mine) {
 
 /** A result is "good" from THIS phone's point of view: your team losing a showdown or being robbed is not a party. */
 function resultIsGood(s, c, my) {
+  if (c.result.kind === 'gift') return true; // the Grinch's heart grew: a gift is good news for everyone (the giver loses nothing)
   if (!GOOD_RESULTS.includes(c.result.kind)) return false;
   const awards = c.result.awards || [];
   const mine = awards.filter((a) => a.teamId === my.id).reduce((n, a) => n + (a.delta || 0), 0);
@@ -1308,7 +1330,7 @@ RENDER.buzzer = (d) => {
     case 'arming':
       title = 'Steal coming up…';
       sub = `${d.missed} ${d.sound ? 'ran out of time' : 'missed it'}! Fingers on the ornament — wait for it…`;
-      orn = h`<div class="buzz-arming" data-countdown="${d.armingUntil}">${ornamentBuzz({ state: 'armed', word: '3', sub: 'Get ready', className: 'is-arming', ariaLabel: 'The buzzers arm in a moment', attrs: raw('aria-disabled="true" tabindex="-1"') })}</div>
+      orn = h`<div class="buzz-arming" data-countdown="${d.armingUntil}">${ornamentBuzz({ state: 'arming', count: Math.max(1, Math.min(3, Math.ceil((d.armingUntil - client.serverNow()) / 1000))) })}</div>
         <div class="arm-bulbs" data-arm="${d.armingUntil}" aria-hidden="true"><i class="bulb" style="--c:var(--bulb-red)"></i><i class="bulb" style="--c:var(--bulb-gold)"></i><i class="bulb" style="--c:var(--bulb-green)"></i></div>`;
       foot = 'Don’t jump the gun!';
       break;
@@ -1471,7 +1493,7 @@ RENDER.picker = (d) => {
       </button>`
     )}
   </div>
-  ${d.safe.length ? h`<p class="ph-small">${listJoin(d.safe.map((t) => t.name), 'and')} ${d.safe.length === 1 ? 'is' : 'are'} not ahead of you, so ${d.safe.length === 1 ? 'they’re' : 'they’re'} safe. For now.</p>` : ''}
+  ${d.safe.length ? h`<p class="ph-small">${listJoin(d.safe.map((t) => t.name), 'and')} ${d.safe.length > 1 || isPluralTeam(d.safe[0].name) ? 'are' : 'is'} not ahead of you, so they’re safe. For now.</p>` : ''}
   <div class="ph-actions ph-actions--sticky">
     <button type="button" class="btn btn--lg btn--block ${grinch ? 'btn--grinch' : 'btn--primary'}" data-confirm aria-disabled="${!sel || !d.can || d.pending ? 'true' : 'false'}" data-needs-online>
       <span>${d.pending ? 'Sending…' : sel ? `${grinch ? 'Steal from' : 'Challenge'} ${sel.name}` : 'Tap a team first'}</span>
@@ -1526,7 +1548,7 @@ RENDER.calledup = (d) => h`
     <span class="versus__vs" aria-hidden="true">VS</span>
     ${d.opp ? h`<div class="versus__side" data-tc="${d.opp.team ? d.opp.team.color : ''}">${d.opp.team ? mascot(d.opp.team, { size: 84, alt: '', className: 'versus__mascot versus__mascot--flip' }) : ''}<span class="versus__name">${d.opp.name}</span><span class="versus__team">${d.opp.team ? d.opp.team.name : ''}</span></div>` : h`<div class="versus__side"></div>`}
   </div>
-  <section class="gift-tag gift-tag--md challenge-card">
+  <section class="gift-tag gift-tag--md gift-tag--phone challenge-card">
     <span class="label">The challenge</span>
     <h2 class="challenge-card__title">${d.title}</h2>
     ${d.instructions ? h`<p class="challenge-card__text">${d.instructions}</p>` : ''}
@@ -1539,7 +1561,7 @@ RENDER.hotseat = (d) => h`
   ${rowH(chipH(d.chip), timerH(64))}
   ${titleH('You’re in the Hot Seat!', d.started ? 'Answer out loud — or say “pass”.' : `${d.total} quick questions, ${d.each} points each. Your team has to zip it!`)}
   ${d.started && d.question
-    ? h`<section class="gift-tag gift-tag--md q-card hot-q" aria-live="polite"><span class="label">Question ${Math.min(d.index + 1, d.total)} of ${d.total}</span><p class="q-card__text">${d.question}</p></section>`
+    ? h`<section class="gift-tag gift-tag--md gift-tag--phone q-card hot-q" aria-live="polite"><span class="label">Question ${Math.min(d.index + 1, d.total)} of ${d.total}</span><p class="q-card__text">${d.question}</p></section>`
     : h`<section class="hot-ready">${art('fire', { size: 96, className: 'hot-ready__art' })}<p class="hot-ready__title">${d.index >= d.total ? 'All done — take a bow!' : 'Get comfy…'}</p><p class="ph-small">${d.index >= d.total ? 'Watch the TV for your total.' : 'The host starts the 45-second clock. Questions appear here and on the TV.'}</p></section>`}
   ${stockingRow(d.results, d.total, d.index, d.started, d.color)}
   <p class="hot-banked">Banked <b>${formatPoints(d.banked)}</b> points</p>`;
@@ -1554,7 +1576,7 @@ RENDER.answer = (d) => {
       : h`${chipH(d.chip)}<span class="chip chip--sm chip--points">${d.points} + ${d.first} first</span>`;
   const title = d.stage === 'done' ? 'The reveal' : d.stage === 'locked' ? 'Answers are in!' : final ? 'Final answer' : d.kind === 'bonus' ? 'Bonus round!' : 'Everybody answers!';
   const head = h`${rowH(chips, d.stage === 'answering' ? timerH(64, 'Seconds left to answer') : '')}<h1 class="ph-title ph-title--sm">${title}</h1>`;
-  const q = h`<section class="gift-tag gift-tag--md q-card" aria-label="The question"><span class="label">${final ? 'The final question' : 'The question'}</span><p class="q-card__text">${d.question}</p></section>`;
+  const q = h`<section class="gift-tag gift-tag--md gift-tag--phone q-card" aria-label="The question"><span class="label">${final ? 'The final question' : 'The question'}</span><p class="q-card__text">${d.question}</p></section>`;
   if (d.stage === 'done' && d.result) {
     const r = d.result;
     return h`${head}${q}
@@ -1564,7 +1586,7 @@ RENDER.answer = (d) => {
           : h`<span class="coal-stamp stamp--sm is-in">${r.answered ? 'Not this time' : 'No answer'}</span>`}
         ${r.answered ? h`<p class="result-card__said">Your team said <strong>“${r.text}”</strong>${r.by ? ` (${r.by})` : ''}</p>` : h`<p class="result-card__said">Your team didn’t send an answer. The elves are disappointed.</p>`}
       </section>
-      <section class="gift-tag gift-tag--md answer-card"><span class="label">The answer</span><p class="answer-card__text">${r.answer}</p>${r.fact ? h`<p class="answer-card__fact">${r.fact}</p>` : ''}${r.firstTeam ? h`<p class="answer-card__fact">${r.firstTeam} got it first.</p>` : ''}</section>
+      <section class="gift-tag gift-tag--md gift-tag--phone answer-card"><span class="label">The answer</span><p class="answer-card__text">${r.answer}</p>${r.fact ? h`<p class="answer-card__fact">${r.fact}</p>` : ''}${r.firstTeam ? h`<p class="answer-card__fact">${r.firstTeam} got it first.</p>` : ''}</section>
       <p class="ph-small ph-small--center">Watch the TV for every team’s answer.</p>`;
   }
   if (d.stage !== 'answering') {
@@ -1643,7 +1665,7 @@ RENDER.finalintro = (d) => h`
     <h1 class="ph-title">Final Chaos!</h1>
     <span class="chip chip--sm chip--eve">${art(d.catArt, { size: 26 })}Category: ${d.category}</span>
   </div>
-  <section class="gift-tag gift-tag--md eve-steps">
+  <section class="gift-tag gift-tag--md gift-tag--phone eve-steps">
     <p class="eve-steps__lead">Your team has <b>${formatPoints(d.score)}</b> points.</p>
     <ol class="steps" role="list">
       <li><span class="steps__n">1</span><span><strong>Bet</strong> up to ${formatPoints(d.max)}${d.behind ? ' (everyone can bet at least 300)' : ''}.</span></li>
@@ -1761,7 +1783,7 @@ RENDER.freveal = (d) => {
   return h`
   ${rowH(h`<span class="chip chip--sm chip--eve">${art('sparkles', { size: 26 })}The big reveal</span>`)}
   ${titleH(title)}
-  <section class="gift-tag gift-tag--md q-card"><span class="label">The final question</span><p class="q-card__text q-card__text--sm">${d.question}</p>${d.answer ? h`<p class="q-card__answer">${ic('check', { size: 20, stroke: 3.4 })}${d.answer}</p>` : ''}</section>
+  <section class="gift-tag gift-tag--md gift-tag--phone q-card"><span class="label">The final question</span><p class="q-card__text q-card__text--sm">${d.question}</p>${d.answer ? h`<p class="q-card__answer">${ic('check', { size: 20, stroke: 3.4 })}${d.answer}</p>` : ''}</section>
   <section class="fr-mine ${judged ? (m.correct ? 'is-good' : 'is-bad') : ''}">
     <span class="label">Your team</span>
     <div class="fr-mine__row">
@@ -1815,11 +1837,12 @@ RENDER.podium = (d) => {
     <span class="go-hero__score"><span class="label">Final score</span><b>${formatPoints(d.score)}</b></span>
   </section>
   ${d.awards.map(
-    (a) => h`<div class="gift-tag gift-tag--md award-tag${a.key === 'lumpOfCoal' ? ' award-tag--coal' : ''}" role="group" aria-label="Award: ${a.title} — ${a.name}">
+    (a) => h`<div class="gift-tag gift-tag--md gift-tag--phone award-tag${a.key === 'lumpOfCoal' ? ' award-tag--coal' : ''}" role="group" aria-label="Award: ${a.title} — ${a.name}">
       ${a.key === 'lumpOfCoal' ? h`<span class="award-tag__coal" aria-hidden="true"><span class="coal"></span>${art(a.art, { size: 48, className: 'award-tag__art' })}</span>` : art(a.art, { size: 64, className: 'award-tag__art' })}
       <div class="award-tag__text"><span class="award-tag__eyebrow">${a.key === 'lumpOfCoal' ? (a.you ? 'Santa noticed you…' : 'Santa noticed your team…') : a.you ? 'You won an award!' : 'Your team won an award!'}</span><span class="award-tag__title">${a.title}</span><span class="award-tag__who">${a.name}</span>${a.detail ? h`<span class="award-tag__detail">${a.detail}</span>` : ''}</div>
     </div>`
   )}
+  ${d.awardsLeft ? calloutH({ tone: 'tv', art: 'trophy', title: 'Awards ceremony on the TV!', sub: `${plural(d.awardsLeft, 'award')} still to come. Drumroll, please…` }) : ''}
   ${d.quip ? quipH(d.quip) : ''}
   <ol class="standings standings--final" role="list" aria-label="Final standings">${d.standings.map(
     (r) => h`<li class="standings__row${r.you ? ' is-you' : ''} place-${Math.min(r.place, 4)}" data-tc="${r.color}"><span class="standings__rank">${r.place}</span>${mascot(r, { size: 36, alt: '' })}<span class="standings__name">${r.name}${r.you ? h` <span class="you-pill">You</span>` : ''}</span><span class="standings__pts">${formatPoints(r.score)}</span></li>`
@@ -1843,7 +1866,7 @@ RENDER.watch = (d) => {
       <h1 class="up-row__name">${d.up.name}</h1>
     </div>
   </div>` : h`<h1 class="ph-title">Watch the TV</h1>`}
-  <section class="gift-tag gift-tag--md now-card${r ? (r.good ? ' is-good' : ' is-bad') : ''}" aria-labelledby="now-title">
+  <section class="gift-tag gift-tag--md gift-tag--phone now-card${r ? (r.good ? ' is-good' : ' is-bad') : ''}" aria-labelledby="now-title">
     ${n.chip || n.chip2 || n.timer ? rowH(h`${chipH(n.chip)}${n.chip2 ? h`<span class="chip chip--sm chip--outline">${n.chip2}</span>` : ''}`, n.timer ? timerH(56) : '', { className: 'now-card__chips' }) : ''}
     ${n.spinning ? h`<div class="now-card__spin" aria-hidden="true">${peppermint({ spinning: true, className: 'peppermint--sm', attrs: raw('tabindex="-1" aria-hidden="true"') })}</div>` : ''}
     <h2 class="now-card__title${n.question ? ' is-q' : ''}" id="now-title">${n.title}</h2>
@@ -2170,6 +2193,7 @@ client.onState((state) => {
   if (me && !ui.drafts.name) ui.drafts.name = me.name;
   if (state.phase !== 'lobby') ui.switching = false;
   if (!state.challenge || state.challenge.type !== 'dare' || state.challenge.stage !== 'vote') ui.voteEdit = false;
+  syncCeremony(S, state);
   lastMe = me;
   S = state;
   // keep the screen awake while joined
@@ -2180,6 +2204,21 @@ client.onState((state) => {
   }
   render();
 });
+
+/** The TV's podium ceremony clock: started when the podium appears live; re-render as each award is revealed. */
+function syncCeremony(prev, next) {
+  if (next.phase !== 'podium') {
+    if (ui.ceremony) ui.ceremony.timers.forEach(clearTimeout);
+    ui.ceremony = null;
+    return;
+  }
+  if (ui.ceremony || !prev || prev.phase === 'podium') return; // a refreshed phone shows the finished ceremony
+  const n = (next.podium && next.podium.awards ? next.podium.awards.length : 0) || 0;
+  if (!n) return;
+  const C = AWARD_CEREMONY;
+  ui.ceremony = { t0: performance.now(), timers: [] };
+  for (let i = 0; i < n; i++) ui.ceremony.timers.push(setTimeout(() => render(), C.lead + i * C.each + C.drum + 30));
+}
 
 client.onFx((type, p) => {
   if (!S || !S.me) return;

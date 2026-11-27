@@ -17,6 +17,7 @@
 //   fx.confetti();                  // snow + gold                            (sound.sleighBells / fanfare)
 //   fx.heartGrow(el);               // the Grinch's heart grows three sizes   (sound.boing)
 //   fx.play('dash', 'deer');        // by name (for server 'react' fx)
+//   fx.setScale('root');            // TV: sprite sizes follow the scaled root font (same look at 720p and 4K)
 //
 // Element effects use CSS classes from tokens.css (.fx-bounce …); overlay effects animate sprites in a fixed
 // .fx-layer with the Web Animations API, styled by .fx-* classes in tokens.css. Nothing here plays sound.
@@ -30,6 +31,32 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const vw = () => globalThis.innerWidth || 1920;
 const vh = () => globalThis.innerHeight || 1080;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+let scaleOpt = 1;
+/**
+ * Scale every sprite's size limits (they are authored in px for a 16 px root). Pass a number, or 'root' to follow the
+ * root font size (the TV scales its root with the viewport: 10.67 px at 1280×720, 32 px at 4K), so gags keep the same
+ * proportions on every TV. Phones and the host keep 1.
+ * @param {number|'root'} v
+ */
+export function setScale(v) {
+  scaleOpt = v === 'root' ? 'root' : Number(v) > 0 ? Number(v) : 1;
+}
+/** The current sprite scale (1 = authored px). */
+export function getScale() {
+  if (scaleOpt !== 'root') return scaleOpt;
+  try {
+    const fs = parseFloat(globalThis.getComputedStyle(document.documentElement).fontSize);
+    return fs > 0 ? fs / 16 : 1;
+  } catch {
+    return 1;
+  }
+}
+/** clamp() with the px limits scaled by getScale(). */
+const clampS = (v, a, b) => {
+  const k = getScale();
+  return clamp(v, a * k, b * k);
+};
 
 /** True when motion should be replaced by a quick fade. */
 export function reducedMotion() {
@@ -169,7 +196,7 @@ export async function melt(timerEl) {
   if (reducedMotion()) return fadeEl(timerEl);
   const r = rectOf(timerEl);
   const drips = [0.32, 0.55, 0.72].map((fx, k) => {
-    const w = clamp(r.width * 0.09, 8, 22);
+    const w = clampS(r.width * 0.09, 8, 22);
     const d = sprite({ cls: 'fx-drip', w, h: w * 1.4, x: r.left + r.width * fx - w / 2, y: r.top + r.height * 0.86 });
     d.style.opacity = '0';
     return anim(d, [
@@ -184,14 +211,19 @@ export async function melt(timerEl) {
 
 /* ------------------------------------------------------------------ overlay gags ------------- */
 
-/** A snowball flies in, splats on the target, the target shakes and the splat slides down (≈2 s). */
-export async function splat(targetEl) {
+/**
+ * A snowball flies in, splats on the target, the target shakes and the splat slides down (≈2 s).
+ * @param {Element} targetEl
+ * @param {{at?:[number, number]}} [o] where it hits, as fractions of the target (default the middle, [.5, .42]);
+ *   aim at an empty corner (e.g. [.84, .18]) so the splat never sits on text people are reading
+ */
+export async function splat(targetEl, { at = [0.5, 0.42] } = {}) {
   if (!hasDOM()) return false;
   const r = rectOf(targetEl);
   if (reducedMotion()) return targetEl ? fadeEl(targetEl) : false;
-  const size = clamp(Math.min(r.width, r.height) * 0.3, 56, 150);
-  const cx = r.left + r.width * 0.5;
-  const cy = r.top + r.height * 0.42;
+  const size = clampS(Math.min(r.width, r.height) * 0.3, 56, 150);
+  const cx = r.left + r.width * at[0];
+  const cy = r.top + r.height * at[1];
   const sx = -size;
   const sy = vh() * 0.78;
   const ball = sprite({ cls: 'fx-snowball', w: size, x: sx, y: sy });
@@ -215,13 +247,18 @@ export async function splat(targetEl) {
   return true;
 }
 
-/** A lump of coal drops onto the target, bounces twice and puffs dust (≈1.9 s). */
-export async function coalDrop(targetEl) {
+/**
+ * A lump of coal drops onto the target, bounces twice and puffs dust (≈1.9 s).
+ * @param {Element} targetEl
+ * @param {{at?:[number, number]}} [o] where it lands, as fractions of the target (default [.5, .62]); [.84, 0] lands it
+ *   on the card's top edge, clear of the text
+ */
+export async function coalDrop(targetEl, { at = [0.5, 0.62] } = {}) {
   if (!hasDOM()) return false;
   const r = rectOf(targetEl);
-  const size = clamp(r.width * 0.16, 56, 120);
-  const x = r.left + r.width * 0.5 - size / 2;
-  const land = r.top + r.height * 0.62 - size / 2;
+  const size = clampS(r.width * 0.16, 56, 120);
+  const x = r.left + r.width * at[0] - size / 2;
+  const land = r.top + r.height * at[1] - size / 2;
   if (reducedMotion()) {
     const c = sprite({ cls: 'fx-coal', w: size, h: size * 0.8, x, y: land });
     await anim(c, [{ opacity: 0 }, { opacity: 1, offset: 0.4 }, { opacity: 0 }], { duration: 420 });
@@ -257,7 +294,7 @@ export async function coalDrop(targetEl) {
  */
 export async function dash(art = 'deer', { direction = 'ltr', y = 0.6, size, duration = 1800 } = {}) {
   if (!hasDOM()) return false;
-  const s = size || clamp(vh() * 0.24, 120, 320);
+  const s = size || clampS(vh() * 0.24, 120, 320);
   const top = vh() * clamp(y, 0, 1) - s / 2;
   if (reducedMotion()) return fadeSprite(art, (vw() - s) / 2, top, s);
   const ltr = direction !== 'rtl';
@@ -291,7 +328,7 @@ export async function dash(art = 'deer', { direction = 'ltr', y = 0.6, size, dur
 export async function sneak(art = 'money', { from, direction = 'ltr', size } = {}) {
   if (!hasDOM()) return false;
   const r = from ? rectOf(from) : { left: vw() / 2 - 60, top: vh() * 0.7, width: 120, height: 120 };
-  const s = size || clamp(Math.min(r.width, r.height) * 0.9, 72, 200);
+  const s = size || clampS(Math.min(r.width, r.height) * 0.9, 72, 200);
   const x0 = r.left + r.width / 2 - s / 2;
   const y0 = r.top + r.height / 2 - s / 2;
   if (reducedMotion()) return fadeSprite(art, x0, y0, s);
@@ -327,7 +364,7 @@ const BUBBLE_ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'":
  */
 export async function peek(art = 'santa', corner = 'bottom-right', { say = 'Ho ho ho!', size } = {}) {
   if (!hasDOM()) return false;
-  const s = size || clamp(vh() * 0.26, 120, 340);
+  const s = size || clampS(vh() * 0.26, 120, 340);
   const right = !String(corner).includes('left');
   const bottom = !String(corner).includes('top');
   const xIn = right ? vw() - s * 0.82 : -s * 0.18;
@@ -384,10 +421,11 @@ export async function confetti({ count = 90, colors = CONFETTI, snow = 0.4, dura
   const n = clamp(Math.trunc(count) || 90, 1, 220);
   const W = vw();
   const H = vh();
+  const k = getScale();
   const runs = [];
   for (let i = 0; i < n; i++) {
     const flake = Math.random() < snow;
-    const w = flake ? 6 + Math.random() * 10 : 8 + Math.random() * 8;
+    const w = (flake ? 6 + Math.random() * 10 : 8 + Math.random() * 8) * k;
     const h = flake ? w : w * (1.6 + Math.random());
     const x = Math.random() * W;
     const el = sprite({ cls: `fx-confetti${flake ? ' is-flake' : ''}`, w, h, x, y: -40 });
@@ -395,7 +433,7 @@ export async function confetti({ count = 90, colors = CONFETTI, snow = 0.4, dura
     if (flake) el.style.boxShadow = '0 0 0 1px rgba(169,195,226,.6)';
     const delay = Math.random() * 200;
     const d = Math.min(MAX_MS - 150 - delay, duration * (0.7 + Math.random() * 0.3));
-    const drift = (Math.random() - 0.5) * 220;
+    const drift = (Math.random() - 0.5) * 220 * k;
     const spin = (Math.random() - 0.5) * 900;
     runs.push(
       anim(el, [
@@ -415,7 +453,7 @@ const HEART = '<svg viewBox="0 0 24 22" width="100%" height="100%"><path d="M12 
 export async function heartGrow(el) {
   if (!hasDOM()) return false;
   const r = rectOf(el);
-  const s = clamp(Math.min(r.width, r.height) * 0.28, 48, 180);
+  const s = clampS(Math.min(r.width, r.height) * 0.28, 48, 180);
   const x = r.left + r.width / 2 - s / 2;
   const y = r.top + r.height / 2 - s / 2;
   const h = sprite({ cls: 'fx-heart', w: s, h: s * 0.92, x, y, html: HEART });

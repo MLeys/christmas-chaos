@@ -990,3 +990,103 @@ test('fx: the comedy kit is safe without a DOM, every effect resolves false, pla
   assert.equal(fx.MAX_MS, 2500, 'gags never run longer than 2.5 s');
   assert.equal(fx.reducedMotion(), false);
 });
+
+/* ============================================================== integration fixes ========== */
+
+test('client: shared fixes — secret size splits on whitespace, ready timers, arming ornament, sized presents/stockings, small meter', async () => {
+  const c = await load('client.js');
+  // secretFontSize: words are split on whitespace (not the letter "s")
+  assert.equal(c.secretFontSize('Home Alone'), 'min(4.75rem, 19vw)', 'two short words: the biggest size (the old /s+/ split saw one 10-letter word)');
+  assert.equal(c.secretFontSize('Elf'), 'min(4.75rem, 19vw)');
+  assert.equal(c.secretFontSize('Jingle Bells Rock'), 'min(3.5rem, 14vw)', '17 chars, longest word 6');
+  assert.equal(c.secretFontSize('Rudolph the Red-Nosed Reindeer'), 'min(2.75rem, 11vw)');
+  // timer ring: a prepared (not started) timer is "ready": full ring, full seconds, no Paused, no beep count
+  const now = 50_000;
+  const ready = { kind: 'dare', running: false, endsAt: null, durationMs: 30_000, remainingMs: 30_000, started: false, ended: false };
+  assert.equal(c.timerState(ready, now), 'ready');
+  assert.equal(c.timerState(null, now), 'idle');
+  assert.equal(c.timerState({ ...ready, started: true }, now), 'paused');
+  assert.equal(c.timerState({ ...ready, started: true, running: true, endsAt: now + 4000 }, now), 'run');
+  assert.equal(c.timerState({ ...ready, started: true, ended: true, remainingMs: 0 }, now), 'over');
+  const r = String(c.timerRing(ready, now));
+  assert.ok(r.includes('is-ready') && r.includes('>30<') && r.includes('>Ready<') && !r.includes('Paused') && r.includes('stroke-dashoffset="0.0"'), r);
+  assert.ok(r.includes('waiting to start'));
+  assert.ok(String(c.timerRing(ready, now, { readyUnit: 'ready' })).includes('>ready<'));
+  assert.ok(String(c.timerRing({ running: false, remainingMs: 4000, durationMs: 20_000 }, now)).includes('>Paused<'), 'old payloads without started still pause');
+  // arming ornament: not a button, a big count, its own class
+  const arming = String(c.ornamentBuzz({ state: 'arming', count: 2 }));
+  assert.ok(arming.startsWith('<div class="ornament-btn is-arming" role="img" aria-label="The buzzers arm in a moment"'), arming);
+  assert.ok(arming.includes('<span class="ornament-btn__word">2</span>') && arming.includes('Get ready'));
+  assert.ok(String(c.ornamentBuzz({ state: 'arming' })).includes('>3</span>'));
+  // present: numeric size sets --w (+ nearest bow class); explicit bow
+  const p = String(c.present({ size: 72 }));
+  assert.ok(p.includes('present--sm') && p.includes('--w:4.5rem'), p);
+  assert.ok(String(c.present({ size: 240, bow: 1.4 })).includes('present--lg') && String(c.present({ size: 240, bow: 1.4 })).includes('--bow:1.4'));
+  assert.ok(!String(c.present({ size: 'md' })).includes('--w:'), 'named sizes leave --w to the CSS');
+  // stocking: the size is a CSS default (--stocking-w) so page CSS can set --w without !important
+  const st = String(c.stocking({ state: 'coal', size: 44 }));
+  assert.ok(st.includes('--stocking-w:2.75rem') && !/--w:/.test(st) && st.includes('is-coal'), st);
+  // bell meter: compact size
+  assert.ok(String(c.bellMeter({ label: 'Good try', size: 'sm' })).includes('bell-meter--sm'));
+  assert.ok(!String(c.bellMeter({ label: 'Good try' })).includes('bell-meter--sm'));
+});
+
+test('icons: small art loads eagerly by default, big art stays lazy unless asked', async () => {
+  const i = await load('icons.js');
+  assert.ok(!i.artImg('tree', { size: 36 }).includes('loading="lazy"'), 'header-size art is eager');
+  assert.ok(!i.artImg('tree', { size: 96 }).includes('loading="lazy"'));
+  assert.ok(i.artImg('santa', { size: 240 }).includes('loading="lazy"'), 'hero art is lazy');
+  assert.ok(!i.artImg('santa', { size: 240, eager: true }).includes('loading="lazy"'));
+  assert.ok(i.artImg('tree', { size: 36, eager: false }).includes('loading="lazy"'), 'an explicit eager:false still wins');
+});
+
+test('fx + sky: sprite scale follows the TV root when asked; host garland is half size', async () => {
+  const fx = await load('fx.js');
+  assert.equal(fx.getScale(), 1);
+  fx.setScale(2);
+  assert.equal(fx.getScale(), 2);
+  fx.setScale('root');
+  assert.equal(fx.getScale(), 1, 'no DOM: the root scale falls back to 1');
+  fx.setScale(0);
+  assert.equal(fx.getScale(), 1);
+  const sky = await load('sky.js');
+  const host = sky.garlandGeometry({ size: 'host', width: 1400 });
+  const half = sky.garlandGeometry({ size: 0.5, width: 1400 });
+  assert.deepEqual(host, half, "garland size 'host' = 0.5");
+});
+
+test('client: team-name grammar matches the server (src/grammar.js) exactly', async () => {
+  const c = await load('client.js');
+  const server = require('../src/grammar.js');
+  const table = [
+    ['The Grinches', true], ['Jingle Bell Rockers', true], ['Elves', true], ['Reindeer Games', true],
+    ['Team Rudolph', false], ['Elf Help', false], ['Naughty List', false], ["Frosty's Crew", false], ['Frosty’s', false],
+    ['Boss', false], ['Santa Claus', false], ['Merry Christmas', false], ['Krampus', false], ['', false], [null, false], [undefined, false],
+  ];
+  for (const [name, plural] of table) assert.equal(c.isPluralTeam(name), plural, String(name));
+  const names = [...table.map(([n]) => n), 'Milk and Cookies', 'Team Xmas', 'The Kiwis', 'Chris', 'Hot Cocoa', 'Elves!!', 'Mrs. Claus', 'Snowmen'];
+  const verbs = ['is', 'has', 'was', 'wins', 'spins', 'catches', 'tries', 'misses', 'buzzes', 'plays', 'goes', 'leads', 'lives'];
+  for (const n of names) {
+    assert.equal(c.isPluralTeam(n), server.isPluralTeam(n), `isPluralTeam(${n})`);
+    assert.equal(c.possessive(n), server.possessive(n), `possessive(${n})`);
+    for (const v of verbs) assert.equal(c.subject(n ?? '', v), server.subject(n ?? '', v), `subject(${n}, ${v})`);
+  }
+  for (const v of verbs) assert.equal(c.pluralOf(v), server.pluralOf(v), v);
+  assert.equal(c.subject('The Grinches', 'is'), 'The Grinches are');
+  assert.equal(c.subject('Team Rudolph', 'spins'), 'Team Rudolph spins');
+  assert.equal(c.verb('Jingle Bell Rockers', 'wins', 'win'), 'win');
+  assert.deepEqual([c.isAre('Elf Help'), c.hasHave('The Grinches'), c.wasWere('Naughty List')], ['is', 'have', 'was']);
+});
+
+test('client: the awards ceremony clock (TV + phones) reveals one award per beat after the lead-in', async () => {
+  const c = await load('client.js');
+  const C = c.AWARD_CEREMONY;
+  assert.deepEqual({ ...C }, { lead: 6200, each: 6600, drum: 2100 });
+  assert.equal(c.awardsRevealed(0, 4), 0);
+  assert.equal(c.awardsRevealed(C.lead + C.drum - 1, 4), 0, 'the first award is still under the drumroll');
+  assert.equal(c.awardsRevealed(C.lead + C.drum, 4), 1);
+  assert.equal(c.awardsRevealed(C.lead + C.each + C.drum, 4), 2);
+  assert.equal(c.awardsRevealed(1e9, 4), 4, 'never more than there are');
+  assert.equal(c.awardsRevealed(1e9, 0), 0);
+  assert.equal(c.awardsRevealed(NaN, 3), 0);
+});

@@ -24,7 +24,9 @@ the wheel lab, every component, three phone frames, the comedy kit and the sound
 - **Sentence case everywhere** ("Up now", "Round 2 of 3"); no tracked caps, no "A · B · C" meta strings — use separate chips.
 - **3D art is the illustration system** (`/assets/art/*.png`, Fluent Emoji 3D, MIT). Big characters only at big moments; everyday screens use small mascots. Lucide icons only for small UI glyphs (lock, check, settings…). No emoji characters in text.
 - **No snow over text being read** (`snowfall({ avoid })`). Reduced motion = no snow, bulbs static and lit, gags fade.
-- TV minimum reading size 28 px; the question is Figtree 800 62 px.
+- TV minimum reading size 28 px; the question is Figtree 800 62 px. tokens.css enforces it for chips, the film cue and
+  score-tag names / "Up now" under `html[data-surface='tv']`, so the TV needs no overrides.
+- Red text under 24 px uses `--candy-deep` (e.g. `.tag-head__team`).
 
 ## 2. Fonts and type
 
@@ -131,7 +133,7 @@ starfield(nightEl, { count: 30 });                      // Christmas Eve sparkle
 ## 5. Garland (`sky.js`)
 
 ```js
-const lights = garland(containerEl, { size: 'tv' });   // 'tv' | 'host' | 'phone' | number scale; renders at the container's width
+const lights = garland(containerEl, { size: 'tv' });   // 'tv' 1 | 'host' 0.5 | 'phone' 0.53 | number scale; renders at the container's width
 lights.twinkle();            // idle: gentle per-bulb twinkle (default)
 lights.chase(1.2);           // 3-phase chase, seconds per cycle (0.45 = fast)
 lights.flash(3);             // flash ×3 then back to the last steady mode → Promise
@@ -195,6 +197,7 @@ mascotImg(team, { size: 'sm', alt: '' })      // decorative when the name is pri
 teamDisc(team, { size: 64, leader, beacon, halo, label: true })   // <span class="disc disc--art"><img></span>
 slotArt(segment, { size: 54 })                // segment.art (else by type/category), Lucide fallback
 ```
+- Small art (≤ 96 px) loads eagerly by default (no pop-in after a screen change); bigger art is lazy unless `eager: true`.
 - `ART` whitelist: santa, mrs-claus, deer, snowman, tree, gift, bell, star, glowing-star, cookie, candy, lollipop, ribbon, sled,
   snowflake, moon, mitten, scarf, cocoa, popcorn, film, clapper, music, fire, zap, sparkles, money, boxing, list, masks, trophy,
   party, medal1/2/3. Unknown ids (and the fantasy elves) fall back to sparkles. All sizes are design px emitted in rem.
@@ -228,7 +231,8 @@ peppermint({ label: 'Spin', live: true, spinning: false, disabled: false, attrs:
 <button class="peppermint is-live"><span class="peppermint__candy"></span><span class="peppermint__shine"></span>
   <span class="peppermint__core"><span class="peppermint__word">Spin</span></span></button>
 ```
-280 px (`--size`; `.peppermint--sm` 132), presses to .95, `.is-spinning` turns the swirl, `.is-live` breathes, disabled desaturates.
+260–280 px (`--size: max(16.25rem, min(17.5rem, 100vw − 3.5rem))` — never under 260 on any phone; `.peppermint--sm` 132), presses
+to .95, `.is-spinning` turns the swirl, `.is-live` breathes, disabled desaturates.
 
 ### Ornament BUZZ (phone)
 ```js
@@ -236,9 +240,11 @@ ornamentBuzz({ state: 'armed', attrs: raw('data-buzz data-needs-online') })   //
 ornamentBuzz({ state: 'first' })                 // holly, check, "You’re first!" / "Answer out loud" (vibrate yourself)
 ornamentBuzz({ state: 'other', name: team.name }) // silver + "<name> buzzed first"
 ornamentBuzz({ state: 'locked' })                 // dim silver + lock, "Locked out"
+ornamentBuzz({ state: 'arming', count: 3 })       // the 3-2-1 before the steal arms: still, dim, a big count (role="img");
+                                                  // patch .ornament-btn__word in place as it counts down
 ```
-Classes: `.ornament-btn` + `.is-armed|.is-first|.is-other|.is-locked`, parts `__loop __cap __ball __word __sub __name`,
-`--size` (272 default, `.ornament-btn--sm` 120). Only `armed` is a button; the rest are `role="img"`.
+Classes: `.ornament-btn` + `.is-armed|.is-arming|.is-first|.is-other|.is-locked`, parts `__loop __cap __ball __word __sub __name`,
+`--size` (260–272, never under 260; `.ornament-btn--sm` 120). Only `armed` is a button; the rest are `role="img"`.
 Old `.btn-round` (`--spin`, `--buzz`, `--won`, `--closed`, `--ember`) markup now renders as the peppermint / ornament (labels
 shown in sentence case via CSS) — swap to the helpers when you restyle.
 
@@ -248,6 +254,7 @@ shown in sentence case via CSS) — swap to the helpers when you restyle.
   …<div class="holly-ribbon">Miss it? The other teams can buzz in and <strong>steal it for 100</strong>.</div>
 </section>
 <div class="gift-tag gift-tag--md">…</div>           <!-- smaller tag (lobby join tag, awards) -->
+<div class="gift-tag gift-tag--md gift-tag--phone">  <!-- phone tag: the hole in the top-left corner, full-width text -->
 <div class="gift-tag gift-tag--sm gift-tag--twine">  <!-- phone header: mascot · team / “You’re Aunt Linda” · score -->
   ${mascot(team,{size:52,alt:''})}<div class="tag-head__who"><div class="tag-head__team">Team Rudolph</div>
   <div class="tag-head__me">You’re Aunt Linda</div></div><div class="tag-head__pts">1,150</div></div>
@@ -283,18 +290,22 @@ Old `.score-strip > .score-tile` markup renders the same way. Phone mini list: `
 ### Ornament timer
 ```js
 timerRing(state.timer, client.serverNow(), { size: 150 })     // TV concept size; default 124; < 90 = compact
-timerRing(t, now, { tone: 'holly' | 'gold', unit: 'seconds' })
+timerRing(t, now, { tone: 'holly' | 'gold', unit: 'seconds', readyUnit: 'Ready' })
+timerState(t, now)                                            // 'ready' | 'run' | 'paused' | 'over' | 'idle'
 updateTimerRing(el, state.timer, now)                         // in place, returns whole seconds (beep on change)
 ```
 Red bauble + gold cap & loop (they stick out ~20% above the ball — leave headroom), Bagel number, gold ring; `.is-warn` (≤ 5 s)
-pulses fast, `.is-paused` desaturates. Unit text is lower-cased by CSS.
+pulses fast, `.is-paused` desaturates, `.is-ready` = a prepared timer the host has not started (`started:false`: full ring, the
+full seconds, "ready"; `updateTimerRing` returns 0 for it so nothing beeps), `.is-over` = ran out. Unit text is lower-cased by CSS.
 
 ### Presents, stockings, meters, the list, stamps
 ```js
-present({ size: 'sm'|'md'|'lg', label: 'Easy', points: 100, color, ribbon, inside: 'popcorn', button: true, state: 'closed'|'unwrapping'|'open'|'sealed' })
+present({ size: 'sm'|'md'|'lg'|72, label: 'Easy', points: 100, color, ribbon, bow, inside: 'popcorn', button: true, state: 'closed'|'unwrapping'|'open'|'sealed' })
+                                                              // a number = width in design px (--w); or size it in CSS: .x .present { --w }
 stocking({ team, label: team.name, hung: true })              // lobby: mascot peeks out of the cuff; label hangs below (reserve ~1.5rem)
-stocking({ state: 'full' | 'coal' | 'empty', size: 56 })      // Hot Seat progress
-bellMeter({ label: 'Nailed it', count: 7, fill: 0.7, tone: 'holly' | 'tinsel', ringing })
+stocking({ state: 'full' | 'coal' | 'empty', size: 56 })      // Hot Seat progress; 'coal' = a charcoal stocking + ✗
+                                                              // size is only a default (--stocking-w): .row .stocking { --w: 2.75rem } wins
+bellMeter({ label: 'Nailed it', count: 7, fill: 0.7, tone: 'holly' | 'tinsel', ringing, size: 'sm' })   // sm = compact (host, phone)
 santaList({ items: ['Dasher', { text: 'Dancer', done: true }], total: 6 })   // "4 of 6", holly checks
 ```
 - Presents: bigger bow = harder; add `.is-unwrapping` to pop the lid (900 ms), `.is-open` for the refresh-safe end state,
@@ -310,8 +321,21 @@ santaList({ items: ['Dasher', { text: 'Dancer', done: true }], total: 6 })   // 
 ```
 `.splash--candy` (Double Down: stripes + white word plate), `--light`, `--contained`; `.splash__art` for a big 3D character.
 
+### Team names, grammar and the awards ceremony
+```js
+import { isPluralTeam, verb, isAre, hasHave, subject, possessive, AWARD_CEREMONY, awardsRevealed } from '/assets/client.js';
+subject('The Grinches', 'is')        // "The Grinches are"   (team names can be plural: never write `${name} is`)
+verb(team.name, 'wins', 'win')        // "win" for "Jingle Bell Rockers", "wins" for "Team Rudolph"
+possessive('The Grinches')           // "The Grinches’"
+awardsRevealed(msSincePodium, n)     // how many awards the TV has revealed (AWARD_CEREMONY {lead, each, drum})
+```
+The same grammar helpers live in `src/grammar.js` for the server (coach lines, quips: `{teamVerb:wins|win}`). The TV runs
+the podium awards ceremony on `AWARD_CEREMONY`; phones use the same clock so no phone spoils an award before the TV's
+drumroll (a phone that joins or refreshes later shows them all).
+
 ### Toast, banner, inputs, secret
-- `toast(msg, { tone: 'gold'|'success'|'error'|'info' })` — white pill with a coloured rim and lip.
+- `toast(msg, { tone: 'gold'|'success'|'error'|'info' })` — white pill with a coloured rim and lip. While a modal is open
+  (`html.has-modal` or any visible `[aria-modal]`) top toasts move to the bottom so they never cover the modal's header.
 - `showBanner('connection', 'Reconnecting…')` / `hideBanner()` — tinsel strip with C9 dots; `--error` candy, `--info` white.
 - `.field > .label + .input` (`--lg`, `--sm`) — white well, snow-shade border, tinsel focus ring.
 - `secretCard({ label, value, rule, tone: 'candy'|'violet' })` + `bindSecretCard(el)` — a wrapped present (paper, ribbon, bow);
@@ -332,6 +356,7 @@ sound.splat(); fx.splat(cardEl);                    // snowball
 fx.confetti({ count: 90, snow: 0.4 });              // snow + gold
 fx.heartGrow(el);                                   // Grinch gift: the heart grows three sizes
 fx.play('dash', 'deer');  sound.play(sound.GAG_SOUNDS.dash);   // by name (server 'react' cues: cheer / groan / gasp / laugh)
+fx.setScale('root');                                // TV: sprite size limits follow the scaled root font (720p … 4K)
 ```
 - Every gag returns `Promise<boolean>`, lasts ≤ 2.5 s (`fx.MAX_MS`), cleans up its sprites, and is a 220–420 ms fade under
   reduced motion. Overlay gags draw in a fixed `.fx-layer` (z-index 900); element gags use `.fx-bounce`, `.fx-droop`,

@@ -13,6 +13,7 @@
 import {
   connect, h, raw, ic, art, mascot, slotChip, slotArtId, turnDots, timerRing, present, stocking, bellMeter, santaList,
   formatPoints, formatDelta, possessive, ordinal, listJoin, plural, timerRemaining, reducedMotion, enterFullscreen,
+  isPluralTeam, verb, isAre, subject, AWARD_CEREMONY,
   animateNumber,
 } from '/assets/client.js';
 import { createWheel } from '/assets/wheel.js';
@@ -38,6 +39,7 @@ const startEl = $('#start');
 const muteBtn = $('#mute');
 
 const client = connect('tv', { banner: 'Lost the workshop server — reconnecting' });
+fx.setScale('root'); // gags keep their proportions at 720p, 1080p and 4K (the TV root font scales with the viewport)
 const lights = garland($('#garland'), { size: 'tv' });
 const snow = snowfall(app, { count: 46, avoid: ['[data-read]'], margin: 1 });
 strip.insertAdjacentHTML('afterbegin', snowbank({ className: 'tv-strip__bank' }));
@@ -377,38 +379,40 @@ function scrSpinning(s) {
   const html = h`<section class="scr scr--spin" style="${teamVar(t)}">
     <div class="spin-side spin-side--left" data-read data-tm="${t.id}">
       ${mas(t, 190, 'spin-mascot')}
-      <h1 class="spin-title ${fit(by?.name || t.name, [9, 14])}">${by ? by.name : t.name}<br>is spinning…</h1>
+      <h1 class="spin-title ${fit(by?.name || t.name, [9, 14])}">${by ? by.name : t.name}<br>${by ? 'is' : isAre(t.name)} spinning…</h1>
       <span class="spin-for">${by ? h`for <strong>${t.name}</strong>` : 'The host spun for them'}</span>
     </div>
     ${wheelSlot('spin')}
     <div class="spin-side spin-side--right">
       ${quipBox(s, 'spinning', { cls: 'quip-slot--spin', tail: 'left' })}
       <div class="spin-note" data-read>${dd
-        ? h`${img('sparkles', 56)}<span><strong>Double Down is on.</strong> Everything ${t.name} wins this turn is doubled.</span>`
-        : h`${img('bell', 56)}<span>${t.name} plays whatever it lands on. A miss opens a <strong>steal</strong>.</span>`}</div>
+        ? h`${img('sparkles', 56)}<span><strong>Double Down is on.</strong> Everything ${t.name} ${verb(t.name, 'wins', 'win')} this turn is doubled.</span>`
+        : h`${img('bell', 56)}<span>${subject(t.name, 'plays')} whatever it lands on. A miss opens a <strong>steal</strong>.</span>`}</div>
     </div>
   </section>`;
-  return view('spinning', html, { key: `spinning:${s.spin?.startedAt}`, wheel: { mode: 'spin' }, lights: null, say: `${by ? by.name : t.name} is spinning the wheel.` });
+  return view('spinning', html, { key: `spinning:${s.spin?.startedAt}`, wheel: { mode: 'spin' }, lights: null, say: `${by ? `${by.name} is` : subject(t.name, 'is')} spinning the wheel.` });
 }
 
 /* ---------- the wheel landed (client-side moment between spin and the mini-game) ---------- */
 const NEXT_STEP = {
-  trivia: (t) => `${t.name} picks a present: Easy, Medium or Hard`,
+  trivia: (t) => `${subject(t.name, 'picks')} a present: Easy, Medium or Hard`,
   dare: (t) => `Picking a performer from ${t.name}…`,
   hotseat: (t) => `Picking someone from ${t.name} for the Hot Seat…`,
   sounditout: (t) => `Picking a secret hummer from ${t.name}…`,
-  showdown: (t) => `${t.name} picks a rival team…`,
+  showdown: (t) => `${subject(t.name, 'picks')} a rival team…`,
   rapidlist: (t) => `${t.name}, warm up those voices!`,
   allplay: () => 'Every team, grab a phone!',
-  grinch: (t) => `Who will ${t.name} rob?`,
-  doubledown: (t) => `${t.name} spins again!`,
+  grinch: (t, c) => (c && c.gift ? `${subject(t.name, 'is')} in the lead: nobody to rob!` : `Who will ${t.name} rob?`),
+  doubledown: (t) => `${subject(t.name, 'spins')} again!`,
 };
 function scrLanded(s, c) {
   const t = activeTeam(s);
   const seg = segOf(c.segmentIndex);
   const pts = String(seg.points || '');
   const ptsText = pts.startsWith('×') ? `Points ${pts}` : `${pts} points`;
-  const line = (NEXT_STEP[c.type] || (() => 'Get ready…'))(t);
+  const line = (NEXT_STEP[c.type] || (() => 'Get ready…'))(t, c);
+  // the leader's Grinch Steal turns into a gift right away: say so, not "steal from a team ahead"
+  const rule = c.type === 'grinch' && c.gift ? `Nobody is ahead of the leader, so the Grinch’s heart grows: they gift ${formatPoints(c.gift.amount)} points to the last-place team.` : seg.rule || c.rule;
   const html = h`<section class="scr scr--landed" style="${segVar(seg)}">
     ${wheelSlot('left')}
     <div class="landed-main">
@@ -419,7 +423,7 @@ function scrLanded(s, c) {
         <div class="landed-chips">${pts.startsWith('×') || !Number(pts) ? h`<span class="chip chip--points">${ptsText}</span>` : pointsChip(Number(pts), multiplier(s))}<span class="landed-next">${line}</span></div>
       </div>
       ${quipBox(s, 'landed', { cls: 'quip-slot--landed', tail: 'top' })}
-      ${c.firstTime && (seg.rule || c.rule) ? h`<div class="holly-ribbon holly-ribbon--plain landed-rule" data-read><strong>How it works:</strong> ${seg.rule || c.rule}</div>` : ''}
+      ${c.firstTime && rule ? h`<div class="holly-ribbon holly-ribbon--plain landed-rule" data-read><strong>How it works:</strong> ${rule}</div>` : ''}
     </div>
   </section>`;
   return view('landed', html, {
@@ -451,7 +455,7 @@ function scrDifficulty(s, c, pickedHold) {
   </section>`;
   return view(picked ? 'difficulty-picked' : 'difficulty', html, {
     key: `difficulty:${c.id}:${picked ? 1 : 0}`,
-    say: picked ? `${who || t.name} picked ${lvl?.label}.` : `${t.name} is picking a difficulty.`,
+    say: picked ? `${who || t.name} picked ${lvl?.label}.` : `${subject(t.name, 'is')} picking a difficulty.`,
   });
 }
 
@@ -579,7 +583,7 @@ function scrSound(s, c) {
   const html = h`<section class="scr scr--sound" style="${teamVar(t)}">
     <section class="gift-tag gift-tag--twine sound-card" data-read aria-label="Sound It Out">
       <div class="sound-card__chips">${slotChip(segOf(c.segmentIndex))}${pointsChip(c.points, multiplier(s))}<span class="chip chip--outline">${ic('mic-off', { size: 26 })}Hum or whistle, no words</span></div>
-      <div class="sound-card__who" data-tm="${t.id}">${mas(t, 120)}<h1 class="sound-title ${fit(perf || t.name, [8, 13])}">${perf || t.name}<br>is humming…</h1></div>
+      <div class="sound-card__who" data-tm="${t.id}">${mas(t, 120)}<h1 class="sound-title ${fit(perf || t.name, [8, 13])}">${perf || t.name}<br>${perf ? 'is' : isAre(t.name)} humming…</h1></div>
       <p class="sound-card__call"><strong>${t.name}</strong>, name that tune!</p>
       <div class="bells ${started ? 'is-live' : ''}" aria-hidden="true">${['music', 'bell', 'bell', 'music', 'bell', 'bell', 'music'].map((a, i) => raw(`<span class="bells__b" style="--i:${i}">${img(a, a === 'music' ? 64 : 76)}</span>`))}</div>
       ${c.hint ? h`<div class="holly-ribbon sound-card__rib"><strong>Hint:</strong> ${c.hint}</div>` : h`<div class="holly-ribbon sound-card__rib">Can’t name it? The other teams can <strong>steal it for ${formatPoints(c.stealPoints)}</strong>.</div>`}
@@ -590,7 +594,7 @@ function scrSound(s, c) {
     </div>
     ${quipBox(s, 'sound', { brief: true, cls: 'quip-slot--side', tail: 'top' })}
   </section>`;
-  return view('sound', html, { key: `sound:${c.id}:${perf || ''}`, say: `${perf || t.name} is humming. ${t.name}, name that tune!` });
+  return view('sound', html, { key: `sound:${c.id}:${perf || ''}`, say: `${perf ? `${perf} is` : subject(t.name, 'is')} humming. ${t.name}, name that tune!` });
 }
 
 /* ---------- dare ---------- */
@@ -598,10 +602,10 @@ function dareWho(c, t) {
   const p = c.performer?.name;
   const q = c.partner?.name;
   switch (c.dare?.who) {
-    case 'pair': return p && q ? `${p} & ${q} perform, ${t.name} cheers` : `Two players from ${t.name}`;
+    case 'pair': return p && q ? `${p} & ${q} perform, ${subject(t.name, 'cheers')}` : `Two players from ${t.name}`;
     case 'team': return `All of ${t.name}`;
     case 'everyone': return 'Every team joins in';
-    default: return p ? `${p} performs, the rest of ${t.name} helps` : `One player from ${t.name}`;
+    default: return p ? `${p} performs, and ${t.name} can help` : `One player from ${t.name}`; // "can" agrees with any team name
   }
 }
 function performerLine(c, t) {
@@ -699,7 +703,7 @@ function scrDareResult(s, c) {
     </aside>
     ${quipBox(s, 'dare-result', { cls: 'quip-slot--dare', tail: 'right' })}
   </section>`;
-  return view('dare-result', html, { key: `dare-result:${c.id}`, say: `${stampText}. ${got > 0 ? `${t.name} scores ${got}.` : ''}` });
+  return view('dare-result', html, { key: `dare-result:${c.id}`, say: `${stampText}. ${got > 0 ? `${subject(t.name, 'scores')} ${got}.` : ''}` });
 }
 
 /* ---------- showdown ---------- */
@@ -712,7 +716,7 @@ function scrShowdownPick(s, c) {
       ${img('boxing', 140, 'sdpick-art')}
       <div><span class="sdpick-eyebrow">${slotChip(segOf(c.segmentIndex))}<span class="chip chip--points">Winner ${200 * multiplier(s)} · tie 100 each</span></span>
       <h1 class="sdpick-title">Who will ${t.name} call out?</h1>
-      <p class="sdpick-eye">${eye ? h`${mas(team(eye.teamId), 44)}<span>${eye.by?.name || t.name} is eyeing <strong>${team(eye.teamId)?.name || ''}</strong>…</span>` : h`<span>Choosing on their phones<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></span>`}</p></div>
+      <p class="sdpick-eye">${eye ? h`${mas(team(eye.teamId), 44)}<span>${eye.by?.name ? `${eye.by.name} is` : subject(t.name, 'is')} eyeing <strong>${team(eye.teamId)?.name || ''}</strong>…</span>` : h`<span>Choosing on their phones<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></span>`}</p></div>
     </div>
     <div class="sd-targets sd-targets--n${Math.min(targets.length, 7)}" role="list">
       ${targets.map((x) => h`<div class="sd-target ${eye?.teamId === x.id ? 'is-eyed' : ''}" role="listitem" data-key="${x.id}" style="${teamVar(x)}">
@@ -755,7 +759,7 @@ function scrShowdown(s, c) {
       ${done ? upNextPill(s) : ring(150, { unit: started ? 'seconds' : 'ready', cls: 'sd-ring' })}
     </section>
   </section>`;
-  const say = done ? (w === 'tie' ? 'It’s a tie! 100 points each.' : `${w === 'active' ? aName : bName} wins the showdown!`) : `Showdown: ${aName} versus ${bName}. ${sd.title || ''}`;
+  const say = done ? (w === 'tie' ? 'It’s a tie! 100 points each.' : `${w === 'active' ? aName : bName} ${(w === 'active' ? !c.performer?.name && isPluralTeam(aName) : !c.rival?.name && isPluralTeam(bName)) ? 'win' : 'wins'} the showdown!`) : `Showdown: ${aName} versus ${bName}. ${sd.title || ''}`;
   return view(done ? 'showdown-result' : 'showdown', html, {
     key: `showdown:${c.id}:${sd.title || ''}`, stripMode: 'rival', say,
     enter: () => later(200, () => { play('whoosh', 400); later(380, () => play('splat')); }),
@@ -809,9 +813,9 @@ function scrHotSeat(s, c) {
   const right = hs.results.filter((r) => r === 'correct').length;
   const socks = Array.from({ length: hs.total }, (_, i) => {
     const r = hs.results[i];
-    const st = r === 'correct' ? 'full' : r === 'wrong' ? 'coal' : r === 'pass' ? 'empty' : 'empty';
+    const st = r === 'correct' ? 'full' : r === 'wrong' || r === 'pass' ? 'coal' : 'empty'; // a pass scores nothing: coal, like on the phone and the host (labelled "Pass")
     const cur = i === hs.index && !done;
-    return h`<span class="hs-sock ${cur ? 'is-current' : ''} ${r ? `is-${r}` : 'is-todo'}" data-key="s${i}">${stocking({ color: r === 'correct' ? '#1F7A4A' : r === 'wrong' ? '#4A5568' : '#D42A2A', state: st, size: 92, ariaLabel: `Question ${i + 1}: ${r || 'not yet'}` })}<span class="hs-sock__n">${r === 'pass' ? 'Pass' : i + 1}</span></span>`;
+    return h`<span class="hs-sock ${cur ? 'is-current' : ''} ${r ? `is-${r}` : 'is-todo'}" data-key="s${i}">${stocking({ color: r === 'correct' ? '#1F7A4A' : '#D42A2A', state: st, size: 92, ariaLabel: `Question ${i + 1}: ${r || 'not yet'}` })}<span class="hs-sock__n">${r === 'pass' ? 'Pass' : i + 1}</span></span>`;
   });
   const html = h`<section class="scr scr--hotseat" style="${teamVar(t)}">
     <aside class="hs-left" data-tm="${t.id}">
@@ -918,7 +922,7 @@ function scrDoubleDown(s) {
   const html = h`<section class="scr scr--dd" style="${teamVar(t)}">
     <span class="splash__eyebrow dd-eyebrow">${img('sparkles', 44)}The wheel landed on</span>
     <h1 class="splash__word dd-word">Double Down!</h1>
-    <p class="dd-sub" data-read>Everything ${t.name} wins this turn is <span class="highlight-word">doubled</span></p>
+    <p class="dd-sub" data-read>Everything ${t.name} ${verb(t.name, 'wins', 'win')} this turn is <span class="highlight-word">doubled</span></p>
     ${quipBox(s, 'double-down', { cls: 'quip-slot--dd', tail: 'bottom' })}
     <div class="dd-call" data-read>${mas(t, 60)}<span>Spin again from ${anyPhone(t)}</span></div>
     <div class="sleigh sleigh--dd" aria-hidden="true">${img('deer', 150, 'sleigh__deer sleigh__deer--a')}${img('deer', 150, 'sleigh__deer sleigh__deer--b')}<span class="sleigh__reins"></span>${img('sled', 190, 'sleigh__sled')}</div>
@@ -926,7 +930,7 @@ function scrDoubleDown(s) {
   return view('double-down', html, {
     key: `dd:${s.turnId}:${s.challenge?.id || ''}`, strip: true, header: false,
     backdrop: raw('<div class="splash splash--contained splash--candy dd-splash"></div>'),
-    say: `Double Down! ${t.name} spins again, and everything you win this turn is doubled.`,
+    say: `Double Down! ${subject(t.name, 'spins')} again, and everything you win this turn is doubled.`,
     enter: () => later(300, () => play('sleighBells', 1600)),
   });
 }
@@ -945,7 +949,7 @@ function scrGrinchPick(s, c) {
   const gain = eyed ? take(eyed) : c.points;
   const html = h`<section class="scr scr--grinch" style="${teamVar(t)}">
     <div class="grinch-head" data-read>${img('money', 150, 'grinch-money')}<div><h1 class="grinch-title">Grinch Steal!</h1><p class="grinch-sub">${t.name} can rob any team ahead of them</p></div></div>
-    <p class="grinch-eye" data-read>${eye ? h`${mas(t, 48)}<span>${eye.by?.name || t.name} is eyeing <strong>${eyed?.name || ''}</strong>…</span>` : h`${mas(t, 48)}<span>Choosing on their phones<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></span>`}</p>
+    <p class="grinch-eye" data-read>${eye ? h`${mas(t, 48)}<span>${eye.by?.name ? `${eye.by.name} is` : subject(t.name, 'is')} eyeing <strong>${eyed?.name || ''}</strong>…</span>` : h`${mas(t, 48)}<span>Choosing on their phones<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></span>`}</p>
     <div class="g-targets g-targets--n${Math.min(others.length, 7)}" role="list" aria-label="Teams ${t.name} can steal from">
       ${others.map((x) => {
         const can = targets.has(x.id);
@@ -976,7 +980,7 @@ function scrGrinchDone(s, c) {
     const to = team(c.gift.toTeamId);
     const before = (to?.score ?? 0) - c.gift.amount;
     const html = h`<section class="scr scr--gift" style="${teamVar(t)}">
-      <div class="gift-head" data-read><span class="gift-heart" aria-hidden="true"></span><div><h1 class="grinch-title">Your heart grew three sizes!</h1><p class="grinch-sub">${t.name} is in 1st, so nobody to rob. They gift <strong>${formatPoints(c.gift.amount)} points</strong> to ${to?.name || ''}.</p></div></div>
+      <div class="gift-head" data-read><span class="gift-heart" aria-hidden="true"></span><div><h1 class="grinch-title">Your heart grew three sizes!</h1><p class="grinch-sub">${subject(t.name, 'is')} in 1st, so nobody to rob. They gift <strong>${formatPoints(c.gift.amount)} points</strong> to ${to?.name || ''}.</p></div></div>
       <div class="g-cards" data-read>
         ${grinchCard(t, { tag: 'Gives', tone: 'gold', big: formatPoints(t.score), sub: 'still in 1st', cls: 'is-giver' })}
         <div class="g-mid">${present({ size: 'md', color: '#D42A2A', ribbon: '#EDB321', label: 'A gift of', points: formatPoints(c.gift.amount) })}</div>
@@ -1005,7 +1009,7 @@ function scrGrinchDone(s, c) {
     </section>`;
     return view('grinch-steal', html, {
       key: `grinch-steal:${c.id}`, header: false, surface: 'grinch', backdrop: GRINCH_BD, strip: false,
-      say: `${to.name} steals ${c.steal.amount} points from ${from?.name}!`,
+      say: `${subject(to.name, 'steals')} ${c.steal.amount} points from ${from?.name}!`,
       enter: () => later(450, () => gagOnce('grinchSteal', () => { play('kaChing'); fx.sneak('money', { from: stage.querySelector('.is-victim') }); })),
     });
   }
@@ -1020,7 +1024,7 @@ function scrSkipped(s, c) {
     <div class="gift-tag gift-tag--twine skip-card" data-read>
       ${slotChip(seg)}
       <h1 class="skip-card__title">Skipped. No points this time.</h1>
-      <p class="skip-card__text">${t ? `${t.name} lives to spin another day.` : 'On to the next one!'}</p>
+      <p class="skip-card__text">${t ? `${subject(t.name, 'lives')} to spin another day.` : 'On to the next one!'}</p>
       ${upNextPill(s)}
     </div>
     ${quipBox(s, 'skipped', { cls: 'quip-slot--skip', tail: 'top' })}
@@ -1039,7 +1043,7 @@ function scrRoundBreak(s) {
   let lead;
   if (!st.length || st[0].score === 0) lead = 'Everyone’s still on zero. Anything can happen!';
   else if (tie) lead = 'It’s neck and neck at the top!';
-  else lead = `${best?.name} leads by ${formatPoints(rb.leadBy)}. ${rb.finalNext ? 'Final Chaos decides it.' : left === 1 ? 'One round left to catch them.' : `${left} rounds left to catch them.`}`;
+  else lead = `${subject(best?.name || '', 'leads')} by ${formatPoints(rb.leadBy)}. ${rb.finalNext ? 'Final Chaos decides it.' : left === 1 ? 'One round left to catch them.' : `${left} rounds left to catch them.`}`;
   const next = rb.nextRound;
   const isLast = !rb.finalNext && next === s.totalRounds;
   const first = s.teams[0];
@@ -1054,7 +1058,7 @@ function scrRoundBreak(s) {
     ? h`<span class="rb-next__title">${img('gift', 56)}Bonus question next!</span><span class="rb-next__sub">Every team answers on a phone, 100 for each right answer.</span>`
     : rb.finalNext
       ? h`<span class="rb-next__title">${img('moon', 56)}Final Chaos is next!</span><span class="rb-next__sub">Every team wagers on one last question.</span>`
-      : h`<span class="rb-next__title">${img('sled', 56)}${isLast ? `Round ${next} is the last round!` : `Round ${next} of ${s.totalRounds} is next`}</span><span class="rb-next__sub"><strong>${first?.name || ''}</strong> spins first.${isLast ? ' Then Final Chaos.' : ''}</span>`;
+      : h`<span class="rb-next__title">${img('sled', 56)}${isLast ? `Round ${next} is the last round!` : `Round ${next} of ${s.totalRounds} is next`}</span><span class="rb-next__sub"><strong>${first?.name || ''}</strong> ${verb(first?.name, 'spins', 'spin')} first.${isLast ? ' Then Final Chaos.' : ''}</span>`;
   const html = h`<section class="scr scr--round ${st.length > 6 ? 'is-many' : ''}">
     <aside class="rb-left">
       <div class="rb-head">${img('cocoa', 190, 'rb-cocoa')}<h1 class="rb-title" data-read>Hot cocoa break!</h1></div>
@@ -1193,7 +1197,7 @@ function scrFinalReveal(s) {
 
 /* ---------- podium + the funny awards ceremony ---------- */
 const AWARD_FALLBACK_ART = { fastestFinger: 'zap', starPerformer: 'masks', lumpOfCoal: 'snowman', grinchOfTheYear: 'money', silentNight: 'moon', comebackKid: 'sled', rudolph: 'deer' };
-const CEREMONY = { lead: 6200, each: 6600, drum: 2100 };
+const CEREMONY = AWARD_CEREMONY; // shared with the phones, so nobody's phone spoils an award before the TV reveals it
 function ceremonyStep(n) {
   const cm = ui.ceremony;
   if (!cm || cm.done || !n) return { i: n, phase: 'done' };
@@ -1203,8 +1207,13 @@ function ceremonyStep(n) {
   if (i >= n) return { i: n, phase: 'done' };
   return { i, phase: t - i * CEREMONY.each < CEREMONY.drum ? 'drum' : 'reveal' };
 }
+/** Every team that shares an award (a tie lists them all in teamIds; teamId is only set for a single team). */
+function awardTeamIds(a) {
+  return Array.isArray(a?.teamIds) && a.teamIds.length ? a.teamIds : a?.teamId ? [a.teamId] : [];
+}
 function awardTag(a, cls = '') {
-  const tm = team(a.teamId);
+  const ids = awardTeamIds(a);
+  const tm = ids.length === 1 ? team(ids[0]) : null;
   return h`<div class="gift-tag gift-tag--md award-tag ${a.key === 'lumpOfCoal' ? 'is-coal' : ''} ${cls}" data-key="aw:${a.key}" style="${tm ? teamVar(tm) : ''}">
     ${img(a.art || AWARD_FALLBACK_ART[a.key] || 'trophy', 64, 'award-tag__art')}
     <div class="award-tag__text"><span class="award-tag__title">${a.title}</span><span class="award-tag__who">${a.name}</span>${a.detail ? h`<span class="award-tag__detail">${a.detail}</span>` : ''}</div>
@@ -1215,7 +1224,7 @@ function scrPodium(s) {
   const st = (p.standings || []).slice().sort((a, b) => a.place - b.place || b.score - a.score);
   const blocks = st.length >= 3 ? [st[1], st[0], st[2]] : st.length === 2 ? [st[1], st[0]] : st.slice(0, 1);
   const winners = st.filter((x) => x.place === 1).map((x) => team(x.teamId)?.name).filter(Boolean);
-  const title = winners.length > 1 ? `${listJoin(winners, 'and')} share Christmas!` : `${winners[0] || ''} wins Christmas!`;
+  const title = winners.length > 1 ? `${listJoin(winners, 'and')} share Christmas!` : `${winners[0] || ''} ${verb(winners[0], 'wins', 'win')} Christmas!`;
   const rest = st.slice(3);
   const awards = p.awards || [];
   const step = ceremonyStep(awards.length);
@@ -1621,6 +1630,14 @@ function tick() {
         play('cymbal');
         const a = S.podium.awards[st.i];
         later(120, () => a?.key === 'lumpOfCoal' ? (play('slideWhistle'), fx.coalDrop(stage.querySelector('.award-stage'))) : fx.confetti({ count: 50, snow: 0.3, duration: 1800 }));
+        // the winning team(s) react on the podium (a shared award bounces every team in it)
+        later(260, () => {
+          for (const id of awardTeamIds(a)) {
+            const m = stage.querySelector(`.podium-col[data-tm="${CSS.escape(id)}"] .podium-col__mascot`);
+            if (a?.key === 'lumpOfCoal') droopEl(m);
+            else bounceEl(m);
+          }
+        });
       }
       if (st.phase === 'done') {
         ui.ceremony.done = true;
@@ -1706,13 +1723,15 @@ function onState(next) {
     const pc = prev.challenge;
     // Hold the "it landed on…" moment (present unwraps + land quip) and the "Sam picked Medium" moment for a beat.
     if (prev.phase === 'spinning' && (next.phase === 'challenge' || next.phase === 'turnResult') && c && c.type !== 'doubledown') {
-      ui.hold = { kind: 'landed', id: c.id, until: performance.now() + 3800 };
+      // timerAtLand: All Play's clock starts on landing; any OTHER clock starting means the host got going: show it now
+      ui.hold = { kind: 'landed', id: c.id, until: performance.now() + 3800, timerAtLand: !!next.timer?.started };
     } else if (c && pc && c.id === pc.id && c.type === 'trivia' && pc.stage === 'pickDifficulty' && c.stage === 'question') {
       ui.hold = { kind: 'picked', id: c.id, until: performance.now() + 2600 };
     } else if (ui.hold && (!c || c.id !== ui.hold.id)) {
       ui.hold = null;
     }
     if (ui.hold?.kind === 'landed' && c && !['pickDifficulty', 'perform', 'pickRival', 'pickTarget', 'hotseat', 'list', 'answering', 'done'].includes(c.stage)) ui.hold = null;
+    if (ui.hold?.kind === 'landed' && !ui.hold.timerAtLand && next.timer?.started) ui.hold = null; // the host started the clock: no stale 'it landed on' screen
     if (next.phase === 'podium' && prev.phase !== 'podium') ui.ceremony = { t0: performance.now(), done: false, step: '' };
   } else {
     for (const r of next.final?.revealed || []) if (r.judged) ui.judgedRows.add(r.teamId);
@@ -1819,7 +1838,8 @@ function gag(name, o = {}) {
   const tid = o.teamId || S?.activeTeamId;
   const G = {
     correct: () => { play('sleighRun'); lights.blink('#1F9D57', 3); safe(fx.dash('deer', { y: 0.46 })); later(300, () => teamMascots(tid).forEach(bounceEl)); },
-    wrong: () => { play('slideWhistle'); safe(fx.coalDrop(card())); later(200, () => teamMascots(tid).forEach(droopEl)); },
+    // the coal lands on the card's top edge and the snowball hits its top-right corner: never on the words being read
+    wrong: () => { play('slideWhistle'); safe(fx.coalDrop(card(), { at: [0.86, 0.02] })); later(200, () => teamMascots(tid).forEach(droopEl)); },
     timeUp: () => { play('sadTrombone'); meltTimer(); later(300, () => teamMascots(tid).forEach(droopEl)); },
     stealWon: () => {
       play('kaChing');
@@ -1827,7 +1847,7 @@ function gag(name, o = {}) {
       safe(fx.sneak(mascotFor(team(tid)?.mascot).art, { from: tag || card() }));
       lights.flash(2);
     },
-    splat: () => { play('splat'); safe(fx.splat(card())); later(250, () => teamMascots(tid).forEach(droopEl)); },
+    splat: () => { play('splat'); safe(fx.splat(card(), { at: [0.86, 0.16] })); later(250, () => teamMascots(tid).forEach(droopEl)); },
     groan: () => { play('sadTrombone'); teamMascots(tid).forEach(droopEl); },
     dareNailed: () => { play('correct'); play('applause', 2400); safe(fx.confetti({ count: 80, snow: 0.35 })); teamMascots(tid).forEach(bounceEl); },
     dareValiant: () => { play('boing'); play('applause', 1300); teamMascots(tid).forEach(bounceEl); },

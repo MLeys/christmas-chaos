@@ -8,11 +8,16 @@
  *
  * Every action that sends an event is dry-run through game.check(): if the server would reject it right now it
  * comes back `disabled:true` with a human `reason`, so the host never sees a live button that does nothing.
+ * The server-level save events (host:resume / host:discardSave) are not game events: they are live while a save is offered.
  * `say` is read OUT LOUD, so it never contains an answer, song title, dare secret or list answer before the reveal.
  * The TV quip (publicView.quip, already public) is appended to `say` as a suggested punchline with a stage direction.
  */
 
+const { isPluralTeam, subject, possessive } = require('./grammar');
+
 const HOST = { role: 'host' };
+/** Handled by server.js itself (saved games), not by game.dispatch(), so game.check() cannot dry-run them. */
+const SERVER_EVENTS = new Set(['host:resume', 'host:discardSave']);
 const DASH = ' — ';
 const ELL = '…';
 const MINUS = '−';
@@ -107,6 +112,10 @@ function buildCoach(game, pv, h) {
   const teams = pv.teams;
   const T = (id) => teams.find((t) => t.id === id) || null;
   const tn = (id) => (T(id) ? T(id).name : 'a team');
+  /** "<team> <verb>" with the verb agreeing ("The Grinches are", "Team Rudolph is"); pass the singular verb. */
+  const tnv = (id, v) => subject(tn(id), v);
+  /** Several names, or one plural team name, take a plural verb. */
+  const many = (list) => list.length > 1 || (list.length === 1 && isPluralTeam(list[0]));
   const pname = (p) => (p && p.name ? p.name : 'Someone');
   const act = pv.activeTeamId;
   const c = pv.challenge;
@@ -120,7 +129,7 @@ function buildCoach(game, pv, h) {
   const playerOnline = (playerId) => { const p = pv.players.find((x) => x.id === playerId); return !!(p && p.connected); };
 
   const nextDetail = () => {
-    if (pv.turnIndex + 1 < teams.length) return `${teams[pv.turnIndex + 1].name} is up next`;
+    if (pv.turnIndex + 1 < teams.length) return `${subject(teams[pv.turnIndex + 1].name, 'is')} up next`;
     if (pv.round < pv.totalRounds) return `Then the end of Round ${pv.round}`;
     return 'Then the Final Chaos finale';
   };
@@ -137,12 +146,12 @@ function buildCoach(game, pv, h) {
     case 'turnIntro': {
       const t = T(act);
       const nobody = t && t.connectedCount === 0;
-      out.headline = `${tn(act)} is up${DASH}waiting for their spin`;
+      out.headline = `${tnv(act, 'is')} up${DASH}waiting for their spin`;
       out.say = (pv.round === 1 && pv.turnIndex === 0 ? 'Here we go! ' : '') + `${tn(act)}, you’re up! Spin from any of your phones.`;
       out.steps = [`Wait for someone on ${tn(act)} to tap SPIN`, 'Watch the wheel on the TV, then follow the directions here'];
       A('spinFor', `Spin for ${tn(act)}`, 'host:spin', null, nobody ? 'primary' : 'secondary', 'S');
-      A('skipTurn', 'Skip this turn', 'host:nextTurn', { turnId: pv.turnId }, 'danger', null, { confirm: `Skip ${tn(act)}’s turn? They won’t spin this round.` });
-      if (nobody) tip(`${tn(act)} has nobody online${DASH}spin for them, or move a player onto the team.`);
+      A('skipTurn', 'Skip this turn', 'host:nextTurn', { turnId: pv.turnId }, 'danger', null, { confirm: `Skip ${possessive(tn(act))} turn? They won’t spin this round.` });
+      if (nobody) tip(`${tnv(act, 'has')} nobody online${DASH}spin for them, or move a player onto the team.`);
       if (pv.round === 1 && pv.turnIndex === 0) tip('First turn of the night: “Your team spins from your phone. Do what it lands on. Most points wins.”');
       break;
     }
@@ -150,7 +159,7 @@ function buildCoach(game, pv, h) {
       const by = pv.spin && pv.spin.by;
       out.headline = by ? `${by.name} spun the wheel${ELL}` : `The wheel is spinning${ELL}`;
       out.steps = ['Watch the TV: the wheel lands in a few seconds'];
-      A('skipTurn', 'Skip this turn', 'host:nextTurn', { turnId: pv.turnId }, 'danger', null, { confirm: `Skip ${tn(act)}’s turn?` });
+      A('skipTurn', 'Skip this turn', 'host:nextTurn', { turnId: pv.turnId }, 'danger', null, { confirm: `Skip ${possessive(tn(act))} turn?` });
       break;
     }
     case 'challenge': challenge(); break;
@@ -194,7 +203,7 @@ function buildCoach(game, pv, h) {
     case 'podium': {
       const pd = pv.podium;
       const winners = pd ? pd.standings.filter((s) => s.place === 1).map((s) => tn(s.teamId)) : [];
-      out.headline = winners.length ? `${names(winners)} ${winners.length === 1 ? 'wins' : 'win'} Christmas!` : 'Game over';
+      out.headline = winners.length ? `${names(winners)} ${many(winners) ? 'win' : 'wins'} Christmas!` : 'Game over';
       // the awards ceremony: drumroll, pause, name (the Lump of Coal comes last: it is the biggest laugh)
       const awards = pd ? pd.awards.map((a) => `The ${a.title}${/award/i.test(a.title) ? '' : ' award'} goes to${ELL} ${a.name}!${a.detail ? ' (' + a.detail + ')' : ''}`) : [];
       const q = pv.quip && pv.quip.key === 'podium' ? pv.quip : null;
@@ -216,13 +225,18 @@ function buildCoach(game, pv, h) {
   punchline();
 
   // ------------------------------------------------------------------ shared tips
-  if (act && mult > 1 && ['challenge', 'turnResult', 'spinning'].includes(pv.phase)) tip(`Double Down active: ${tn(act)}’s points are ×2 this turn.`);
+  if (act && mult > 1 && ['challenge', 'turnResult', 'spinning'].includes(pv.phase)) tip(`Double Down active: ${possessive(tn(act))} points are ×2 this turn.`);
   if (h && h.canUndo && h.undoLabel && ['turnResult', 'roundBreak', 'finalReveal', 'podium'].includes(pv.phase)) tip(`Last change: ${h.undoLabel}. Wrong? Press Undo (U).`);
   out.progress = progress();
 
   // ------------------------------------------------------------------ validate every action against the server rules
   for (const a of out.actions) {
     if (!a.event || a.disabled) continue;
+    // server-level events (handled by server.js, not the game engine): live exactly while a save is on offer
+    if (SERVER_EVENTS.has(a.event)) {
+      if (!pv.savedGame) { a.disabled = true; a.reason = a.reason || REASONS['no-save']; }
+      continue;
+    }
     const r = game.check(HOST, a.event, a.payload || {});
     if (!r.ok) { a.disabled = true; a.reason = a.reason || REASONS[r.error] || r.error; }
   }
@@ -266,15 +280,15 @@ function buildCoach(game, pv, h) {
     out.say = `Grab your phones! Scan the code on the TV, type your name and pick a team. Can’t scan? Type ${addr} into your browser.`;
     out.steps = [
       teams.length >= 2 ? `Make the teams${DASH}done, ${teams.length} teams ready` : 'Make the teams: add at least 2 (4 to 6 plays best)',
-      empty.length ? `Check everyone’s on a team${DASH}${names(empty.map((t) => t.name))} ${empty.length === 1 ? 'is' : 'are'} still empty` : 'Check everyone’s on a team',
+      empty.length ? `Check everyone’s on a team${DASH}${names(empty.map((t) => t.name))} ${many(empty.map((t) => t.name)) ? 'are' : 'is'} still empty` : 'Check everyone’s on a team',
       'Read the opening script, then press Start',
     ];
     const startMore = teams.length ? { detail: `Round 1 opens with ${teams[0].name} at the wheel` } : {};
-    if (empty.length && teams.length >= 2) startMore.confirm = `${names(empty.map((t) => t.name))} ${empty.length === 1 ? 'has' : 'have'} no players yet. Start anyway?`;
+    if (empty.length && teams.length >= 2) startMore.confirm = `${names(empty.map((t) => t.name))} ${many(empty.map((t) => t.name)) ? 'have' : 'has'} no players yet. Start anyway?`;
     A('start', 'Start game', 'host:start', null, 'primary', 'S', startMore);
     A('introScript', 'Read the opening script', null, null, 'secondary', null, { local: 'introScript', detail: '60-second welcome' });
     A('soundTest', 'Play test sound', 'host:soundTest', null, 'secondary', null, { detail: 'Plays a jingle on the TV' });
-    for (const t of empty) tip(`${t.name} has no players yet. Ask someone to switch, or remove the team.`);
+    for (const t of empty) tip(`${subject(t.name, 'has')} no players yet. Ask someone to switch, or remove the team.`);
     if (unassigned) tip(`${plural(unassigned, 'player')} ${unassigned === 1 ? 'hasn’t' : 'haven’t'} picked a team yet.`);
     if (h && h.connections && !h.connections.tv) tip('The TV screen isn’t open yet, so nobody can see the join code. Open /tv on the TV.');
     if (!joined) tip('Phones must be on the same Wi-Fi as this laptop (not a guest network).');
@@ -294,7 +308,7 @@ function buildCoach(game, pv, h) {
       case 'allplay': return allPlay(false);
       case 'grinch': return grinch();
       case 'doubledown': {
-        out.headline = `Double Down! ${tn(act)} spins again`;
+        out.headline = `Double Down! ${tnv(act, 'spins')} again`;
         out.say = `Double Down! ${tn(act)}, spin again${DASH}everything you win this turn is doubled!`;
         out.steps = [`Wait for ${tn(act)} to spin again`];
         A('spinFor', `Spin for ${tn(act)}`, 'host:spin', null, 'secondary', 'S');
@@ -307,7 +321,7 @@ function buildCoach(game, pv, h) {
   function trivia(label) {
     const pts = c.points * mult;
     if (c.stage === 'pickDifficulty') {
-      out.headline = `${tn(act)} is picking a difficulty`;
+      out.headline = `${tnv(act, 'is')} picking a difficulty`;
       out.say = c.firstTime
         ? `${label}! ${tn(act)}, pick Easy for 100, Medium for 200 or Hard for 300, then answer out loud in 20 seconds. Miss it, and the other teams can steal half.`
         : `${label}! ${tn(act)}: Easy for 100, Medium for 200, or Hard for 300?`;
@@ -317,7 +331,7 @@ function buildCoach(game, pv, h) {
       return;
     }
     if (c.stage === 'question') {
-      out.headline = `${tn(act)} is answering (${cap(c.difficulty)} · ${fmt(pts)})`;
+      out.headline = `${tnv(act, 'is')} answering (${cap(c.difficulty)} · ${fmt(pts)})`;
       out.say = `${c.question}\n${tn(act)}${DASH}20 seconds, go!`;
       out.steps = ['Read the question out loud', 'Listen for one answer (it’s on your private card)', 'Tap Correct or Wrong'];
       A('correct', `Correct +${fmt(pts)}`, 'host:judge', { result: 'correct' }, 'success', 'C', { detail: `Points fly to ${tn(act)}` });
@@ -341,7 +355,7 @@ function buildCoach(game, pv, h) {
       out.headline = `${b.winner.name} (${tn(b.winner.teamId)}) buzzed first`;
       out.say = `${b.winner.name}, your answer?`;
       out.steps = ['Listen to their answer', 'Tap Correct or Wrong'];
-      A('correct', `Correct +${sp}`, 'host:judge', { result: 'correct' }, 'success', 'C', { detail: `${tn(b.winner.teamId)} steals it` });
+      A('correct', `Correct +${sp}`, 'host:judge', { result: 'correct' }, 'success', 'C', { detail: `${tnv(b.winner.teamId, 'steals')} it` });
       A('wrong', 'Wrong', 'host:judge', { result: 'wrong' }, 'danger', 'W', { detail: `Locks out ${tn(b.winner.teamId)}` });
       out.primary = 'correct';
       return;
@@ -362,7 +376,7 @@ function buildCoach(game, pv, h) {
       return;
     }
     const locked = b.lockedTeamIds.length ? b.lockedTeamIds[b.lockedTeamIds.length - 1] : null;
-    out.headline = locked ? `Wrong steal${DASH}${tn(locked)} is locked out` : 'Steal closed';
+    out.headline = locked ? `Wrong steal${DASH}${tnv(locked, 'is')} locked out` : 'Steal closed';
     out.say = null;
     out.steps = ['Reopen the steal for the teams that are left, or reveal the answer'];
     A('reopen', 'Reopen the steal', 'host:openSteal', null, 'primary', 'O', { detail: `For ${names(teams.filter((t) => t.id !== act && !b.lockedTeamIds.includes(t.id)).map((t) => t.name))}` });
@@ -374,7 +388,7 @@ function buildCoach(game, pv, h) {
   function soundItOut() {
     const p = c.performer;
     if (c.stage === 'steal') return steal('Sound It Out');
-    out.headline = p ? `${p.name} is humming for ${tn(act)}` : `${tn(act)} has no players for Sound It Out`;
+    out.headline = p ? `${p.name} is humming for ${tn(act)}` : `${tnv(act, 'has')} no players for Sound It Out`;
     out.say = !timerStarted()
       ? `${pname(p)}, your song is on your phone${DASH}press and hold to peek. Hum or whistle it, no words! ${tn(act)}, you’ll have 30 seconds to name that tune.`
       : `${tn(act)}${DASH}name that tune!`;
@@ -395,6 +409,7 @@ function buildCoach(game, pv, h) {
   function dare() {
     const d = c.dare;
     const who = names([c.performer, c.partner].filter(Boolean).map((x) => x.name)) || tn(act);
+    const whoMany = c.performer ? !!c.partner : isPluralTeam(tn(act)); // two performers, or a plural team name
     if (c.stage === 'vote') {
       const v = c.vote;
       out.headline = `The room is voting on the dare (${v.voters} of ${v.eligible})`;
@@ -408,13 +423,13 @@ function buildCoach(game, pv, h) {
     }
     const teamDare = d.who === 'team' || d.who === 'everyone';
     out.headline = teamDare
-      ? `Dare: ${d.title}${DASH}${d.who === 'everyone' ? 'everyone plays' : tn(act) + ' performs'}${d.hasSecret && c.performer ? ` (${c.performer.name} has the secret)` : ''}`
-      : `Dare: ${d.title}${DASH}${who} ${c.partner ? 'perform' : 'performs'}`;
+      ? `Dare: ${d.title}${DASH}${d.who === 'everyone' ? 'everyone plays' : tnv(act, 'performs')}${d.hasSecret && c.performer ? ` (${c.performer.name} has the secret)` : ''}`
+      : `Dare: ${d.title}${DASH}${who} ${whoMany ? 'perform' : 'performs'}`;
     const lead = teamDare
       ? `${tn(act)}${d.hasSecret && c.performer ? `, ${c.performer.name} has the secret on their phone` : ''}: `
       : `${who}${d.hasSecret ? ', your secret is on your phone. Press and hold to peek. ' : ': '}`;
     out.say = lead + d.instructions;
-    out.steps = [`Wait until ${who} ${c.partner ? 'are' : 'is'} ready`, `Start the ${d.time} s timer`, 'Judge it yourself, or let the room vote'];
+    out.steps = [`Wait until ${who} ${whoMany ? 'are' : 'is'} ready`, `Start the ${d.time} s timer`, 'Judge it yourself, or let the room vote'];
     timerStart(`Start ${d.time} s timer`);
     const locked = !timerStarted();
     darePicks('', locked);
@@ -439,7 +454,7 @@ function buildCoach(game, pv, h) {
 
   function showdown() {
     if (c.stage === 'pickRival') {
-      out.headline = `${tn(act)} is picking a rival`;
+      out.headline = `${tnv(act, 'is')} picking a rival`;
       out.say = c.firstTime
         ? `Showdown! ${tn(act)}, pick a team to challenge. One player from each team goes head to head${DASH}winner takes 200.`
         : `Showdown! ${tn(act)}, pick your rival on your phones.`;
@@ -456,8 +471,8 @@ function buildCoach(game, pv, h) {
     out.say = `${a} and ${b}${DASH}get to the front! ${s.title}: ${s.instructions}`;
     out.steps = ['Get both players to the front', `Start the ${s.time} s timer`, 'Tap the winner, or Tie'];
     timerStart(`Start ${s.time} s timer`);
-    A('winActive', `${tn(act)} wins +${fmt(200 * mult)}`, 'host:showdownResult', { winner: 'active' }, 'success', '1', { detail: a });
-    A('winRival', `${tn(rivalTeam)} wins +200`, 'host:showdownResult', { winner: 'rival' }, 'success', '2', { detail: b });
+    A('winActive', `${tnv(act, 'wins')} +${fmt(200 * mult)}`, 'host:showdownResult', { winner: 'active' }, 'success', '1', { detail: a });
+    A('winRival', `${tnv(rivalTeam, 'wins')} +200`, 'host:showdownResult', { winner: 'rival' }, 'success', '2', { detail: b });
     A('tie', 'Tie', 'host:showdownResult', { winner: 'tie' }, 'secondary', '3', { detail: '+100 each' });
     A('reroll', 'Re-roll players', 'host:rerollPerformer', null, 'secondary', 'P');
     A('swap', 'Swap challenge', 'host:swapQuestion', null, 'secondary');
@@ -470,7 +485,7 @@ function buildCoach(game, pv, h) {
   function rapidList() {
     const l = c.list;
     const pts = Math.min(l.count, l.max) * l.each * mult;
-    out.headline = `Rapid List${DASH}${tn(act)} has 30 seconds`;
+    out.headline = `Rapid List${DASH}${tnv(act, 'has')} 30 seconds`;
     out.say = timerStarted() ? null : `${l.prompt}! 30 seconds${ELL} go!`;
     out.steps = ['Start the timer', 'Tap each valid answer you hear', 'Award when time’s up'];
     timerStart();
@@ -522,7 +537,7 @@ function buildCoach(game, pv, h) {
       out.headline = close.length ? `Check ${names(close.map((s) => tn(s.teamId)))}, then reveal` : 'Answers are in: check the marks, then reveal';
       out.steps = ['Flip any auto-mark you disagree with (Accept / Reject)', 'Reveal all answers on the TV'];
       A('revealAll', 'Reveal all answers on TV', 'host:revealAnswers', null, 'primary', 'R', { detail: `Pays out ${fmt(h.payout || 0)}` });
-      for (const s of close) tip(`${tn(s.teamId)}’s “${s.text}” is a close spelling${DASH}accepted for now. Check it.`);
+      for (const s of close) tip(`${possessive(tn(s.teamId))} “${s.text}” is a close spelling${DASH}accepted for now. Check it.`);
       tip('Revealing locks every phone.');
       return;
     }
@@ -537,7 +552,7 @@ function buildCoach(game, pv, h) {
   }
 
   function grinch() {
-    out.headline = `Grinch Steal${DASH}${tn(act)} is picking a victim`;
+    out.headline = `Grinch Steal${DASH}${tnv(act, 'is')} picking a victim`;
     out.say = `Grinch Steal! ${tn(act)}, pick a team that’s ahead of you and steal up to ${fmt(c.points)} points!`;
     out.steps = [`Let ${tn(act)} pick on their phones`, 'Or pick for them'];
     for (const id of c.targets || []) {
@@ -561,13 +576,13 @@ function buildCoach(game, pv, h) {
       case 'nailed': out.headline = `${tn(act)} nailed the dare! ${signed(gain(act))}`; break;
       case 'valiant': out.headline = `Valiant effort! ${signed(gain(act))}`; break;
       case 'fail': out.headline = 'Not this time'; break;
-      case 'win': { const w = c.winnerSide === 'rival' && c.rival ? c.rival.teamId : act; out.headline = `${tn(w)} wins the showdown! ${signed(gain(w))}`; break; }
+      case 'win': { const w = c.winnerSide === 'rival' && c.rival ? c.rival.teamId : act; out.headline = `${tnv(w, 'wins')} the showdown! ${signed(gain(w))}`; break; }
       case 'tie': out.headline = 'A tie! 100 each'; break;
       case 'list': out.headline = `Rapid List: ${plural(c.list.count, 'answer')}${DASH}${signed(gain(act))}`; break;
       case 'hotseat': out.headline = `Hot Seat: ${c.hotseat.results.filter((r) => r === 'correct').length} right${DASH}${signed(gain(act))}`; break;
       case 'allplay': out.headline = `All Play: ${(c.submissions || []).filter((s) => s.correct).length} of ${teams.length} teams got it`; break;
       case 'steal': out.headline = c.steal ? `${tn(c.steal.to)} stole ${fmt(c.steal.amount)} from ${tn(c.steal.from)}!` : 'Grinch Steal!'; break;
-      case 'gift': out.headline = `${tn(act)}’s heart grew three sizes!`; break;
+      case 'gift': out.headline = `${possessive(tn(act))} heart grew three sizes!`; break;
       default: out.headline = 'Turn over';
     }
     // what to read out loud (everything here is public by now)
@@ -575,8 +590,8 @@ function buildCoach(game, pv, h) {
     else if (c.type === 'sounditout' && c.answer) out.say = `It was “${c.answer}”${c.artist ? ' by ' + c.artist : ''}.`;
     else if (c.type === 'allplay' && c.answer) out.say = `The answer: ${c.answer}.${c.funFact ? ' ' + c.funFact : ''}`;
     else if (c.type === 'dare' && c.answer) out.say = `The secret was: ${c.answer}.`;
-    else if (c.type === 'grinch' && c.gift) out.say = `${tn(act)} is in the lead, so the Grinch’s heart grew three sizes${DASH}they gift ${fmt(c.gift.amount)} to ${tn(c.gift.toTeamId)}!`;
-    else if (c.type === 'grinch' && c.steal) out.say = `${tn(c.steal.to)} steals ${fmt(c.steal.amount)} points from ${tn(c.steal.from)}!`;
+    else if (c.type === 'grinch' && c.gift) out.say = `${tnv(act, 'is')} in the lead, so the Grinch’s heart grew three sizes${DASH}they gift ${fmt(c.gift.amount)} to ${tn(c.gift.toTeamId)}!`;
+    else if (c.type === 'grinch' && c.steal) out.say = `${tnv(c.steal.to, 'steals')} ${fmt(c.steal.amount)} points from ${tn(c.steal.from)}!`;
     out.steps = ['Points are on the scoreboard (fix anything with ± or Undo)', 'Press Next turn when the room is ready'];
     nextTurn();
     if (c.type === 'dare' && c.dareResult) {
@@ -598,14 +613,14 @@ function buildCoach(game, pv, h) {
     const bonusNext = rb.bonusPlanned && !rb.bonusDone;
     out.headline = `End of Round ${rb.round}`;
     const nextLine = rb.finalNext ? `Round ${rb.nextRound}${DASH}the final round!` : `Round ${rb.nextRound} starts now.`;
-    out.say = `That’s the end of Round ${rb.round}! ${names(top)} ${top.length === 1 ? 'leads' : 'lead'} with ${fmt(leadScore)}${top.length === 1 && rb.leadBy > 0 ? `, ${fmt(rb.leadBy)} ahead` : ''}. `
+    out.say = `That’s the end of Round ${rb.round}! ${names(top)} ${many(top) ? 'lead' : 'leads'} with ${fmt(leadScore)}${top.length === 1 && rb.leadBy > 0 ? `, ${fmt(rb.leadBy)} ahead` : ''}. `
       + (bonusNext ? 'But first: a bonus question for every team!' : nextLine);
     out.steps = ['Read out the standings', bonusNext ? 'Start the bonus question' : `Start Round ${rb.nextRound}`];
     if (bonusNext) {
       A('bonus', 'Start the bonus question', 'host:continue', null, 'primary', 'Enter', { detail: '100 for every team that gets it' });
       A('skipBonus', 'Skip bonus questions', 'host:setOption', { key: 'roundBonus', value: false }, 'secondary');
     } else {
-      A('nextRound', `Start Round ${rb.nextRound}${rb.finalNext ? DASH + 'the final round' : ''}`, 'host:continue', null, 'primary', 'Enter', { detail: `${teams[0] ? teams[0].name : ''} spins first` });
+      A('nextRound', `Start Round ${rb.nextRound}${rb.finalNext ? DASH + 'the final round' : ''}`, 'host:continue', null, 'primary', 'Enter', { detail: teams[0] ? `${subject(teams[0].name, 'spins')} first` : '' });
     }
   }
 

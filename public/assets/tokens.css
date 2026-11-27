@@ -252,7 +252,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 h1, h2, h3, h4, p, figure, blockquote, dl, dd, ul, ol { margin: 0; }
-ul[role='list'], ol[role='list'] { list-style: none; padding: 0; }
+:where(ul, ol)[role='list'] { list-style: none; padding: 0; }   /* :where() = zero specificity: any class wins */
 img, picture, video, canvas { display: block; max-width: 100%; }
 svg { flex: none; }
 svg.icon:not([style]) { width: 1em; height: 1em; }
@@ -510,7 +510,7 @@ a:hover { color: var(--candy); }
      <span class="peppermint__core"><span class="peppermint__word">Spin</span></span></button>   (client.js peppermint())
    ===================================================================================== */
 .peppermint {
-  --size: min(17.5rem, calc(100vw - 4rem));
+  --size: max(16.25rem, min(17.5rem, calc(100vw - 3.5rem)));   /* 260–280: never under 260 (SPEC) */
   position: relative;
   display: block;
   flex: none;
@@ -570,7 +570,7 @@ a:hover { color: var(--candy); }
    .is-other (silver + the other team's name) · .is-locked (dim silver + lock). client.js ornamentBuzz().
    ===================================================================================== */
 .ornament-btn {
-  --size: min(17rem, calc(100vw - 4.5rem));   /* 272 */
+  --size: max(16.25rem, min(17rem, calc(100vw - 3.5rem)));   /* 260–272: never under 260 (SPEC) */
   --ball-hi: #FF7A7A;
   --ball: var(--candy);
   --ball-lo: var(--candy-deep);
@@ -666,6 +666,10 @@ a:hover { color: var(--candy); }
 .ornament-btn.is-locked { opacity: 0.62; filter: saturate(0.4); }
 .ornament-btn.is-locked .ornament-btn__ball { box-shadow: inset 0 calc(var(--size) * -0.045) calc(var(--size) * 0.09) rgba(0, 0, 0, 0.12); }
 .ornament-btn--sm { --size: 7.5rem; }
+/* the 3-2-1 before the buzzers arm (ornamentBuzz({state:'arming', count})): still, a touch dim, a big count */
+.ornament-btn.is-arming { animation: none; cursor: default; }
+.ornament-btn.is-arming .ornament-btn__ball { filter: saturate(0.7) brightness(0.97); }
+.ornament-btn.is-arming .ornament-btn__word { font-size: calc(var(--size) * 0.36); }
 
 /* Halo behind a big round button */
 .btn-halo { --halo: rgba(237, 179, 33, 0.32); --halo-2: rgba(212, 42, 42, 0.10); position: relative; display: inline-grid; place-items: center; isolation: isolate; }
@@ -813,6 +817,9 @@ a:hover { color: var(--candy); }
 /* Christmas Movies film cue: film art + "Rudolph the Red-Nosed Reindeer (1964)" in cranberry (≥ 24 px) */
 .film-cue { display: inline-flex; align-items: center; gap: 0.75rem; font: 700 1.625rem/1.2 var(--font-ui); color: var(--movie); }
 .film-cue > .art { width: 2.125rem !important; height: 2.125rem !important; }
+/* TV legibility floor: nothing a player reads is under 28 px at 1080p */
+html[data-surface='tv'] :is(.chip, .film-cue) { font-size: var(--fs-28); }
+html[data-surface='tv'] .chip--md { --chip-art: 2.25rem; min-height: 3rem; }
 
 .tag {
   display: inline-flex;
@@ -1062,6 +1069,8 @@ a:hover { color: var(--candy); }
   transform: rotate(-10deg);
 }
 .score-tag:has(> .score-tag__badge) > .score-tag__lead, .score-tile:has(> .score-tile__badge) .disc--leader::before { right: 3.5rem; }
+html[data-surface='tv'] :is(.score-tags, .score-strip) :is(.score-tag__name, .score-tile__name) { font-size: var(--fs-28); }
+html[data-surface='tv'] :is(.score-tags, .score-strip) :is(.score-tag__upnow, .score-tile__tag) { top: -1.5rem; padding: 0.25rem 0.875rem; font-size: var(--fs-28); line-height: 1.1; }
 .score-tag.is-bump, .score-tile.is-bump { animation: cc-tile-flash var(--dur-points) var(--ease-out); }
 .score-tag.is-bump .score-tag__pts, .score-tile.is-bump .score-tile__score { animation: cc-bump 600ms var(--ease-spring); }
 /* 7–8 teams: tighter tags */
@@ -1074,7 +1083,7 @@ a:hover { color: var(--candy); }
 .score-mini { display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem; }
 .score-mini__item { display: flex; align-items: center; gap: 0.5rem; min-width: 0; padding: 0.5rem 0.625rem; border-radius: 0.875rem; background: var(--paper); box-shadow: var(--shadow-soft); font-size: 0.9375rem; font-weight: 700; }
 .score-mini__item > .art { width: 1.75rem !important; height: 1.75rem !important; }
-.score-mini__name { flex: 1; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; line-height: 1.15; overflow-wrap: anywhere; }
+.score-mini__name { flex: 1; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; line-height: 1.15; overflow-wrap: normal; word-break: normal; hyphens: auto; }
 .score-mini__pts { font: 400 1.25rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
 .score-mini__item.is-me { outline: 3px solid var(--candy); outline-offset: -3px; }
 
@@ -1152,9 +1161,15 @@ a:hover { color: var(--candy); }
 .gift-tag--sm { --card-pt: 0.625rem; --card-px: 1rem; --card-pb: 0.625rem; --card-pl: 0.625rem; flex-direction: row; align-items: center; gap: 0.75rem; border-radius: 1.25rem; box-shadow: 0 0.125rem 0 var(--hairline), 0 0.625rem 1.5rem rgba(28, 35, 51, 0.10); }
 .gift-tag--sm::after { display: none; }
 .gift-tag--sm.gift-tag--twine::before { left: auto; right: 1.125rem; top: -1rem; width: 0.1875rem; height: 1.5rem; transform: none; }
+/* phone gift tag (with --md): the hole sits in the top-left corner so the text gets the full 350 px width */
+.gift-tag--phone { --card-pt: 2rem; --card-px: 1.125rem; --card-pb: 1.125rem; --card-pl: 1.125rem; gap: 0.625rem; border-radius: 1.25rem; }
+.gift-tag--phone::after { left: 0.875rem; top: 0.75rem; width: 0.875rem; height: 0.875rem; box-shadow: inset 0 0.125rem 0.1875rem rgba(28, 35, 51, 0.25), 0 0 0 0.1875rem var(--tinsel); }
+.gift-tag--phone.gift-tag--twine::before { left: 1.125rem; top: -2rem; height: 2.875rem; width: 0.1875rem; }
+.gift-tag--phone > .holly-ribbon { padding: 0.75rem 1.125rem 0.75rem 3.25rem; font-size: 1.0625rem; line-height: 1.3; border-radius: 0 0 1.25rem 1.25rem; }
+.gift-tag--phone > .holly-ribbon::before { left: 0.875rem; width: 1.75rem; height: 1.75rem; }
 .tag-head { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
 .tag-head__who { flex: 1; min-width: 0; }
-.tag-head__team { font: 900 1.25rem/1.15 var(--font-ui); color: var(--candy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag-head__team { font: 900 1.25rem/1.15 var(--font-ui); color: var(--candy-deep); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tag-head__me { font-size: 1rem; font-weight: 600; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tag-head__pts { font: 400 1.875rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
 
@@ -1255,6 +1270,8 @@ a:hover { color: var(--candy); }
 .timer-ring.is-paused { filter: saturate(0.35); }
 .timer-ring.is-paused .timer-ring__arc { stroke: var(--snow-shade); }
 .timer-ring.is-paused .timer-ring__head { display: none; }
+.timer-ring.is-ready .timer-ring__head { display: none; }     /* prepared, not started: a full, calm ring */
+.timer-ring.is-over .timer-ring__arc { stroke: rgba(255, 255, 255, 0.5); }
 .timer-ring--compact .timer-ring__unit, .timer-ring--compact .timer-ring__head { display: none; }
 .timer-ring--compact .timer-ring__num { font-size: calc(var(--ring-size) * 0.46); }
 .timer-ring--holly { --orn-hi: #5BC98A; --orn: var(--holly); --orn-lo: var(--holly-deep); --orn-glow: rgba(21, 92, 55, 0.35); }
@@ -1411,7 +1428,7 @@ button.present:active { transform: scale(0.96); transition-duration: var(--dur-p
    STOCKING (client.js stocking()): team-colour stocking with a white cuff; mascot peeking out (lobby),
    or a progress state for Hot Seat: .is-full (holly ✓) · .is-coal (lump of coal ✗) · .is-empty
    ===================================================================================== */
-.stocking { --stocking: var(--candy); --w: 6rem; position: relative; isolation: isolate; display: inline-block; flex: none; width: var(--w); aspect-ratio: 100 / 140; }
+.stocking { --stocking: var(--candy); --w: var(--stocking-w, 6rem); position: relative; isolation: isolate; display: inline-block; flex: none; width: var(--w); aspect-ratio: 100 / 140; }
 .stocking > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .stocking__body { fill: var(--stocking); }
 .stocking__trim { fill: #FFFFFF; stroke: var(--snow-shade); stroke-width: 2; }
@@ -1420,7 +1437,10 @@ button.present:active { transform: scale(0.96); transition-duration: var(--dur-p
 .stocking__peek { position: absolute; left: 16%; top: -30%; width: 62% !important; height: auto !important; aspect-ratio: 1; }   /* tucked behind the cuff */
 .stocking__badge { position: absolute; right: -6%; bottom: 2%; width: 44%; aspect-ratio: 1; display: grid; place-items: center; border-radius: 50%; background: var(--holly); color: #FFFFFF; box-shadow: 0 0 0 0.1875rem #FFFFFF, var(--shadow-soft); }
 .stocking__badge .icon { width: 62% !important; height: 62% !important; }
-.stocking.is-coal .stocking__badge { background: var(--coal); }
+.stocking.is-coal { --stocking: var(--coal); }                  /* a lump-of-coal stocking (Hot Seat miss) */
+.stocking.is-coal .stocking__body { fill: var(--coal); }
+.stocking.is-coal .stocking__shade { fill: rgba(0, 0, 0, 0.28); }
+.stocking.is-coal .stocking__badge { background: var(--coal); box-shadow: 0 0 0 0.1875rem #FFFFFF, 0 0 0 0.3125rem var(--coal), var(--shadow-soft); }
 .stocking.is-empty .stocking__body { fill: var(--snowbank); stroke: var(--snow-shade); stroke-width: 3; stroke-dasharray: 7 6; }
 .stocking.is-empty .stocking__trim { fill: rgba(255, 255, 255, 0.7); }
 .stocking__label { position: absolute; left: 50%; top: 104%; transform: translateX(-50%); font: 800 0.9375rem/1.1 var(--font-ui); white-space: nowrap; color: var(--text); }
@@ -1451,6 +1471,13 @@ button.present:active { transform: scale(0.96); transition-duration: var(--dur-p
 .bell-meter--tinsel .bell-meter__fill { background: radial-gradient(circle, #FFFFFF 0 0.25rem, var(--tinsel-deep) 0.3125rem, transparent 0.375rem) 0.875rem 50% / 2rem 100% repeat-x, linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.06)), var(--meter); }
 .bell-meter__bell { position: absolute; top: 50%; left: clamp(1.375rem, calc(var(--fill) * 100%), calc(100% - 1.375rem)); width: 3.75rem !important; height: 3.75rem !important; transform: translate(-50%, -50%) rotate(-8deg); transition: left 600ms var(--ease-spring); filter: drop-shadow(0 0.25rem 0.375rem rgba(28, 35, 51, 0.2)); }
 .bell-meter.is-ringing .bell-meter__bell { animation: cc-jingle 0.5s ease-in-out 3; }
+/* compact meter (host vote table, phones): bellMeter({ size: 'sm' }) */
+.bell-meter--sm { gap: 0.375rem; }
+.bell-meter--sm .bell-meter__head { font-size: 1.125rem; }
+.bell-meter--sm .bell-meter__count { font-size: 1.75rem; }
+.bell-meter--sm .bell-meter__track { height: 2rem; }
+.bell-meter--sm .bell-meter__fill { min-width: 2rem; background-size: 1.5rem 100%, auto, auto; }
+.bell-meter--sm .bell-meter__bell { width: 2.75rem !important; height: 2.75rem !important; left: clamp(1rem, calc(var(--fill) * 100%), calc(100% - 1rem)); }
 
 /* =====================================================================================
    SANTA'S LIST (client.js santaList()): a cream paper scroll with rolled ends; answers ticked off in
@@ -1557,6 +1584,8 @@ button.present:active { transform: scale(0.96); transition-duration: var(--dur-p
 .toast-region--top { top: max(1rem, env(safe-area-inset-top)); }
 .has-banner .toast-region--top { top: 4.25rem; }
 .toast-region--bottom { bottom: max(1rem, env(safe-area-inset-bottom)); flex-direction: column-reverse; }
+/* a modal is open (html.has-modal, or any [aria-modal]): top toasts drop to the bottom so they never cover its header */
+:is(html.has-modal, html:has([aria-modal='true']:not([hidden]))) .toast-region--top { top: auto; bottom: max(1rem, env(safe-area-inset-bottom)); flex-direction: column-reverse; }
 .toast {
   display: inline-flex;
   align-items: center;

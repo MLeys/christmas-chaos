@@ -13,6 +13,7 @@
 const { drawFrom, isQuickQuestion, contentStats, triviaPool, QUIP_ANSWER_KEYS } = require('./content');
 const { matchKind } = require('./match');
 const { createScheduler } = require('./scheduler');
+const { isPluralTeam, subject } = require('./grammar');
 
 const TIMING = {
   spinMs: 5000, armMs: 3000, triviaMs: 20000, stealMs: 10000, soundMs: 30000, listMs: 30000,
@@ -247,15 +248,31 @@ function createGame(opts = {}) {
   // puts it on the TV (S.quip) and fires the react fx. Any other moment change clears the quip (settleQuip).
   let quipTouched = false;
   let lastSig = null;
-  /** {team, …} placeholder values: names are already-public text; the answer is passed only after the reveal. */
+  /**
+   * {team, …} placeholder values: names are already-public text; the answer is passed only after the reveal.
+   * Grammar: {teamVerb:wins|win} agrees with {team} (plural team name, or vars.plural.team for joined names; a
+   * {player} is singular unless vars.plural.player says otherwise), and "{team}'s" becomes "The Grinches'".
+   */
   function fillQuip(text, key, vars) {
     let okFill = true;
-    const out = text.replace(/\{([a-zA-Z]+)\}/g, (m, name) => {
-      if (name === 'answer' && !QUIP_ANSWER_KEYS.includes(key)) { okFill = false; return m; }
+    const value = (name) => {
+      if (name === 'answer' && !QUIP_ANSWER_KEYS.includes(key)) return null;
       const v = hasOwn(vars, name) ? vars[name] : null;
-      if (v === null || v === undefined || v === '') { okFill = false; return m; }
-      return typeof v === 'number' ? fmtNum(v) : String(v);
-    });
+      return v === null || v === undefined || v === '' ? null : typeof v === 'number' ? fmtNum(v) : String(v);
+    };
+    const plural = (name, v) => (vars.plural && hasOwn(vars.plural, name) ? !!vars.plural[name] : name === 'player' ? false : isPluralTeam(v));
+    const out = text
+      .replace(/\{([a-zA-Z]+)Verb:([^{}|]+)\|([^{}|]+)\}/g, (m, name, one, many) => {
+        const v = value(name);
+        if (v === null) { okFill = false; return m; }
+        return plural(name, v) ? many : one;
+      })
+      .replace(/\{([a-zA-Z]+)\}(['’]s\b)?/g, (m, name, poss) => {
+        const v = value(name);
+        if (v === null) { okFill = false; return m; }
+        if (!poss) return v;
+        return /s$/i.test(v) ? v + poss.charAt(0) : v + poss; // "The Grinches'" / "Team Rudolph's"
+      });
     return okFill ? out : null;
   }
   function pickQuip(keys, vars, o = {}) {
@@ -333,6 +350,12 @@ function createGame(opts = {}) {
     const n = [c.performer, c.partner].filter((x) => x && x.name).map((x) => x.name);
     return n.length ? joinNames(n) : teamName(activeTeamId());
   }
+  /** True when castName() is plural ("Mia and Leo", or a plural team name like "The Grinches"): for {playerVerb:…}. */
+  function castPlural(c) {
+    if (c.dare && (c.dare.who === 'team' || c.dare.who === 'everyone')) return isPluralTeam(teamName(activeTeamId()));
+    const n = [c.performer, c.partner].filter((x) => x && x.name).length;
+    return n ? n > 1 : isPluralTeam(teamName(activeTeamId()));
+  }
   function turnQuip() {
     const act = activeTeamId();
     if (S.round === 1 && S.turnIndex === 0) { moment(['gameStart', 'turnIntro'], { team: teamName(act) }); return; }
@@ -379,7 +402,7 @@ function createGame(opts = {}) {
     if (c.hs.questions.length && right === c.hs.questions.length) keys.push('hotseatPerfect');
     else if (res.length && !right) keys.push('hotseatZero');
     if (doubled(act) && pts > 0) keys.push('doubleDown');
-    if (keys.length) moment(keys, { player: c.performer ? c.performer.name : teamName(act), team: teamName(act), points: pts }, { teamId: act });
+    if (keys.length) moment(keys, { player: c.performer ? c.performer.name : teamName(act), team: teamName(act), points: pts, plural: { player: !c.performer && isPluralTeam(teamName(act)) } }, { teamId: act });
   }
   function allPlayQuip(c) {
     const right = S.teams.filter((t) => c.subs[t.id] && effCorrect(c.subs[t.id])).map((t) => t.id);
@@ -595,6 +618,12 @@ function createGame(opts = {}) {
     return q ? copyQ(q) : null;
   }
   const draw = (kind, exclude) => drawFrom(content[kind], used, rng, exclude);
+  /** A dare the active team can actually do: a team of one never draws a pair dare (when any other dare is left). */
+  function drawDare(exclude) {
+    const solo = playersOf(activeTeamId()).length < 2;
+    const pool = solo ? content.dares.filter((d) => d.who !== 'pair') : content.dares;
+    return drawFrom(pool.length ? pool : content.dares, used, rng, exclude);
+  }
 
   // ---------------------------------------------------------------- players
   function pickPlayer(teamId, exclude = []) {
@@ -652,7 +681,7 @@ function createGame(opts = {}) {
     });
     fx('spinStart', { segmentIndex: index, startedAt: S.spin.startedAt, durationMs: T.spinMs, teamId: activeTeamId(), by });
     // {player} = the spinner (the team's name when the host spun for them)
-    moment('spinStart', { player: by && by.name ? by.name : teamName(activeTeamId()), team: teamName(activeTeamId()) });
+    moment('spinStart', { player: by && by.name ? by.name : teamName(activeTeamId()), team: teamName(activeTeamId()), plural: { player: !(by && by.name) && isPluralTeam(teamName(activeTeamId())) } });
   }
   function land() {
     const idx = S.spin.segmentIndex;
@@ -680,7 +709,7 @@ function createGame(opts = {}) {
         c.category = sg.category; c.stage = 'pickDifficulty';
         break;
       case 'dare':
-        setupDare(c, draw('dares'));
+        setupDare(c, drawDare());
         break;
       case 'hotseat': {
         c.points = PTS.hotseatEach * PTS.hotseatQuestions;
@@ -875,7 +904,7 @@ function createGame(opts = {}) {
     if (prev !== result) { // a new verdict (not just the +50 crowd-favourite toggle)
       const key = 'dare' + result.charAt(0).toUpperCase() + result.slice(1);
       const pts = c.awarded[act] || 0;
-      moment(doubled(act) && pts > 0 ? [key, 'doubleDown'] : [key], { player: castName(c), team: teamName(act), points: pts }, { teamId: act });
+      moment(doubled(act) && pts > 0 ? [key, 'doubleDown'] : [key], { player: castName(c), team: teamName(act), points: pts, plural: { player: castPlural(c) } }, { teamId: act });
     }
   }
   /** Room vote: a too-close-to-call tally gets one "voteClose" line while the vote is still open. */
@@ -1084,8 +1113,11 @@ function createGame(opts = {}) {
       const info = AWARD_INFO[key];
       const teams = [...new Set(who.map((w) => w.teamId))];
       for (const w of who) if (w.playerId) given.add(w.playerId);
+      const playerIds = [...new Set(who.map((w) => w.playerId).filter(Boolean))];
+      // playerId / teamId: the single winner (null when shared); playerIds / teamIds: everyone who shares it
       earned[key] = {
         key, title: info.title, playerId: who.length === 1 && who[0].playerId ? who[0].playerId : null,
+        playerIds, teamIds: teams,
         name: joinNames(who.map((w) => (w.playerId ? player(w.playerId).name : teamName(w.teamId)))),
         teamId: teams.length === 1 ? teams[0] : null, detail, art: info.art, ...(who.length > 1 ? { tie: true } : {}),
       };
@@ -1151,7 +1183,7 @@ function createGame(opts = {}) {
     S.podium = computePodium();
     fx('podium', {});
     const winners = S.podium.standings.filter((s) => s.place === 1 && s.score > 0).map((s) => s.teamId);
-    moment('podium', { leader: winners.length ? joinNames(winners.map(teamName)) : null }, { teamId: winners.length === 1 ? winners[0] : null });
+    moment('podium', { leader: winners.length ? joinNames(winners.map(teamName)) : null, ...(winners.length > 1 ? { plural: { leader: true } } : {}) }, { teamId: winners.length === 1 ? winners[0] : null });
   }
 
   function resetGame(keepTeams) {
@@ -1727,7 +1759,7 @@ function createGame(opts = {}) {
     if (c.type === 'grinch') {
       const victim = team(targetId);
       const amount = Math.min(PTS.grinch * S.turn.multiplier, victim.score);
-      group(`${teamName(act)} steals ${amount} from ${victim.name}`, () => {
+      group(`${subject(teamName(act), 'steals')} ${amount} from ${victim.name}`, () => {
         cAward(victim.id, -amount, 'Grinch Steal', { mult: 1 });
         cAward(act, amount, 'Grinch Steal', { mult: 1 });
       });
@@ -1803,7 +1835,7 @@ function createGame(opts = {}) {
     switch (c.type) {
       case 'trivia': c.q = drawTrivia(c.category, c.difficulty, [c.q.id]); c.hintShown = false; c.points = PTS.trivia[c.difficulty]; prepareTimer('trivia', T.triviaMs, true); break;
       case 'sounditout': { const s = draw('songs', [c.song.id]); c.song = { id: s.id, title: s.title, artist: s.artist || '', accept: s.accept || [], hint: s.hint || '' }; c.hintShown = false; c.secretPeeked = false; c.points = PTS.sound; prepareTimer('sound', T.soundMs, false); break; }
-      case 'dare': setupDare(c, draw('dares', [c.dare.id]), true); break;
+      case 'dare': setupDare(c, drawDare([c.dare.id]), true); break;
       case 'showdown': { const s = draw('showdowns', [c.showdown.id]); c.showdown = { id: s.id, title: s.title, instructions: s.instructions, time: s.time, props: s.props || [], winner: s.winner, tags: s.tags || [] }; prepareTimer('showdown', s.time * 1000, false); break; }
       case 'rapidlist': { const l = draw('lists', [c.list.id]); c.list = { id: l.id, prompt: l.prompt, answers: l.answers.slice(), note: l.note || '' }; prepareTimer('list', T.listMs, false); break; }
       case 'hotseat': { const q = drawQuick(c.hs.questions.map((x) => x.id)); if (q) c.hs.questions[c.hs.index] = q; break; }

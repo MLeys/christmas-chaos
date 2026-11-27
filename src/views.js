@@ -10,6 +10,7 @@
  */
 
 const { buildCoach, buildIntroScript } = require('./coach');
+const { subject } = require('./grammar');
 
 const CATEGORY_LABELS = { christmas: 'Christmas Trivia', popculture: 'Pop Culture', movies: 'Christmas Movies' };
 
@@ -233,6 +234,8 @@ function publicPodium(S) {
     standings: P.standings.map((s) => ({ teamId: s.teamId, score: s.score, place: s.place })),
     awards: P.awards.map((a) => ({
       key: a.key, title: a.title, playerId: a.playerId || null, name: a.name, teamId: a.teamId || null, detail: a.detail, art: a.art || null, tie: !!a.tie,
+      playerIds: Array.isArray(a.playerIds) ? a.playerIds.slice() : a.playerId ? [a.playerId] : [],
+      teamIds: Array.isArray(a.teamIds) ? a.teamIds.slice() : a.teamId ? [a.teamId] : [],
     })),
     stats: {
       players: Object.keys(st.players).filter((id) => Object.prototype.hasOwnProperty.call(S.players, id)).map((id) => {
@@ -329,7 +332,7 @@ function hostView(game, extra = {}, base) {
     };
   }
   if (S.phase === 'lobby') {
-    for (const t of pv.teams) if (!t.playerCount) h.warnings.push({ code: 'empty-team', teamId: t.id, text: `${t.name} has no players yet` });
+    for (const t of pv.teams) if (!t.playerCount) h.warnings.push({ code: 'empty-team', teamId: t.id, text: `${subject(t.name, 'has')} no players yet` });
     if (pv.teams.length < 2) h.warnings.push({ code: 'need-two-teams', text: 'Add at least two teams to start' });
   }
   if (h.contentProblems.length) h.warnings.push({ code: 'content', text: `${(game.content.problems || []).length} content problem(s) \u2014 see contentProblems` });

@@ -15,6 +15,7 @@ const { createScheduler, createFakeClock } = require('../src/scheduler');
 const { publicView, hostView, playerView } = require('../src/views');
 const { isMatch, matchKind, normalize, containsAnswer } = require('../src/match');
 const { pickLanAddress } = require('../src/net');
+const grammar = require('../src/grammar');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const CONTENT = loadContent(DATA_DIR);
@@ -127,7 +128,7 @@ function checkCoach(g, ctx, secrets, allowed) {
 }
 
 // ------------------------------------------------------------------------------------------------ fixture
-function setup({ teams = 3, perTeam = 2, seed = 7, scan = false, content = CONTENT, timing } = {}) {
+function setup({ teams = 3, perTeam = 2, seed = 7, scan = false, content = CONTENT, timing, names = null } = {}) {
   const clock = createFakeClock();
   const sched = createScheduler({ setTimeout: clock.setTimeout, clearTimeout: clock.clearTimeout });
   const fx = [];
@@ -142,7 +143,7 @@ function setup({ teams = 3, perTeam = 2, seed = 7, scan = false, content = CONTE
   const teamIds = [];
   const players = {};
   for (let i = 0; i < teams; i++) {
-    const id = okHost('createTeam', { name: 'Team ' + (i + 1) }).teamId;
+    const id = okHost('createTeam', { name: names && names[i] ? names[i] : 'Team ' + (i + 1) }).teamId;
     teamIds.push(id);
     players[id] = [];
     for (let j = 0; j < perTeam; j++) {
@@ -2036,6 +2037,15 @@ test('comedy: tied awards are shared ("A and B"); a game with no notable play ea
   assert.deepEqual([aw.fastestFinger.name, aw.fastestFinger.playerId, aw.fastestFinger.teamId, aw.fastestFinger.tie], ['Player 10 and Player 20', null, null, true]);
   assert.match(aw.fastestFinger.detail, /^1 buzz won each — /);
   assert.deepEqual([aw.grinchOfTheYear.name, aw.grinchOfTheYear.tie], ['Team 2 and Team 3', true]);
+  // a shared award lists everyone in it (pages decide "mine" from the ids, never from the joined name)
+  assert.deepEqual(aw.fastestFinger.playerIds.slice().sort(), [T.pid(players[B][0]), T.pid(players[C][0])].sort());
+  assert.deepEqual(aw.fastestFinger.teamIds.slice().sort(), [B, C].sort());
+  assert.deepEqual([aw.grinchOfTheYear.playerIds, aw.grinchOfTheYear.teamIds.slice().sort(), aw.grinchOfTheYear.teamId], [[], [B, C].sort(), null]);
+  // a single winner: the lists hold just them
+  for (const a of Object.values(aw).filter((x) => !x.tie)) {
+    assert.deepEqual(a.playerIds, a.playerId ? [a.playerId] : [], a.key);
+    assert.deepEqual(a.teamIds, a.teamId ? [a.teamId] : [], a.key);
+  }
   // nothing notable at all: no awards
   const T2 = setup({ teams: 2, perTeam: 1 });
   T2.okHost('setRounds', { n: 1 });
@@ -2047,4 +2057,123 @@ test('comedy: tied awards are shared ("A and B"); a game with no notable play ea
   T2.okHost('continue');
   while (T2.g.state.phase === 'finalReveal') T2.okHost('finalRevealNext');
   assert.deepEqual(publicView(T2.g).podium.awards, []);
+});
+
+// ================================================================================================ grammar (plural team names)
+const GRAMMAR_NAMES = [
+  ['The Grinches', true], ['Jingle Bell Rockers', true], ['Elves', true], ['Reindeer Games', true], ['The Grinches!', true],
+  ['Team Rudolph', false], ['Elf Help', false], ['Naughty List', false], ["Frosty's Crew", false], ['Frosty’s', false], ["Santa's", false],
+  ['Boss', false], ['Santa Claus', false], ['Merry Christmas', false], ['Krampus', false], ['Saint Nicholas', false], ['', false], [null, false],
+];
+
+test('grammar: isPluralTeam / verb / subject / pluralOf / possessive', () => {
+  for (const [name, plural] of GRAMMAR_NAMES) assert.equal(grammar.isPluralTeam(name), plural, String(name));
+  assert.equal(grammar.subject('The Grinches', 'is'), 'The Grinches are');
+  assert.equal(grammar.subject('Team Rudolph', 'is'), 'Team Rudolph is');
+  assert.equal(grammar.subject('Jingle Bell Rockers', 'wins'), 'Jingle Bell Rockers win');
+  assert.equal(grammar.subject("Frosty's Crew", 'has'), "Frosty's Crew has");
+  assert.equal(grammar.verb('The Grinches', 'wins', 'win'), 'win');
+  assert.equal(grammar.verb('Elf Help', 'wins', 'win'), 'wins');
+  assert.deepEqual([grammar.isAre('Naughty List'), grammar.hasHave('Elves'), grammar.wasWere('Elves')], ['is', 'have', 'were']);
+  for (const [one, many] of [['wins', 'win'], ['catches', 'catch'], ['tries', 'try'], ['is', 'are'], ['has', 'have'], ['was', 'were'], ['misses', 'miss'], ['buzzes', 'buzz'], ['plays', 'play'], ['goes', 'go'], ['spins', 'spin'], ['lives', 'live']]) {
+    assert.equal(grammar.pluralOf(one), many, one);
+  }
+  assert.deepEqual([grammar.possessive('The Grinches'), grammar.possessive('Team Rudolph'), grammar.possessive('')], ['The Grinches’', 'Team Rudolph’s', '']);
+});
+
+test('grammar: quip verb markers validate; the real quip bank never puts a bare present-tense verb after a team name', () => {
+  assert.deepEqual(validateQuip('correct', { id: 'v1', text: '{team} {teamVerb:wins|win} {points}! {other} {otherVerb:is|are} sad.' }), []);
+  assert.deepEqual(validateQuip('podium', { id: 'v2', text: '{leader} {leaderVerb:wins|win}' }), []);
+  assert.match(validateQuip('correct', { id: 'v3', text: 'Yes! {teamVerb:wins|win}' }).join(), /needs \{team\}/);
+  assert.match(validateQuip('correct', { id: 'v4', text: '{points} {pointsVerb:is|are}' }).join(), /must agree with one of/);
+  assert.match(validateQuip('correct', { id: 'v5', text: '{team} {teamVerb:wins}' }).join(), /bad verb marker/);
+  // data/quips.json: every line loaded (no problems), and no "{team} is" / "{leader} wins" left (they are rephrased or use a marker)
+  assert.deepEqual(CONTENT.problems.filter((p) => p.file === 'quips.json'), []);
+  const lines = Object.values(CONTENT.quips).flat();
+  const bad = lines.filter((l) => /\{(team|other|leader|last)\} (is|has|was|does|[a-z]+s)\b/.test(l.text)).map((l) => `${l.id}: ${l.text}`);
+  assert.deepEqual(bad, []);
+  assert.ok(lines.filter((l) => /\{[a-z]+Verb:/.test(l.text)).length >= 10, 'verb markers in use');
+});
+
+test('grammar: plural team names get plural verbs in quips, possessives and the coach (singular names stay singular)', () => {
+  const bank = testBank({
+    gameStart: [],
+    turnIntro: [
+      { id: 'ti-1', text: "{team} {teamVerb:is|are} up. Go, {team}'s elves!", tone: 'cheer' },
+      { id: 'ti-2', text: "{team} {teamVerb:is|are} up. Go, {team}'s elves!", tone: 'cheer' },
+    ],
+    leadChange: [],
+    spinStart: [{ id: 'sp-1', text: '{player} {playerVerb:spins|spin} it', tone: 'cheer' }, { id: 'sp-2', text: '{player} {playerVerb:spins|spin} it', tone: 'cheer' }],
+    podium: [{ id: 'po-1', text: '{leader} {leaderVerb:wins|win} Christmas', tone: 'cheer' }],
+  });
+  const T = setup({ content: { ...CONTENT, quips: bank }, teams: 2, perTeam: 1, names: ['The Grinches', 'Team Rudolph'] });
+  const { g, okHost } = T;
+  const quip = () => publicView(g).quip && publicView(g).quip.text;
+  const coach = () => hostView(g, {}).host.coach;
+  okHost('setRounds', { n: 1 });
+  okHost('start');
+  assert.equal(quip(), "The Grinches are up. Go, The Grinches' elves!");
+  assert.match(coach().headline, /^The Grinches are up/);
+  okHost('forceSegment', { index: SEG.christmas }); // the host spins for them: {player} is the (plural) team
+  assert.equal(quip(), 'The Grinches spin it');
+  T.clock.advance(g.timing.spinMs);
+  assert.equal(coach().headline, 'The Grinches are picking a difficulty');
+  okHost('pickDifficulty', { level: 'easy' });
+  assert.match(coach().headline, /^The Grinches are answering/);
+  okHost('judge', { result: 'correct' });
+  okHost('nextTurn', { turnId: g.state.turnId });
+  assert.equal(quip(), "Team Rudolph is up. Go, Team Rudolph's elves!");
+  assert.match(coach().headline, /^Team Rudolph is up/);
+  okHost('forceSegment', { index: SEG.christmas });
+  assert.equal(quip(), 'Team Rudolph spins it');
+  T.clock.advance(g.timing.spinMs);
+  assert.equal(coach().headline, 'Team Rudolph is picking a difficulty');
+  okHost('pickDifficulty', { level: 'easy' });
+  okHost('judge', { result: 'correct' });
+  okHost('nextTurn', { turnId: g.state.turnId });
+  okHost('continue');
+  okHost('finalStartAnswering');
+  okHost('continue');
+  while (g.state.phase === 'finalReveal') okHost('finalRevealNext');
+  // a shared win: the joined names are plural even though "Team Rudolph" alone is singular
+  assert.equal(quip(), 'The Grinches and Team Rudolph win Christmas');
+  assert.equal(coach().headline, 'The Grinches and Team Rudolph win Christmas!');
+
+  // a single plural winner
+  const T2 = setup({ content: { ...CONTENT, quips: bank }, teams: 2, perTeam: 1, names: ['Team Rudolph', 'Jingle Bell Rockers'] });
+  T2.okHost('setRounds', { n: 1 });
+  T2.okHost('start');
+  T2.okHost('nextTurn', { turnId: T2.g.state.turnId });
+  T2.land(SEG.christmas);
+  T2.okHost('pickDifficulty', { level: 'easy' });
+  T2.okHost('judge', { result: 'correct' });
+  T2.okHost('nextTurn', { turnId: T2.g.state.turnId });
+  T2.okHost('continue');
+  T2.okHost('finalStartAnswering');
+  T2.okHost('continue');
+  while (T2.g.state.phase === 'finalReveal') T2.okHost('finalRevealNext');
+  assert.equal(publicView(T2.g).quip.text, 'Jingle Bell Rockers win Christmas');
+  assert.equal(hostView(T2.g, {}).host.coach.headline, 'Jingle Bell Rockers win Christmas!');
+});
+
+test('dare: a team of one never draws a pair dare (also on Swap dare)', () => {
+  const pairs = CONTENT.dares.filter((d) => d.who === 'pair').length;
+  assert.ok(pairs > 0, 'the content has pair dares to avoid');
+  for (const [perTeam, allowPair] of [[1, false], [3, true]]) {
+    const T = setup({ teams: 2, perTeam, seed: 11 });
+    T.okHost('start');
+    let draws = 0;
+    for (let i = 0; i < 24; i++) {
+      const c = T.land(SEG.dare);
+      draws++;
+      if (!allowPair) assert.notEqual(c.dare.who, 'pair', `team of ${perTeam}: drew pair dare ${c.dare.id}`);
+      T.okHost('swapQuestion');
+      if (!allowPair) assert.notEqual(T.g.state.challenge.dare.who, 'pair', 'Swap dare keeps it solo-friendly');
+      T.okHost('endChallenge');
+      T.okHost('nextTurn', { turnId: T.g.state.turnId });
+      if (T.g.state.phase === 'roundBreak') T.okHost('continue');
+      if (T.g.state.phase !== 'turnIntro') break;
+    }
+    assert.ok(draws >= 6, `only ${draws} dares were drawn`);
+  }
 });

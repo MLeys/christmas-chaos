@@ -722,6 +722,13 @@ test('server: autosave + resume after restart; host lobby shows saved game; disc
     await h.waitFor((s) => s.savedGame && s.savedGame.summary.teams.length === 2, 4000, 'saved game offered');
     assert.equal(h.state.phase, 'lobby');
     assert.equal(h.state.savedGame.summary.teams[1].score, 350);
+    // the coach offers the server-level save events as LIVE buttons (not dry-run through game.check)
+    const coach = h.state.host.coach;
+    const resumeBtn = coach.actions.find((a) => a.event === 'host:resume');
+    const discardBtn = coach.actions.find((a) => a.event === 'host:discardSave');
+    assert.ok(resumeBtn && !resumeBtn.disabled, 'resume is live');
+    assert.ok(discardBtn && !discardBtn.disabled, 'discard is live');
+    assert.equal(coach.primary, resumeBtn.id, 'resume is the primary action');
     const phone = client(srv2.url, { role: 'player', clientId: clientIds[1] });
     await phone.ready();
     await h.ok('host:resume');

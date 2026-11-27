@@ -13,7 +13,7 @@
 import {
   connect, h, raw, esc, toast, ic, art as artLazy, mascot, slotChip, present, stocking, bellMeter, turnDots,
   formatPoints, formatDelta, plural, ordinal, listJoin, timerRemaining, timerFraction, timerWarn, timerRing,
-  updateTimerRing,
+  updateTimerRing, isPluralTeam, subject, possessive,
 } from '/assets/client.js';
 import { MASCOTS, mascotFor, safeColor } from '/assets/icons.js';
 import { createWheel } from '/assets/wheel.js';
@@ -136,12 +136,7 @@ function clockTime(ms) {
 }
 const displayUrl = (u) => String(u || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
 
-/**
- * Server workaround: the coach dry-runs every action through game.check(), but host:resume / host:discardSave
- * are server-level events, so they come back disabled with reason 'unknown-event' even though a save is offered.
- * Re-enable them (only while state.savedGame exists) and re-pick the primary action.
- */
-const SERVER_LEVEL = new Set(['host:resume', 'host:discardSave']);
+/** Make the coach safe to render (arrays always present) and make sure the primary action is a live one. */
 function normalizeCoach(s) {
   const C = s?.host?.coach;
   if (!C || C.__norm) return C;
@@ -149,9 +144,6 @@ function normalizeCoach(s) {
   C.steps = Array.isArray(C.steps) ? C.steps : [];
   C.tips = Array.isArray(C.tips) ? C.tips : [];
   C.progress = Array.isArray(C.progress) ? C.progress : [];
-  for (const a of C.actions) {
-    if (a.disabled && a.reason === 'unknown-event' && SERVER_LEVEL.has(a.event) && s.savedGame) { delete a.disabled; delete a.reason; }
-  }
   if (!C.primary || !C.actions.some((a) => a.id === C.primary && !a.disabled)) {
     const p = C.actions.find((a) => a.kind === 'primary' && !a.disabled);
     C.primary = p ? p.id : null;
@@ -332,7 +324,7 @@ function setMode(m) {
   }
   const box = document.getElementById('r-garland');
   if (box) {
-    try { lights = garland(box, { size: isPhone() ? 'phone' : 0.5, seed: 1225 }); lights.__size = isPhone() ? 'phone' : 'laptop'; } catch { lights = null; }
+    try { lights = garland(box, { size: isPhone() ? 'phone' : 'host', seed: 1225 }); lights.__size = isPhone() ? 'phone' : 'laptop'; } catch { lights = null; }
   }
 }
 
@@ -800,11 +792,11 @@ function coachHtml(s) {
   </header>
   ${hasSay || (C.steps || []).length ? h`<div class="coach__script ${hasSay ? '' : 'is-nosay'}">${hasSay ? sayHtml(C, s) : ''}${doHtml(C)}</div>` : ''}
   <div class="coach__actions">
-    ${picks.length ? h`<div class="coach__picks"><p class="coach__picks-lead">${art('gift', { size: 26 })}<span>${teamName(s, s.activeTeamId)} picks on a phone, or tap a present for them:</span></p><div class="dpicks">${picks.map(pickBtn)}</div></div>` : ''}
+    ${picks.length ? h`<div class="coach__picks"><p class="coach__picks-lead">${art('gift', { size: 26 })}<span>${subject(teamName(s, s.activeTeamId), 'picks')} on a phone, or tap a present for them:</span></p><div class="dpicks">${picks.map(pickBtn)}</div></div>` : ''}
     ${primary
       ? h`<div class="hero">${actBtn(primary, s, 'hero')}</div>`
       : picks.length || targets.length ? '' : h`<div class="coach__waiting" role="status">${art('cocoa', { size: 44 })}<span><b>Nothing to press yet</b><small>${waitingText}</small></span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div>`}
-    ${targets.length ? h`<div class="coach__targets"><p class="coach__picks-lead">${art('money', { size: 26 })}<span>${teamName(s, s.activeTeamId)} chooses on a phone, or pick for them:</span></p><div class="targets">${targets.map((a) => targetCard(a, s))}</div></div>` : ''}
+    ${targets.length ? h`<div class="coach__targets"><p class="coach__picks-lead">${art('money', { size: 26 })}<span>${subject(teamName(s, s.activeTeamId), 'chooses')} on a phone, or pick for them:</span></p><div class="targets">${targets.map((a) => targetCard(a, s))}</div></div>` : ''}
     ${mains.length ? h`<div class="coach__mains ${mains.length > 2 ? 'is-grid' : ''}">${mains.map((a) => actBtn(a, s, 'main'))}</div>` : ''}
     ${tools.length ? h`<div class="coach__tools">${tools.map((a) => actBtn(a, s, 'tool'))}</div>` : ''}
   </div>
@@ -854,7 +846,7 @@ function railHtml(s) {
 function dockHtml(s) {
   const lead = [...s.teams].sort((a, b) => b.score - a.score)[0];
   const tie = lead && s.teams.filter((t) => t.score === lead.score).length > 1;
-  const summary = !lead ? 'No teams' : lead.score === 0 ? 'Everyone is on 0' : tie ? `Tied at the top on ${fmt(lead.score)}` : `${lead.name} leads with ${fmt(lead.score)}`;
+  const summary = !lead ? 'No teams' : lead.score === 0 ? 'Everyone is on 0' : tie ? `Tied at the top on ${fmt(lead.score)}` : `${subject(lead.name, 'leads')} with ${fmt(lead.score)}`;
   return h`<div class="dock__bar">
     <button type="button" class="dock__toggle" data-ui="dock" aria-expanded="${ui.dockOpen ? 'true' : 'false'}" data-key="dock">${art('star', { size: 30 })}
       <span class="dock__sum"><b>Scores</b><small>${summary}</small></span>${ic(ui.dockOpen ? 'chevron-down' : 'chevron-up', { size: 22, stroke: 2.6 })}</button>
@@ -894,7 +886,7 @@ function privateInfo(s) {
   }
   if (!c) return null;
   if (c.type === 'trivia' || c.type === 'allplay' || c.type === 'bonus') {
-    if (!H.answer) return { noun: 'the answer', secret: false, body: h`<p class="letter__empty">${art('gift', { size: 40 })}<span>The question and answer appear here once ${teamName(s, s.activeTeamId)} picks a present.</span></p>` };
+    if (!H.answer) return { noun: 'the answer', secret: false, body: h`<p class="letter__empty">${art('gift', { size: 40 })}<span>The question and answer appear here once ${subject(teamName(s, s.activeTeamId), 'picks')} a present.</span></p>` };
     return {
       noun: 'the answer', secret: true,
       body: h`${c.type !== 'trivia' && c.question ? h`<div class="letter__block"><span class="letter__label">Question</span><p class="letter__q">${c.question}</p></div>` : ''}
@@ -919,14 +911,15 @@ function privateInfo(s) {
   if (c.type === 'dare') {
     const d = c.dare || {};
     const sec = H.secret;
+    const x = Math.max(1, teamOf(s, s.activeTeamId)?.multiplier || 1); // Double Down: the legend matches the ×2 buttons
     return {
       noun: sec ? 'the secret' : 'the judging guide', secret: !!sec,
       body: h`${sec ? h`<div class="letter__block"><span class="letter__label">The secret</span><p class="letter__answer">${sec.value}</p><p class="letter__text">${sec.label}</p></div>${peekChip(s)}` : ''}
         ${d.judge ? h`<div class="letter__block letter__block--rule"><span class="letter__label">${ic('gavel', { size: 15, stroke: 2.4 })}How to judge</span><p class="letter__text">${d.judge}</p></div>` : ''}
         ${(d.props || []).length ? h`<div class="letter__block"><span class="letter__label">Props</span><ul class="chips" role="list">${d.props.map((p) => h`<li class="chip-sm">${p}</li>`)}</ul></div>` : ''}
         <ul class="legend" role="list">
-          <li><i class="legend__dot legend__dot--holly"></i><span><b>Nailed it</b> 200: they did it</span></li>
-          <li><i class="legend__dot legend__dot--gold"></i><span><b>Valiant effort</b> 100: a brave try</span></li>
+          <li><i class="legend__dot legend__dot--holly"></i><span><b>Nailed it</b> ${fmt(200 * x)}: they did it</span></li>
+          <li><i class="legend__dot legend__dot--gold"></i><span><b>Valiant effort</b> ${fmt(100 * x)}: a brave try</span></li>
           <li><i class="legend__dot legend__dot--coal"></i><span><b>Not this time</b> 0: lump of coal</span></li>
         </ul>`,
     };
@@ -1101,7 +1094,7 @@ function stealHtml(s) {
 function performerHtml(s, role) {
   const c = s.challenge;
   const p = c.performer;
-  if (!p) return panel('No performer', '', h`<p class="muted">${teamName(s, s.activeTeamId)} has no players. Move someone onto the team, or skip.</p>`, { eyebrow: 'Performer', artId: 'masks' });
+  if (!p) return panel('No performer', '', h`<p class="muted">${subject(teamName(s, s.activeTeamId), 'has')} no players. Move someone onto the team, or skip.</p>`, { eyebrow: 'Performer', artId: 'masks' });
   const t = teamOf(s, p.teamId);
   const pl = playerOf(s, p.playerId);
   const partner = c.partner;
@@ -1123,8 +1116,8 @@ function voteHtml(s) {
   const res = v.result || (c.dareResult ? c.dareResult.result : null);
   return panel(v.open ? 'The room is voting' : 'Room vote result', `${v.voters} of ${v.eligible} voted${v.open ? ' · phones are voting now' : ''}`, h`
     <div class="vote">
-      ${bellMeter({ label: 'Nailed it', count: v.nailed, fill: v.nailed / total, tone: 'holly', ringing: v.open && v.nailed >= v.good && v.nailed > 0 })}
-      ${bellMeter({ label: 'Good try', count: v.good, fill: v.good / total, tone: 'tinsel', ringing: v.open && v.good > v.nailed })}
+      ${bellMeter({ label: 'Nailed it', count: v.nailed, fill: v.nailed / total, tone: 'holly', size: 'sm', ringing: v.open && v.nailed >= v.good && v.nailed > 0 })}
+      ${bellMeter({ label: 'Good try', count: v.good, fill: v.good / total, tone: 'tinsel', size: 'sm', ringing: v.open && v.good > v.nailed })}
     </div>
     ${res ? h`<p class="vote__result">${ic('gavel', { size: 18, stroke: 2.4 })}Result: <b>${{ nailed: 'Nailed it', valiant: 'Valiant effort', fail: 'Not this time' }[res] || res}</b>${v.result && c.dareResult && c.dareResult.result !== v.result ? ' (you overrode it)' : ''}</p>`
       : h`<p class="muted vote__note">Majority wins. A tie counts as Nailed it. You can still overrule the elves.</p>`}`, { eyebrow: 'Room vote', artId: 'bell', cls: 'vote-panel' });
@@ -1185,7 +1178,7 @@ function hotseatHtml(s) {
   const res = { correct: ['check', 'is-correct', 'Correct'], wrong: ['x', 'is-wrong', 'Wrong'], pass: ['skip-forward', 'is-pass', 'Passed'] };
   const socks = Array.from({ length: hs.total }, (_, i) => {
     const r = hs.results[i];
-    return stocking({ state: r === 'correct' ? 'full' : r === 'wrong' || r === 'pass' ? 'coal' : 'empty', size: 40, color: r === 'correct' ? '#1F7A4A' : r ? '#8D99AE' : undefined });
+    return stocking({ state: r === 'correct' ? 'full' : r === 'wrong' || r === 'pass' ? 'coal' : 'empty', size: 40, color: r === 'correct' ? '#1F7A4A' : undefined });
   });
   return panel(`${c.performer?.name || 'The player'} is in the Hot Seat`, `${hs.results.filter((r) => r === 'correct').length} right of ${hs.total} · ${fmt(hs.banked || 0)} banked · ${hs.each} each`, h`
     <div class="socks" aria-label="${hs.results.length + ' of ' + hs.total + ' questions done'}">${socks}</div>
@@ -1245,13 +1238,13 @@ function answersHtml(s) {
 function grinchResultHtml(s) {
   const c = s.challenge;
   if (c.steal) return panel(`${teamName(s, c.steal.to)} stole ${fmt(c.steal.amount)}`, `from ${teamName(s, c.steal.from)}. Boo! (Affectionately.)`, '', { eyebrow: 'Grinch Steal', artId: 'money' });
-  if (c.gift) return panel(`A gift of ${fmt(c.gift.amount)} to ${teamName(s, c.gift.toTeamId)}`, `${teamName(s, s.activeTeamId)} was already in the lead, so the Grinch’s heart grew three sizes`, '', { eyebrow: 'Grinch Steal', artId: 'gift' });
+  if (c.gift) return panel(`A gift of ${fmt(c.gift.amount)} to ${teamName(s, c.gift.toTeamId)}`, `${subject(teamName(s, s.activeTeamId), 'was')} already in the lead, so the Grinch’s heart grew three sizes`, '', { eyebrow: 'Grinch Steal', artId: 'gift' });
   return '';
 }
 
 function doubleDownHtml(s) {
   const act = teamOf(s, s.activeTeamId);
-  return panel('Double Down!', `${act?.name || 'The team'} spins again. Everything they win this turn is ×2.`, h`<p class="muted">Ham it up: “Double or nothing! Well… double or slightly less.”</p>`, { eyebrow: 'Wheel bonus', artId: 'sparkles', cls: 'dd-panel' });
+  return panel('Double Down!', `${subject(act?.name || 'The team', 'spins')} again. Everything they win this turn is ×2.`, h`<p class="muted">Ham it up: “Double or nothing! Well… double or slightly less.”</p>`, { eyebrow: 'Wheel bonus', artId: 'sparkles', cls: 'dd-panel' });
 }
 
 function resultHtml(s) {
@@ -1390,13 +1383,19 @@ function ceremonyHtml(s) {
         </ol></section>
       ${awards.length ? h`<section class="cer__sec"><h4 class="cer__h"><span class="cer__n">${++n}</span>The awards</h4>
         <ol class="cer__awards" role="list">${awards.map((a) => {
-          const t = a.teamId ? teamOf(s, a.teamId) : null;
+          const tids = Array.isArray(a.teamIds) && a.teamIds.length ? a.teamIds : a.teamId ? [a.teamId] : [];
+          const pids = Array.isArray(a.playerIds) && a.playerIds.length ? a.playerIds : a.playerId ? [a.playerId] : [];
+          const t = tids.length === 1 ? teamOf(s, tids[0]) : null;
           const coal = a.key === 'lumpOfCoal';
+          // who to read out: one team ("Sam from Team Rudolph"), or each player with their own team in a shared award
+          const who = pids.length > 1 && tids.length > 1 && pids.every((id) => playerOf(s, id))
+            ? listJoin(pids.map((id) => { const p = playerOf(s, id); return `${p.name} from ${teamName(s, p.teamId)}`; }), 'and')
+            : `${a.name || 'everyone'}${t && pids.length ? ` from ${t.name}` : ''}`;
           return h`<li class="award-tag ${coal ? 'is-coal' : ''}" ${t ? tstyle(t) : ''}>
             <span class="award-tag__art">${art(a.art || AWARD_ART[a.key] || 'medal1', { size: 52 })}</span>
             <div class="award-tag__body">
               <span class="award-tag__title">${a.title || 'Award'}</span>
-              <p class="award-tag__say"><em class="cue">(drumroll)</em> “The ${a.title || 'award'} goes to…” <em class="cue">(${coal ? 'try not to laugh' : 'pause'})</em> “<b>${a.name || 'everyone'}</b>${t && a.playerId ? h` from ${t.name}` : ''}!”</p>
+              <p class="award-tag__say"><em class="cue">(drumroll)</em> “The ${a.title || 'award'} goes to…” <em class="cue">(${coal ? 'try not to laugh' : 'pause'})</em> “<b>${who}</b>!”</p>
               ${a.detail ? h`<small class="award-tag__detail">${a.detail}</small>` : ''}
             </div></li>`;
         })}</ol></section>` : ''}
@@ -1470,13 +1469,13 @@ function mirrorContent(s) {
       const F = s.final;
       const cur = F.revealed.find((r) => r.teamId === F.current);
       const t = cur ? teamOf(s, cur.teamId) : null;
-      return { sub: cur ? `${t?.name}’s answer is on the TV` : 'The reveal', cls: 'is-eve', body: h`<p class="mirror__eyebrow">${art('moon', { size: 26 })}Final Chaos · ${F.categoryLabel}</p><p class="mirror__q">${F.question || ''}</p>
+      return { sub: cur ? `${possessive(t?.name || '')} answer is on the TV` : 'The reveal', cls: 'is-eve', body: h`<p class="mirror__eyebrow">${art('moon', { size: 26 })}Final Chaos · ${F.categoryLabel}</p><p class="mirror__q">${F.question || ''}</p>
         ${cur ? h`<p class="mirror__line"><b>${t?.name}</b> wagered ${fmt(cur.wager)} · “${cur.text || 'no answer'}”${cur.judged ? h` · <b>${cur.correct ? 'Correct' : 'Wrong'} ${signed(cur.delta || 0)}</b>` : ''}</p>` : ''}` };
     }
     case 'podium': {
       const pd = s.podium;
       const win = pd?.standings.filter((x) => x.place === 1).map((x) => teamName(s, x.teamId)) || [];
-      return { sub: 'Podium · confetti', body: h`<p class="mirror__eyebrow">${art('trophy', { size: 26 })}Game over</p><p class="mirror__big">${listJoin(win, 'and')} ${win.length === 1 ? 'wins' : 'win'} Christmas!</p>` };
+      return { sub: 'Podium · confetti', body: h`<p class="mirror__eyebrow">${art('trophy', { size: 26 })}Game over</p><p class="mirror__big">${listJoin(win, 'and')} ${win.length > 1 || isPluralTeam(win[0]) ? 'win' : 'wins'} Christmas!</p>` };
     }
     default:
       return null;
@@ -1496,7 +1495,7 @@ function challengeMirror(s, c) {
     case 'trivia': {
       if (c.stage === 'pickDifficulty') {
         sub = 'Picking a present';
-        body = h`<div class="mirror__chips">${chip}</div><p class="mirror__big">${act?.name || ''} is choosing…</p>
+        body = h`<div class="mirror__chips">${chip}</div><p class="mirror__big">${subject(act?.name || 'The team', 'is')} choosing…</p>
           <div class="mirror__levels"><span>Easy <b>100</b></span><span>Medium <b>200</b></span><span>Hard <b>300</b></span></div>`;
       } else {
         const b = c.buzz;
@@ -1525,7 +1524,7 @@ function challengeMirror(s, c) {
       break;
     }
     case 'showdown':
-      sub = c.stage === 'pickRival' ? (c.eyeing ? `${c.eyeing.by.name} is eyeing ${teamName(s, c.eyeing.teamId)}…` : `${act?.name} is picking a rival`) : 'Split screen · head to head';
+      sub = c.stage === 'pickRival' ? (c.eyeing ? `${c.eyeing.by.name} is eyeing ${teamName(s, c.eyeing.teamId)}…` : `${subject(act?.name || 'The team', 'is')} picking a rival`) : 'Split screen · head to head';
       body = c.stage === 'pickRival'
         ? h`<div class="mirror__chips">${chip}</div><p class="mirror__big">${act?.name || ''}, pick your rival!</p>`
         : h`<div class="mirror__row"><div class="mirror__text"><div class="mirror__chips">${chip}<span class="chip chip--sm chip--points">Winner takes 200</span></div><p class="mirror__title">${c.showdown?.title || ''}</p>
@@ -1558,11 +1557,11 @@ function challengeMirror(s, c) {
     }
     case 'grinch':
       sub = c.stage === 'pickTarget' ? (c.eyeing ? `${c.eyeing.by.name} is eyeing ${teamName(s, c.eyeing.teamId)}…` : 'Picking a victim') : 'Grinch Steal';
-      body = h`<div class="mirror__chips">${chip}</div><p class="mirror__big">${c.steal ? `${teamName(s, c.steal.to)} steals ${fmt(c.steal.amount)} from ${teamName(s, c.steal.from)}!` : c.gift ? `Heart grew three sizes: ${fmt(c.gift.amount)} to ${teamName(s, c.gift.toTeamId)}` : `${act?.name || ''} picks a team that’s ahead`}</p>`;
+      body = h`<div class="mirror__chips">${chip}</div><p class="mirror__big">${c.steal ? `${subject(teamName(s, c.steal.to), 'steals')} ${fmt(c.steal.amount)} from ${teamName(s, c.steal.from)}!` : c.gift ? `Heart grew three sizes: ${fmt(c.gift.amount)} to ${teamName(s, c.gift.toTeamId)}` : `${subject(act?.name || 'The team', 'picks')} a team that’s ahead`}</p>`;
       break;
     case 'doubledown':
       sub = 'Double Down splash';
-      body = h`<div class="mirror__chips">${chip}</div><p class="mirror__big">Double Down! ${act?.name || ''} spins again. Everything is ×2.</p>`;
+      body = h`<div class="mirror__chips">${chip}</div><p class="mirror__big">Double Down! ${subject(act?.name || 'The team', 'spins')} again. Everything is ×2.</p>`;
       break;
     default:
       body = h`<div class="mirror__chips">${chip}</div>`;
@@ -2222,7 +2221,7 @@ globalThis.addEventListener?.('resize', () => {
     const want = isPhone() ? 'phone' : 'laptop';
     if (lights.__size !== want) {
       lights.destroy();
-      try { lights = garland(box, { size: isPhone() ? 'phone' : 0.5, seed: 1225 }); lights.__size = want; } catch { lights = null; }
+      try { lights = garland(box, { size: isPhone() ? 'phone' : 'host', seed: 1225 }); lights.__size = want; } catch { lights = null; }
     }
   }, 200);
 });
