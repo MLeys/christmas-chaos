@@ -1,24 +1,24 @@
 // Christmas Chaos — wheel.js
-// The 12-slot marquee wheel, Midnight Premiere (brief A6), drawn in a -380..380 viewBox:
-// slots r=308 with tangential Big Shoulders 800 caps labels (upright when the slot is under the pointer) and a
-// 40 px Lucide icon above; 6 px night gutter; 3 px snow dividers at 70%; 28 px tinsel rim with a brass bevel
-// and 24 bulbs in a 3-phase chase; peppermint hub with a gold cap; gold teardrop pointer with a cranberry
-// jewel. Slots may carry trim (gold inner arc + velvet folds) or pattern:'candy' (candy-cane stripes + an
-// ivory label pill). Landed: other slots dim to 45% and desaturate, the winner gets a 4 px ivory outline,
-// 150 ms hit-stop, then the bulbs flash 3 times.
+// The 12-slot candy-cane prize wheel, North Pole Workshop (docs/design/NORTH-POLE.md §4, the approved TV concept
+// public/concepts/north-pole-tv.html), drawn in a -380..380 viewBox (1 unit = 1 px at 760 px):
+//   red/white candy-cane rim (r 308–334, white edge) · white gutter · 12 bright slots (r=300, 4 px white seams) with
+//   the 3D slot art near the rim and RADIAL Bagel Fat One labels running from the rim towards the centre ·
+//   pattern:'candy' slots get candy stripes + a white label pill · peppermint hub (stripes turn with the wheel)
+//   with Santa on top · a gold 3D star pointer at 12 o'clock that rocks on every tick.
+//   Stopped: the other slots wash out (opacity .82 over white + 25 % desaturate) and the winner gets a white outline.
 //
-//   const wheel = createWheel(svgEl, state.segments);
+//   const wheel = createWheel(svgEl, state.segments, { lights: garland });   // garland chases with the wheel
 //   wheel.restOn(state.lastSegmentIndex);                    // refresh-safe resting position
 //   wheel.spinTo(spin.segmentIndex, spin.durationMs, {       // lands EXACTLY centred on the index
-//     startedAt: spin.startedAt, clockOffset: client.clockOffset, onTick: () => sound.tick() });
-//   wheel.highlight(i | null); wheel.idle(true);            // 1.2 s marquee chase while waiting
-//   wheel.bulbs('rest' | 'chase' | 'spin' | 'lit' | 'blink' | 'off');
+//     startedAt: spin.startedAt, clockOffset: client.clockOffset, onTick: () => sound.tick(), tease: true });
+//   wheel.highlight(i | null); wheel.idle(true);            // lights chase while waiting
+//   wheel.bulbs('rest' | 'chase' | 'spin' | 'lit' | 'blink' | 'off');   // drives svg[data-bulbs] + the lights
 //
-// Bulb animation is pure CSS on three phase groups (tokens.css); during a spin JS only advances
-// svg[data-phase] at a rate that follows the wheel's speed. The pure math (planSpin / rotationAt /
-// restRotation / tickCount …) is exported for tests.
+// The wheel has no bulbs of its own any more: the garland (sky.js) is the light show. bulbs() still sets
+// svg[data-bulbs] / svg[data-phase] (the star pointer glints on 'blink') and forwards every mode + phase step to
+// the attached lights. The pure math (planSpin / rotationAt / restRotation / tickCount …) is exported for tests.
 
-import { ICONS, safeColor } from './icons.js';
+import { ICONS, safeColor, artSrc, hasArt } from './icons.js';
 
 /* ------------------------------------------------------------------ pure math ---------------- */
 
@@ -38,6 +38,9 @@ export function easeOutQuart(t) {
   const u = 1 - clamp01(t);
   return 1 - u * u * u * u;
 }
+
+const easeInOutSine = (t) => 0.5 - 0.5 * Math.cos(Math.PI * clamp01(t));
+const easeOutCubic = (t) => 1 - (1 - clamp01(t)) ** 3;
 
 /** Width of one slot in degrees. */
 export function slotDeg(n = 12) {
@@ -82,14 +85,34 @@ export function spinTarget(from, index, n = 12, turns = DEFAULT_TURNS) {
 }
 
 /**
- * Plan a spin. All times are in ONE clock (use server ms: startedAt from state.spin, now = Date.now()+offset).
- * @returns {{from:number,to:number,index:number,n:number,startedAt:number,durationMs:number}}
+ * The comedy tease (COMEDY.md §3), as fractions of the spin and of a slot. The wheel slows to a stop in the slot
+ * BEFORE the winner, just short of the peg (STOP), creeps up to the peg and hangs there teetering (HANG), then tips
+ * over and drops into the centre of the real slot. Purely visual: the end rotation is still exactly restRotation().
  */
-export function planSpin({ from = 0, index, n = 12, durationMs = 5000, turns = DEFAULT_TURNS, startedAt, now = 0 }) {
+export const TEASE = Object.freeze({ stopAt: 0.74, hangAt: 0.9, stopSlots: 0.66, hangSlots: 0.53 });
+
+/**
+ * Plan a spin. All times are in ONE clock (use server ms: startedAt from state.spin, now = Date.now()+offset).
+ * tease: true plays the creep-and-hang ending (ignored when the spin is shorter than two slots).
+ * @returns {{from:number,to:number,index:number,n:number,startedAt:number,durationMs:number,tease:boolean}}
+ */
+export function planSpin({ from = 0, index, n = 12, durationMs = 5000, turns = DEFAULT_TURNS, startedAt, now = 0, tease = false }) {
   const i = mod(Math.trunc(Number(index) || 0), n);
   const dur = Math.max(0, Number(durationMs) || 0);
   const start = Number.isFinite(startedAt) ? startedAt : now;
-  return { from, to: spinTarget(from, i, n, turns), index: i, n, startedAt: start, durationMs: dur };
+  const to = spinTarget(from, i, n, turns);
+  return { from, to, index: i, n, startedAt: start, durationMs: dur, tease: !!tease && to - from >= 2 * slotDeg(n) };
+}
+
+/** Rotation (absolute degrees) at progress p in [0,1) of a plan. Monotonic in p for both endings. */
+function curveAt(plan, p) {
+  if (!plan.tease) return plan.from + (plan.to - plan.from) * easeOutQuart(p);
+  const s = slotDeg(plan.n);
+  const stop = plan.to - TEASE.stopSlots * s; // resting in the slot before the winner, short of the peg
+  const hang = plan.to - TEASE.hangSlots * s; // right up against the peg
+  if (p < TEASE.stopAt) return plan.from + (stop - plan.from) * easeOutQuart(p / TEASE.stopAt);
+  if (p < TEASE.hangAt) return stop + (hang - stop) * easeInOutSine((p - TEASE.stopAt) / (TEASE.hangAt - TEASE.stopAt));
+  return hang + (plan.to - hang) * easeOutCubic((p - TEASE.hangAt) / (1 - TEASE.hangAt));
 }
 
 /**
@@ -101,14 +124,21 @@ export function rotationAt(plan, now) {
   const t = plan.durationMs > 0 ? elapsed / plan.durationMs : 1;
   if (t >= 1) return { rotation: restRotation(plan.index, plan.n), progress: 1, done: true };
   const p = clamp01(t);
-  return { rotation: plan.from + (plan.to - plan.from) * easeOutQuart(p), progress: p, done: false };
+  return { rotation: curveAt(plan, p), progress: p, done: false };
 }
 
-/** Angular speed (deg per ms) at progress p — derivative of ease-out-quart. */
+/** Angular speed (deg per ms) at progress p. */
 export function speedAt(plan, progress) {
   if (plan.durationMs <= 0) return 0;
-  const u = 1 - clamp01(progress);
-  return ((plan.to - plan.from) * 4 * u * u * u) / plan.durationMs;
+  if (!plan.tease) {
+    const u = 1 - clamp01(progress);
+    return ((plan.to - plan.from) * 4 * u * u * u) / plan.durationMs;
+  }
+  const p = clamp01(progress);
+  const h = 1e-4;
+  const a = curveAt(plan, Math.max(0, p - h));
+  const b = curveAt(plan, Math.min(1 - 1e-9, p + h));
+  return (b - a) / (Math.min(1 - 1e-9, p + h) - Math.max(0, p - h)) / plan.durationMs;
 }
 
 /* ------------------------------------------------------------------ segments ----------------- */
@@ -116,27 +146,27 @@ export function speedAt(plan, progress) {
 /** The wheel the server sends (src/game.js SEGMENTS). The live app always passes state.segments; this is the demo set. */
 export const DEFAULT_SEGMENTS = Object.freeze(
   [
-    ['trivia', 'Christmas Trivia', ['CHRISTMAS', 'TRIVIA'], '#C8102E', '#FFF7EA', 'tree-pine'],
-    ['dare', 'Dare', ['DARE'], '#F6C453', '#1A1206', 'drama'],
-    ['trivia', 'Pop Culture', ['POP', 'CULTURE'], '#2450D0', '#FFF7EA', 'clapperboard'],
-    ['hotseat', 'Hot Seat', ['HOT', 'SEAT'], '#FF8FB1', '#2A0A18', 'flame'],
-    ['trivia', 'Christmas Movies', ['CHRISTMAS', 'MOVIES'], '#7E0B22', '#FFF7EA', 'popcorn', { trim: '#F6C453' }],
-    ['sounditout', 'Sound It Out', ['SOUND', 'IT OUT'], '#7B4CE0', '#FFF7EA', 'music'],
-    ['grinch', 'Grinch Steal', ['GRINCH', 'STEAL'], '#9BD13B', '#0B1430', 'hand-coins'],
-    ['showdown', 'Showdown', ['SHOW', 'DOWN'], '#5AA9E6', '#0B1430', 'swords'],
-    ['dare', 'Dare', ['DARE'], '#F6C453', '#1A1206', 'drama'],
-    ['rapidlist', 'Rapid List', ['RAPID', 'LIST'], '#0E7C74', '#FFF7EA', 'list-checks'],
-    ['allplay', 'All Play', ['ALL', 'PLAY'], '#FF9A3C', '#1A1206', 'zap'],
-    ['doubledown', 'Double Down', ['DOUBLE', 'DOWN'], '#FFF7EA', '#0B1430', 'sparkles', { pattern: 'candy', stripe: '#C8102E' }],
-  ].map(([type, label, lines, color, ink, icon, extra], index) => Object.freeze({ index, type, label, lines, color, ink, icon, ...(extra || {}) }))
+    ['trivia', 'Christmas Trivia', ['Christmas', 'Trivia'], '#D42A2A', '#FFFFFF', 'tree-pine', 'tree'],
+    ['dare', 'Dare', ['Dare'], '#EDB321', '#1C2333', 'drama', 'masks'],
+    ['trivia', 'Pop Culture', ['Pop', 'Culture'], '#2E6FD1', '#FFFFFF', 'clapperboard', 'clapper'],
+    ['hotseat', 'Hot Seat', ['Hot', 'Seat'], '#E9558A', '#FFFFFF', 'flame', 'fire'],
+    ['trivia', 'Christmas Movies', ['Christmas', 'Movies'], '#9E1B32', '#FFFFFF', 'popcorn', 'popcorn'],
+    ['sounditout', 'Sound It Out', ['Sound', 'It Out'], '#7B4BC9', '#FFFFFF', 'music', 'music'],
+    ['grinch', 'Grinch Steal', ['Grinch', 'Steal'], '#7CB518', '#1C2333', 'hand-coins', 'money'],
+    ['showdown', 'Showdown', ['Show', 'Down'], '#8ECAE6', '#1C2333', 'swords', 'boxing'],
+    ['dare', 'Dare', ['Dare'], '#EDB321', '#1C2333', 'drama', 'masks'],
+    ['rapidlist', 'Rapid List', ['Rapid', 'List'], '#1F7A4A', '#FFFFFF', 'list-checks', 'list'],
+    ['allplay', 'All Play', ['All', 'Play'], '#F28C28', '#1C2333', 'zap', 'zap'],
+    ['doubledown', 'Double Down', ['Double', 'Down'], '#FFFFFF', '#1C2333', 'sparkles', 'sparkles', { pattern: 'candy', stripe: '#D42A2A' }],
+  ].map(([type, label, lines, color, ink, icon, art, extra], index) => Object.freeze({ index, type, label, lines, color, ink, icon, art, ...(extra || {}) }))
 );
 
-/** Upper-case label lines: the server's `lines`, else the label split into at most two balanced lines. */
+/** Label lines as given (sentence/title case): the server's `lines`, else the label split into two balanced lines. */
 export function labelLines(seg) {
   if (Array.isArray(seg?.lines) && seg.lines.length) {
-    return seg.lines.slice(0, 3).map((l) => String(l).toUpperCase());
+    return seg.lines.slice(0, 3).map((l) => String(l));
   }
-  const words = String(seg?.label ?? '').toUpperCase().trim().split(/\s+/).filter(Boolean);
+  const words = String(seg?.label ?? '').trim().split(/\s+/).filter(Boolean);
   if (words.length <= 1) return words;
   let best = null;
   for (let k = 1; k < words.length; k++) {
@@ -148,95 +178,89 @@ export function labelLines(seg) {
   return best.lines;
 }
 
-// Advance widths in em, measured in Edge with the bundled woff2 files (scratch/measure.cjs).
-const GLYPH_W = {
-  // Big Shoulders Display 800 — wheel labels, eyebrows, marquee
-  marquee: {
-    A: 0.443, B: 0.441, C: 0.455, D: 0.461, E: 0.381, F: 0.378, G: 0.457, H: 0.455, I: 0.215, J: 0.421, K: 0.458, L: 0.374, M: 0.691,
-    N: 0.508, O: 0.462, P: 0.436, Q: 0.462, R: 0.444, S: 0.441, T: 0.384, U: 0.453, V: 0.456, W: 0.733, X: 0.435, Y: 0.43, Z: 0.388,
-    0: 0.473, 1: 0.255, 2: 0.457, 3: 0.47, 4: 0.479, 5: 0.48, 6: 0.465, 7: 0.446, 8: 0.466, 9: 0.465,
-    ' ': 0.217, "'": 0.19, '’': 0.239, '&': 0.581, '!': 0.238, '?': 0.441, '-': 0.413, '.': 0.238, ',': 0.239, ':': 0.238, '×': 0.456, '+': 0.512,
-    _: 0.46,
-  },
-  // Fraunces 900 (opsz 144) — var(--font-display) splash words, titles
-  display: {
-    A: 0.678, B: 0.714, C: 0.662, D: 0.759, E: 0.637, F: 0.583, G: 0.713, H: 0.808, I: 0.398, J: 0.456, K: 0.759, L: 0.603, M: 0.864,
-    N: 0.686, O: 0.749, P: 0.689, Q: 0.767, R: 0.736, S: 0.595, T: 0.677, U: 0.683, V: 0.642, W: 0.994, X: 0.685, Y: 0.646, Z: 0.598,
-    0: 0.663, 1: 0.414, 2: 0.611, 3: 0.564, 4: 0.624, 5: 0.574, 6: 0.618, 7: 0.531, 8: 0.59, 9: 0.625,
-    ' ': 0.152, "'": 0.202, '’': 0.207, '&': 0.959, '!': 0.308, '?': 0.583, '-': 0.259, '.': 0.259, ',': 0.268, ':': 0.259, '×': 0.408, '+': 0.46,
-    _: 0.7,
-  },
+// Advance widths in em of Bagel Fat One 400, measured in Edge with the bundled woff2 (canvas measureText at
+// 100 px). It is the display face (wheel labels, headlines, scores, splash words) and has both cases.
+const BAGEL = {
+  A: 0.709, B: 0.644, C: 0.662, D: 0.661, E: 0.614, F: 0.593, G: 0.707, H: 0.672, I: 0.275, J: 0.582, K: 0.645, L: 0.595, M: 0.83,
+  N: 0.686, O: 0.706, P: 0.629, Q: 0.709, R: 0.643, S: 0.644, T: 0.675, U: 0.664, V: 0.703, W: 0.93, X: 0.679, Y: 0.7, Z: 0.617,
+  a: 0.551, b: 0.569, c: 0.518, d: 0.581, e: 0.526, f: 0.44, g: 0.554, h: 0.547, i: 0.245, j: 0.255, k: 0.596, l: 0.236, m: 0.804,
+  n: 0.547, o: 0.558, p: 0.586, q: 0.569, r: 0.482, s: 0.54, t: 0.519, u: 0.548, v: 0.537, w: 0.819, x: 0.558, y: 0.554, z: 0.526,
+  0: 0.621, 1: 0.468, 2: 0.621, 3: 0.603, 4: 0.693, 5: 0.608, 6: 0.59, 7: 0.603, 8: 0.639, 9: 0.59,
+  ' ': 0.18, "'": 0.27, '’': 0.275, '&': 0.72, '!': 0.432, '?': 0.522, '-': 0.522, '.': 0.297, ',': 0.297, ':': 0.36, '×': 0.72, '+': 0.657,
+  _: 0.6,
 };
+const GLYPH_W = { display: BAGEL, label: BAGEL, marquee: BAGEL };
 
-/** Estimated width of an upper-case string in em. face: 'marquee' (Big Shoulders 800, the wheel) or 'display' (Fraunces 900). */
-export function textWidthEm(text, face = 'marquee') {
-  const t = GLYPH_W[face] || GLYPH_W.marquee;
+/** Estimated width of a string in em. face: 'display' / 'label' (both Bagel Fat One; 'marquee' is an old alias). */
+export function textWidthEm(text, face = 'display') {
+  const t = GLYPH_W[face] || BAGEL;
   let w = 0;
   for (const ch of String(text)) w += t[ch] ?? t._;
   return w;
 }
 
-/** Width of a wheel label in em of Big Shoulders Display 800 (the wheel's label face). */
+/** Width of a wheel label in em of Bagel Fat One (the wheel's label face). */
 export function labelWidthEm(text) {
-  return textWidthEm(text, 'marquee');
+  return textWidthEm(text, 'label');
 }
 
-/** Width of a giant display word in em of Fraunces 900 (var(--font-display)). */
+/** Width of a giant display word in em of Bagel Fat One (var(--font-display)). */
 export function displayWidthEm(text) {
   return textWidthEm(text, 'display');
 }
 
-const LABEL_TRACK = 0.02; // letter-spacing per glyph, in em
+/* Radial label geometry (the TV concept): text starts at r=LABEL_START and runs towards the centre; two lines sit
+   13 / 15 units either side of the slot's centre line, one line on it. */
+export const LABEL_START = 222;
+const LABEL_SIZE = 25;
+const HUB_CLEAR = 72; // labels stop short of the hub (white r=64)
 
-/** Usable label width (viewBox units) at a baseline y for a text of `size`, inside a slot of an n-slot wheel. */
-export function labelRoom(y, size, n = 12) {
-  const r = Math.abs(y) + size * 0.35; // vertical middle of the caps
-  return 2 * r * Math.tan(Math.PI / n) * 0.92;
+/** Usable label length (viewBox units) for a line `offset` units off the slot's centre line at font `size`. */
+export function labelRoom(offset, size, n = 12) {
+  const tan = Math.tan(Math.PI / n);
+  const innermost = (Math.abs(offset) + size * 0.42) / tan; // where the slot gets too narrow for this line
+  return Math.max(0, LABEL_START - Math.max(HUB_CLEAR, innermost));
 }
 
-/** Font size + baselines for a slot's label (brief A6: Big Shoulders 800 caps 30 px; 1 line @ -210, 2 lines @ -226/-194). */
+/** Font size + tangential offsets for a slot's label (Bagel Fat One 25; 2 lines at -13/+15, 1 line at +1). */
 export function labelLayout(lines, n = 12) {
   const spec =
     lines.length <= 1
-      ? { size: 30, ys: [-210] }
+      ? { size: LABEL_SIZE, offs: [1] }
       : lines.length === 2
-        ? { size: 30, ys: [-226, -194] }
-        : { size: 24, ys: [-238, -212, -186] };
+        ? { size: LABEL_SIZE, offs: [-13, 15] }
+        : { size: 20, offs: [-21, 1, 23] };
   return lines.map((text, k) => {
-    const y = spec.ys[k];
-    const w = labelWidthEm(text) + Math.max(0, [...text].length - 1) * LABEL_TRACK;
-    // room depends on the size (taller caps sit on a wider chord), so settle it in a few passes
+    const offset = spec.offs[k];
+    const w = labelWidthEm(text);
     let size = spec.size;
     for (let pass = 0; pass < 4 && w > 0; pass++) {
-      size = Math.max(14, Math.min(spec.size, Math.floor((labelRoom(y, size, n) / w) * 10) / 10));
+      size = Math.max(12, Math.min(spec.size, Math.floor((labelRoom(offset, size, n) / w) * 10) / 10));
     }
-    return { text, y, size, room: +labelRoom(y, size, n).toFixed(1) };
+    return { text, offset, size, start: LABEL_START, room: +labelRoom(offset, size, n).toFixed(1) };
   });
 }
 
 /* ------------------------------------------------------------------ rendering ---------------- */
-// Construction (brief A6), drawn in a -380..380 viewBox (1 unit = 1 px at 760 px):
-//   slots r=308 · 6 px night gutter · 28 px tinsel rim (r=328) with a brass bevel (r=345) · 24 bulbs on the rim
-//   in 3 phase groups · 3 px snow dividers at 70% · peppermint hub (8 blades, r=60) with a gold cap · gold
-//   teardrop pointer with a cranberry jewel at 12 o'clock.
 
 const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c]);
 const f2 = (x) => +x.toFixed(2);
 
 export const VIEWBOX = '-380 -380 760 760';
-const R_SLOT = 308;
-const R_RIM = 328;
-const RIM_W = 28;
-const R_BEVEL = 345;
-const R_HUB = 60;
-const IVORY = '#FFF7EA';
-const NIGHT = '#0B1430';
-const BRASS = '#C9962E';
-const FONT = "'Big Shoulders Display', 'Bahnschrift', 'Arial Narrow', sans-serif";
-/** The pointer teardrop (tip at r=306, round end centred at r=343). */
-export const POINTER_PATH = 'M0 -306 L18.01 -343.3 A20 20 0 1 0 -18.01 -343.3 Z';
-const POINTER_PIVOT = '0 -343';
+export const R_SLOT = 300;
+export const R_GUTTER = 308;
+export const R_RIM = 334;
+const R_HUB = 64;
+const WHITE = '#FFFFFF';
+const INK = '#1C2333';
+const CANDY = '#D42A2A';
+const FONT = "'Bagel Fat One', 'Arial Rounded MT Bold', system-ui, sans-serif";
+const ART_SIZE = 54;
+const ART_Y = -(R_SLOT - 12); // -288: the art sits just inside the rim
+/** The gold star pointer: a 5-point star centred at (0,-336) (shadow / hit shape; the 3D star.png sits on it). */
+export const POINTER_PATH = 'M0 -374 L11.17 -351.37 L36.14 -347.74 L18.07 -330.13 L22.34 -305.26 L0 -317 L-22.34 -305.26 L-18.07 -330.13 L-36.14 -347.74 L-11.17 -351.37 Z';
+const POINTER_PIVOT = '0 -306';
 
 let uid = 0;
 
@@ -266,188 +290,145 @@ function restPath(r, n) {
   return `M0 0 L${x} ${y} A${r} ${r} 0 1 1 ${-x} ${y} Z`;
 }
 
-function defs(p, n) {
-  const half = f2(R_SLOT * Math.sin(Math.PI / n));
+/** Diagonal candy-cane stripes: `stripe` on white. */
+function stripePattern(id, { size = 40, band = 16, angle = 45, stripe = CANDY } = {}) {
+  return `<pattern id="${id}" width="${size}" height="${size}" patternUnits="userSpaceOnUse" patternTransform="rotate(${angle})"><rect width="${size}" height="${size}" fill="${WHITE}"/><rect width="${band}" height="${size}" fill="${stripe}"/></pattern>`;
+}
+
+function defs(p) {
   return (
     `<defs>` +
-    `<radialGradient id="${p}-shadow"><stop offset=".84" stop-color="#000" stop-opacity=".55"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>` +
-    `<linearGradient id="${p}-rim" x1="0" y1="-350" x2="0" y2="350" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFE7A0"/><stop offset=".3" stop-color="#F6C453"/><stop offset=".62" stop-color="#D9A441"/><stop offset="1" stop-color="#F3BE4E"/></linearGradient>` +
-    `<radialGradient id="${p}-halo"><stop offset="0" stop-color="#FFE296" stop-opacity=".95"/><stop offset=".35" stop-color="#FFB938" stop-opacity=".55"/><stop offset="1" stop-color="#FFB938" stop-opacity="0"/></radialGradient>` +
-    `<linearGradient id="${p}-velvet" x1="${-half}" y1="0" x2="${half}" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000" stop-opacity=".28"/><stop offset=".12" stop-color="#FFF" stop-opacity=".07"/><stop offset=".24" stop-color="#000" stop-opacity=".2"/><stop offset=".38" stop-color="#FFF" stop-opacity=".09"/><stop offset=".5" stop-color="#000" stop-opacity=".12"/><stop offset=".62" stop-color="#FFF" stop-opacity=".09"/><stop offset=".76" stop-color="#000" stop-opacity=".2"/><stop offset=".88" stop-color="#FFF" stop-opacity=".07"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></linearGradient>` +
-    `<radialGradient id="${p}-cap" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#FFF1C2"/><stop offset=".45" stop-color="#F6C453"/><stop offset="1" stop-color="#A9761F"/></radialGradient>` +
-    `<linearGradient id="${p}-ptr" x1="-20" y1="0" x2="20" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#C9962E"/><stop offset=".4" stop-color="#FFE7A0"/><stop offset=".65" stop-color="#F6C453"/><stop offset="1" stop-color="#B8862B"/></linearGradient>` +
+    stripePattern(`${p}-rim`, { size: 34, band: 14, angle: 30 }) +
+    stripePattern(`${p}-mint`, { size: 22, band: 9, angle: 45 }) +
+    `<radialGradient id="${p}-shadow"><stop offset=".86" stop-color="${INK}" stop-opacity=".2"/><stop offset="1" stop-color="${INK}" stop-opacity="0"/></radialGradient>` +
+    `<radialGradient id="${p}-hubshadow"><stop offset=".78" stop-color="${INK}" stop-opacity=".22"/><stop offset="1" stop-color="${INK}" stop-opacity="0"/></radialGradient>` +
     `</defs>`
   );
 }
 
-/** One candy-cane stripe pattern per striped slot (ivory 20 + stripe colour 12, at 45°). */
-function canePattern(id, stripe) {
-  return `<pattern id="${id}" width="32" height="32" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="32" height="32" fill="${IVORY}"/><rect x="20" width="12" height="32" fill="${stripe}"/></pattern>`;
+function slotArt(seg, ink) {
+  if (seg?.art && hasArt(seg.art)) {
+    return `<image class="wheel__art" href="${artSrc(seg.art)}" x="${-ART_SIZE / 2}" y="${ART_Y}" width="${ART_SIZE}" height="${ART_SIZE}" preserveAspectRatio="xMidYMid meet"/>`;
+  }
+  const inner = ICONS[seg?.icon];
+  if (!inner) return '';
+  return `<svg class="wheel__icon" x="-21" y="${ART_Y + 6}" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${inner}</svg>`;
 }
 
 function slotMarkup(seg, i, n, p) {
   const candy = seg?.pattern === 'candy';
-  const color = safeColor(seg?.color, '#1F2C5E');
-  const ink = safeColor(seg?.ink, IVORY);
-  const trim = seg?.trim ? safeColor(seg.trim, '') : '';
-  const iconInner = ICONS[seg?.icon] || '';
+  const color = safeColor(seg?.color, '#2E6FD1');
+  const ink = safeColor(seg?.ink, WHITE);
   const lines = labelLayout(labelLines(seg), n);
   const wedge = wedgePath(R_SLOT, n);
   const parts = [];
   let extraDefs = '';
   if (candy) {
     const pid = `${p}-cane${i}`;
-    extraDefs = `<defs>${canePattern(pid, safeColor(seg?.stripe, '#C8102E'))}</defs>`;
-    parts.push(`<path class="wheel__face" d="${wedge}" fill="url(#${pid})"/>`);
+    extraDefs = `<defs>${stripePattern(pid, { stripe: safeColor(seg?.stripe, CANDY) })}</defs>`;
+    parts.push(`<path class="wheel__face" d="${wedge}" fill="url(#${pid})" stroke="${WHITE}" stroke-width="4" stroke-linejoin="round"/>`);
   } else {
-    parts.push(`<path class="wheel__face" d="${wedge}" fill="${color}"/>`);
+    parts.push(`<path class="wheel__face" d="${wedge}" fill="${color}" stroke="${WHITE}" stroke-width="4" stroke-linejoin="round"/>`);
   }
-  if (trim) {
-    // velvet folds + a 4 px gold inner arc with little tassels, like a curtain fringe
-    parts.push(`<path d="${wedge}" fill="url(#${p}-velvet)"/>`);
-    const half = 180 / n - 0.8;
-    parts.push(`<path d="${arc(303, -half, half)}" fill="none" stroke="${trim}" stroke-width="4" stroke-linecap="round"/>`);
-    const ticks = [];
-    for (let a = -half + 1.7; a <= half - 1.6; a += 2.5) {
-      const [x1, y1] = polar(301, a);
-      const [x2, y2] = polar(296.5, a);
-      ticks.push(`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`);
-    }
-    parts.push(`<g stroke="${trim}" stroke-width="2" stroke-linecap="round">${ticks.join('')}</g>`);
-  }
-  if (candy) {
-    // ivory label pill so the label never sits on the stripes
-    const widest = Math.max(...lines.map((l) => (labelWidthEm(l.text) + [...l.text].length * LABEL_TRACK) * l.size), 40);
-    const w = Math.round(Math.min(labelRoom(-186, 30, n) - 4, widest + 22));
-    const top = -300;
-    const bottom = lines.length ? lines[lines.length - 1].y + 8 : -246;
-    parts.push(`<rect class="wheel__pill" x="${f2(-w / 2)}" y="${top}" width="${w}" height="${f2(bottom - top)}" rx="18" fill="${color}" stroke="${NIGHT}" stroke-opacity=".18" stroke-width="1.5"/>`);
-  }
-  if (iconInner) {
-    parts.push(`<svg class="wheel__icon" x="-20" y="-294" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="${ink}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${iconInner}</svg>`);
+  parts.push(slotArt(seg, ink));
+  if (candy && lines.length) {
+    // white label pill (radial, like the label) so the words never sit on the stripes
+    const longest = Math.max(...lines.map((l) => labelWidthEm(l.text) * l.size), 40);
+    const offs = lines.map((l) => l.offset);
+    const half = (Math.max(...offs) - Math.min(...offs)) / 2 + lines[0].size * 0.62;
+    const mid = (Math.max(...offs) + Math.min(...offs)) / 2;
+    const top = -(LABEL_START + 9);
+    const len = Math.min(LABEL_START - HUB_CLEAR + 14, longest + 18);
+    // the text frame is rotated 90deg: text-y +offset -> slot-x -offset
+    parts.push(`<rect class="wheel__pill" x="${f2(-mid - half)}" y="${top}" width="${f2(half * 2)}" height="${f2(len)}" rx="${f2(Math.min(half, 16))}" fill="${color}"/>`);
   }
   for (const l of lines) {
-    parts.push(`<text x="0" y="${l.y}" text-anchor="middle" font-family="${FONT}" font-weight="800" font-size="${l.size}" letter-spacing="${f2(l.size * LABEL_TRACK)}" fill="${ink}" data-room="${l.room}">${esc(l.text)}</text>`);
+    parts.push(
+      `<text class="wheel__label" transform="rotate(90)" x="${-l.start}" y="${l.offset}" dominant-baseline="middle" font-family="${FONT}" font-size="${l.size}" fill="${ink}" data-room="${l.room}">${esc(l.text)}</text>`
+    );
   }
   return `<g class="wheel__slot" data-index="${i}" transform="rotate(${f2(i * slotDeg(n))})">${extraDefs}${parts.join('')}</g>`;
 }
 
-function bulbMarkup(p) {
-  const base = [];
-  const lit = [[], [], []];
-  for (let k = 0; k < 24; k++) {
-    const [x, y] = polar(R_RIM, 7.5 + k * 15);
-    base.push(`<circle class="wheel__bulb" cx="${x}" cy="${y}" r="8" fill="#6B4A0E"/><circle cx="${x}" cy="${y}" r="5.5" fill="#9C7A3A"/>`);
-    lit[k % 3].push(
-      `<circle class="wheel__halo" cx="${x}" cy="${y}" r="16" fill="url(#${p}-halo)"/><circle class="wheel__core" cx="${x}" cy="${y}" r="5.8" fill="#FFE6A8"/><circle cx="${f2(x - 1.8)}" cy="${f2(y - 1.8)}" r="1.8" fill="#FFFDF6"/>`
-    );
-  }
+function hubMarkup(p) {
   return (
-    `<g class="wheel__bulbs">` +
-    `<g class="wheel__base">${base.join('')}</g>` +
-    lit.map((g, k) => `<g class="wheel__lit wheel__lit--p${k}">${g.join('')}</g>`).join('') +
-    `</g>`
+    `<circle class="wheel__hubshadow" cx="0" cy="7" r="${R_HUB + 12}" fill="url(#${p}-hubshadow)"/>` +
+    `<circle class="wheel__hub" r="${R_HUB}" fill="${WHITE}"/>` +
+    `<g class="wheel__hubicon" transform="rotate(0)"><circle r="54" fill="url(#${p}-mint)"/></g>` +
+    `<circle r="54" fill="none" stroke="${INK}" stroke-opacity=".08" stroke-width="1.5"/>` +
+    `<circle r="27" fill="${WHITE}"/>` +
+    `<image class="wheel__santa" href="${artSrc('santa')}" x="-25" y="-25" width="50" height="50"/>`
   );
 }
 
-function hubMarkup(p) {
-  const blades = [];
-  for (let k = 0; k < 8; k++) {
-    const t0 = k * 45;
-    const t1 = t0 + 45;
-    const [x0, y0] = polar(R_HUB, t0);
-    const [x1, y1] = polar(R_HUB, t1);
-    const [cx0, cy0] = polar(34, t0 - 52);
-    const [cx1, cy1] = polar(34, t1 - 52);
-    blades.push(`<path d="M0 0 Q${cx0} ${cy0} ${x0} ${y0} A${R_HUB} ${R_HUB} 0 0 1 ${x1} ${y1} Q${cx1} ${cy1} 0 0 Z" fill="${k % 2 ? IVORY : '#C8102E'}"/>`);
-  }
+function pointerMarkup() {
   return (
-    `<circle class="wheel__hub" r="68" fill="${NIGHT}"/>` +
-    `<circle r="66" fill="none" stroke="${BRASS}" stroke-width="3"/>` +
-    `<g class="wheel__hubicon" transform="rotate(0)">${blades.join('')}<circle r="${R_HUB}" fill="none" stroke="${NIGHT}" stroke-opacity=".35" stroke-width="1.5"/></g>` +
-    `<circle r="21" fill="url(#${p}-cap)" stroke="#8A6416" stroke-width="1.5"/>` +
-    `<ellipse cx="-6" cy="-8" rx="6" ry="3.5" fill="#FFFCF2" fill-opacity=".55" transform="rotate(-30 -6 -8)"/>`
+    `<g class="wheel__pointer" transform="rotate(0 ${POINTER_PIVOT})">` +
+    `<path class="wheel__pointer-shadow" d="${POINTER_PATH}" fill="${INK}" fill-opacity=".2" stroke="${INK}" stroke-opacity=".2" stroke-width="6" stroke-linejoin="round" transform="translate(0 9)"/>` +
+    `<path class="wheel__pointer-base" d="${POINTER_PATH}" fill="#EDB321" stroke="#C48A0A" stroke-width="5" stroke-linejoin="round"/>` +
+    `<image class="wheel__star" href="${artSrc('star')}" x="-44" y="-382" width="88" height="88"/>` +
+    `</g>`
   );
 }
 
 /**
  * Static markup of the whole wheel (no state). Exported so pages/tests can render a wheel without JS motion.
  * @param {Array} segments
- * @param {{id?:string}} [opts] id prefix for gradient/pattern ids (unique per wheel on the page)
+ * @param {{id?:string}} [opts] id prefix for pattern/gradient ids (unique per wheel on the page)
  */
 export function wheelMarkup(segments = DEFAULT_SEGMENTS, { id } = {}) {
   const segs = Array.isArray(segments) && segments.length >= 2 ? segments : DEFAULT_SEGMENTS;
   const n = segs.length;
   const p = String(id || `ccw${++uid}`).replace(/[^\w-]/g, '');
   const slots = segs.map((s, i) => slotMarkup(s, i, n, p)).join('');
-  const dividers = Array.from({ length: n }, (_, k) => {
-    const a = slotDeg(n) / 2 + k * slotDeg(n);
-    const [x1, y1] = polar(64, a);
-    const [x2, y2] = polar(R_SLOT, a);
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
-  }).join('');
-  // soft motion arcs over the face while spinning fast
-  const blur = [[296, 20, 72], [296, 200, 252], [236, 112, 158], [236, 292, 338], [170, 40, 88], [170, 220, 268]]
+  // soft motion streaks over the face while spinning fast
+  const blur = [[286, 20, 72], [286, 200, 252], [226, 112, 158], [226, 292, 338], [160, 40, 88], [160, 220, 268]]
     .map(([r, a, b]) => `<path d="${arc(r, a, b)}"/>`)
     .join('');
   return (
-    defs(p, n) +
-    `<circle class="wheel__shadow" cx="0" cy="20" r="372" fill="url(#${p}-shadow)"/>` +
-    `<circle class="wheel__bg" r="348" fill="${NIGHT}"/>` +
+    defs(p) +
+    `<circle class="wheel__shadow" cx="0" cy="16" r="${R_RIM + 26}" fill="url(#${p}-shadow)"/>` +
+    `<circle class="wheel__rim" r="${R_RIM}" fill="url(#${p}-rim)"/>` +
+    `<circle class="wheel__rim-edge" r="${R_RIM - 2}" fill="none" stroke="${WHITE}" stroke-width="5"/>` +
+    `<circle class="wheel__gutter" r="${R_GUTTER}" fill="${WHITE}"/>` +
     `<g class="wheel__rotor" transform="rotate(0)">` +
     `<g class="wheel__slots">${slots}</g>` +
-    `<g class="wheel__dividers" stroke="${IVORY}" stroke-opacity=".7" stroke-width="3" stroke-linecap="round">${dividers}</g>` +
     `<g class="wheel__hl" transform="rotate(0)" opacity="0" pointer-events="none">` +
-    `<path class="wheel__dim" d="${restPath(R_SLOT, n)}" fill="${NIGHT}" fill-opacity=".55"/>` +
-    `<path class="wheel__desat" d="${restPath(R_SLOT, n)}" fill="#808080" fill-opacity=".3" style="mix-blend-mode:saturation"/>` +
-    `<path class="wheel__outline" d="${wedgePath(309, n)}" fill="none" stroke="${IVORY}" stroke-width="4" stroke-linejoin="round"/>` +
+    `<path class="wheel__dim" d="${restPath(R_SLOT + 2, n)}" fill="${WHITE}" fill-opacity=".18"/>` +
+    `<path class="wheel__desat" d="${restPath(R_SLOT + 2, n)}" fill="#808080" fill-opacity=".25" style="mix-blend-mode:saturation"/>` +
+    `<path class="wheel__outline" d="${wedgePath(R_SLOT, n)}" fill="none" stroke="${WHITE}" stroke-width="8" stroke-linejoin="round"/>` +
     `</g></g>` +
-    `<g class="wheel__blur" fill="none" stroke="${IVORY}" stroke-width="5" stroke-linecap="round" opacity="0">${blur}</g>` +
-    `<circle class="wheel__gutter" r="311" fill="none" stroke="${NIGHT}" stroke-width="6"/>` +
-    `<circle class="wheel__rim" r="${R_RIM}" fill="none" stroke="url(#${p}-rim)" stroke-width="${RIM_W}"/>` +
-    `<circle r="314.5" fill="none" stroke="#6B4A0E" stroke-opacity=".6" stroke-width="1"/>` +
-    `<circle class="wheel__bevel" r="${R_BEVEL}" fill="none" stroke="${BRASS}" stroke-width="6"/>` +
-    `<circle r="347.4" fill="none" stroke="#FFF0C8" stroke-opacity=".45" stroke-width="1.2"/>` +
-    bulbMarkup(p) +
+    `<g class="wheel__blur" fill="none" stroke="${WHITE}" stroke-width="5" stroke-linecap="round" opacity="0">${blur}</g>` +
     hubMarkup(p) +
-    `<g class="wheel__pointer" transform="rotate(0 ${POINTER_PIVOT})">` +
-    `<path d="${POINTER_PATH}" fill="#000" fill-opacity=".4" transform="translate(0 5)"/>` +
-    `<path d="${POINTER_PATH}" fill="url(#${p}-ptr)" stroke="#6B4A0E" stroke-width="1.5" stroke-linejoin="round"/>` +
-    `<circle cx="0" cy="-352" r="9.5" fill="#C8102E" stroke="#8E0B22" stroke-width="1.5"/>` +
-    `<circle cx="-3" cy="-355" r="3" fill="#FFFCF2" fill-opacity=".75"/>` +
-    `</g>`
+    pointerMarkup()
   );
 }
 
-/** Small static wheel glyph (e.g. inside a phone SPIN button). */
+/** Small static wheel glyph (e.g. inside a phone SPIN button or a turn-intro hint). */
 export function miniWheelMarkup(segments = DEFAULT_SEGMENTS, { tilt = -8 } = {}) {
   const segs = Array.isArray(segments) && segments.length >= 2 ? segments : DEFAULT_SEGMENTS;
   const n = segs.length;
   const h = Math.PI / n;
-  const x = f2(88 * Math.sin(h));
-  const y = f2(-88 * Math.cos(h));
+  const x = f2(84 * Math.sin(h));
+  const y = f2(-84 * Math.cos(h));
   const p = `ccm${++uid}`;
-  let pattern = '';
+  let pattern = stripePattern(`${p}-rim`, { size: 16, band: 7, angle: 30 });
   const wedges = segs
     .map((s, i) => {
-      let fill = safeColor(s?.color, '#1F2C5E');
+      let fill = safeColor(s?.color, '#2E6FD1');
       if (s?.pattern === 'candy') {
-        pattern = `<defs><pattern id="${p}-cane" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="14" height="14" fill="${IVORY}"/><rect x="9" width="5" height="14" fill="${safeColor(s?.stripe, '#C8102E')}"/></pattern></defs>`;
+        pattern += stripePattern(`${p}-cane`, { size: 14, band: 6, stripe: safeColor(s?.stripe, CANDY) });
         fill = `url(#${p}-cane)`;
       }
-      return `<path transform="rotate(${f2(i * slotDeg(n))})" d="M0 0 L${-x} ${y} A88 88 0 0 1 ${x} ${y} Z" fill="${fill}" stroke="${NIGHT}" stroke-width="2"/>`;
+      return `<path transform="rotate(${f2(i * slotDeg(n))})" d="M0 0 L${-x} ${y} A84 84 0 0 1 ${x} ${y} Z" fill="${fill}" stroke="${WHITE}" stroke-width="2.5" stroke-linejoin="round"/>`;
     })
     .join('');
-  const dots = Array.from({ length: n }, (_, k) => {
-    const [cx, cy] = polar(94, k * slotDeg(n) + slotDeg(n) / 2);
-    return `<circle cx="${cx}" cy="${cy}" r="3.6"/>`;
-  }).join('');
   return (
-    `<svg class="mini-wheel" viewBox="-110 -124 220 234" aria-hidden="true" focusable="false">${pattern}` +
-    `<circle r="102" fill="${NIGHT}"/><g transform="rotate(${Number(tilt) || 0})">${wedges}</g>` +
-    `<circle r="94" fill="none" stroke="#F6C453" stroke-width="12"/><circle r="101" fill="none" stroke="${BRASS}" stroke-width="3"/><g fill="#FFE6A8">${dots}</g>` +
-    `<circle r="20" fill="#C8102E" stroke="${IVORY}" stroke-width="5"/><circle r="7" fill="#F6C453"/>` +
-    `<path d="M0 -84 L9 -104 A11 11 0 1 0 -9 -104 Z" fill="#F6C453" stroke="#6B4A0E" stroke-width="2" stroke-linejoin="round"/><circle cy="-110" r="4.5" fill="#C8102E"/></svg>`
+    `<svg class="mini-wheel" viewBox="-110 -124 220 234" aria-hidden="true" focusable="false"><defs>${pattern}</defs>` +
+    `<circle r="100" fill="url(#${p}-rim)"/><circle r="99" fill="none" stroke="${WHITE}" stroke-width="3"/><circle r="88" fill="${WHITE}"/>` +
+    `<g transform="rotate(${Number(tilt) || 0})">${wedges}</g>` +
+    `<circle r="22" fill="${WHITE}"/><circle r="17" fill="${CANDY}"/><circle r="8" fill="${WHITE}"/>` +
+    `<path d="M0 -122 L6.7 -108.4 L21.7 -106.2 L10.8 -95.6 L13.4 -80.7 L0 -87.7 L-13.4 -80.7 L-10.8 -95.6 L-21.7 -106.2 L-6.7 -108.4 Z" fill="#EDB321" stroke="#C48A0A" stroke-width="3" stroke-linejoin="round"/></svg>`
   );
 }
 
@@ -466,7 +447,7 @@ const perfNow = () => (globalThis.performance?.now ? globalThis.performance.now(
 const raf = (cb) => (globalThis.requestAnimationFrame ? globalThis.requestAnimationFrame(cb) : setTimeout(() => cb(perfNow()), 16));
 const caf = (id) => (globalThis.cancelAnimationFrame ? globalThis.cancelAnimationFrame(id) : clearTimeout(id));
 
-/** Bulb chase steps per second while spinning: follows the wheel's speed (fast spin → fast chase). */
+/** Light chase steps per second while spinning: follows the wheel's speed (fast spin → fast chase). */
 export function chaseRate(speedFraction) {
   const s = Math.max(0, Math.min(1, Number(speedFraction) || 0));
   return 2.5 + 21.5 * s;
@@ -475,11 +456,15 @@ export function chaseRate(speedFraction) {
 export const HIT_STOP_MS = 150;
 export const FLASH_MS = 3 * 360;
 
+/** Wheel bulb mode -> garland mode (sky.js garland()). */
+export const LIGHT_MODES = Object.freeze({ rest: 'twinkle', chase: 'chase', spin: 'spin', lit: 'lit', blink: 'flash', off: 'off' });
+
 /**
  * Render the wheel into an <svg> element and return its controller.
  * @param {SVGSVGElement} svgEl
- * @param {Array<{index:number,label:string,lines?:string[],color:string,ink:string,icon:string,trim?:string,pattern?:string}>} segments
- * @param {{label?:string, autoHighlight?:boolean, reducedMotion?:boolean}} [opts]
+ * @param {Array<{index:number,label:string,lines?:string[],color:string,ink:string,icon:string,art?:string,pattern?:string,stripe?:string}>} segments
+ * @param {{label?:string, autoHighlight?:boolean, reducedMotion?:boolean, lights?:object|object[]}} [opts]
+ *   lights: one or more garland controllers (sky.js garland()) that follow the wheel's light modes and chase phase.
  */
 export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
   if (!svgEl) throw new Error('createWheel: svg element required');
@@ -502,6 +487,7 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
   let kickAt = 0;
   let phase = 0;
   let pendingResolve = null; // resolver of the running spinTo() promise
+  const lights = new Set([].concat(o.lights || []).filter(Boolean));
 
   svgEl.setAttribute('viewBox', VIEWBOX);
   svgEl.setAttribute('role', 'img');
@@ -524,12 +510,12 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
     fitLabels();
   }
 
-  // Re-fit labels with real measurements (handles a fallback font if Big Shoulders failed to load).
+  // Re-fit labels with real measurements (handles a fallback font if Bagel Fat One failed to load).
   function fitLabels() {
     for (const t of svgEl.querySelectorAll('text[data-room]')) {
       try {
         const room = Number(t.dataset.room);
-        const base = Number(t.dataset.size) || Number(t.getAttribute('font-size')) || 30;
+        const base = Number(t.dataset.size) || Number(t.getAttribute('font-size')) || LABEL_SIZE;
         t.dataset.size = String(base);
         t.setAttribute('font-size', String(base));
         const len = t.getComputedTextLength?.();
@@ -560,13 +546,24 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
 
   function setMotion(level) {
     const v = Math.max(0, Math.min(1, level));
-    el.blur?.setAttribute('opacity', String(+(v * 0.16).toFixed(3)));
+    el.blur?.setAttribute('opacity', String(+(v * 0.22).toFixed(3)));
+  }
+
+  function forLights(fn) {
+    for (const l of lights) {
+      try {
+        fn(l);
+      } catch (e) {
+        console.error(e);
+      }
+    }
   }
 
   function setPhase(p) {
     if (p !== phase || svgEl.dataset.phase === undefined) {
       phase = p;
       svgEl.dataset.phase = String(p);
+      forLights((l) => l.phase?.(p));
     }
   }
 
@@ -591,18 +588,17 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
   }
 
   /**
-   * Bulb modes (CSS in tokens.css drives the animation — no per-bulb JS):
-   *   rest  — every bulb softly on
-   *   chase — idle 3-phase chase, 1.2 s cycle
+   * Light modes (CSS in tokens.css + the attached garlands do the animation, no per-bulb JS):
+   *   rest  — lights twinkle gently           chase — idle 3-phase chase
    *   spin  — chase whose speed follows the wheel (JS advances data-phase while the rotor moves)
-   *   lit   — every bulb bright (also the 150 ms hit-stop when the wheel lands)
-   *   blink — 3 flashes after landing, then lit (or chase if idle)
-   *   off   — dark
+   *   lit   — everything bright (also the 150 ms hit-stop when the wheel lands)
+   *   blink — 3 flashes after landing, then lit (or chase if idle)        off — dark
    */
   function bulbs(mode = 'rest') {
     clearTimeout(bulbTimer);
     bulbTimer = 0;
     svgEl.dataset.bulbs = mode;
+    forLights((l) => l.mode?.(LIGHT_MODES[mode] || 'twinkle'));
     if (mode !== 'spin') setPhase(0);
     if (mode === 'blink') {
       const reduce = o.reducedMotion ?? prefersReducedMotion();
@@ -625,6 +621,7 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
     if (spinning) {
       spinning = false;
       svgEl.classList.remove('is-spinning');
+      svgEl.classList.remove('is-teasing');
       setMotion(0);
       setPointer(0);
     }
@@ -642,11 +639,12 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
    * Spin to land exactly centred on `index` at server time startedAt + durationMs.
    * A TV that joins late (startedAt in the past) jumps into the motion at the right place; if the spin is
    * already over it simply rests on the winner. Resolves true when it lands, false if cancelled.
-   * On landing: other slots dim to 45% and desaturate, the winner gets a 4 px ivory outline, a 150 ms
-   * hit-stop (bulbs freeze lit) and then the bulbs flash 3 times.
+   * tease: true plays the creep-and-hang ending (svg gets .is-teasing for the last stretch); the landing is
+   * still exact. On landing: the others wash out, the winner gets a white outline, a 150 ms hit-stop (lights
+   * freeze lit) and then the lights flash 3 times.
    */
   function spinTo(index, durationMs = 5000, sopts = {}) {
-    const { onTick, onDone, startedAt, clockOffset = 0, turns } = sopts || {};
+    const { onTick, onDone, startedAt, clockOffset = 0, turns, tease = false } = sopts || {};
     const target = mod(Math.trunc(Number(index) || 0), n);
     cancelSpin();
     const my = gen;
@@ -665,11 +663,13 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
       turns: turns ?? (reduce ? REDUCED_TURNS : DEFAULT_TURNS),
       startedAt: Number.isFinite(startedAt) ? startedAt : serverNow0,
       now: serverNow0,
+      tease: tease && !reduce,
     });
 
     const land = (celebrate = true) => {
       spinning = false;
       svgEl.classList.remove('is-spinning');
+      svgEl.classList.remove('is-teasing');
       settle(target);
       if (o.autoHighlight) {
         hlIndex = target;
@@ -721,6 +721,7 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
         }
         rotation = r;
         applyRotation(r);
+        if (plan.tease) svgEl.classList.toggle('is-teasing', progress >= TEASE.stopAt);
         const tc = tickCount(r, n);
         if (tc > lastTick) {
           const passed = Math.min(tc - lastTick, 2); // never burst after a throttled/hidden tab
@@ -736,17 +737,17 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
           }
         }
         const p = perfNow();
-        const sp = speedAt(plan, progress) / peak;
-        // bulb chase follows the wheel: one attribute write per phase step, CSS does the rest
+        const sp = Math.max(0, speedAt(plan, progress)) / peak;
+        // the lights chase with the wheel: one attribute write per phase step, CSS does the rest
         if (!reduce) {
           phaseAcc += (Math.min(100, p - lastPerf) / 1000) * chaseRate(sp);
           setPhase(Math.floor(phaseAcc) % 3);
         }
         lastPerf = p;
-        // pointer flapper: kicked back by each boundary, springs home in ~110 ms
+        // the star rocks back on each boundary and springs home in ~110 ms
         const since = p - kickAt;
         const flap = kick * Math.exp(-since / 55);
-        setPointer(reduce ? 0 : -16 * flap);
+        setPointer(reduce ? 0 : -14 * flap);
         setMotion(reduce ? 0 : Math.min(1, sp * 1.4));
         frameId = raf(frame);
       };
@@ -770,7 +771,7 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
     if (!idleOn) bulbs(hl ? 'lit' : 'rest');
   }
 
-  /** Dim every other slot and outline the winner (null clears). */
+  /** Wash out every other slot and outline the winner (null clears). */
   function highlight(index) {
     if (index == null || !Number.isFinite(Number(index))) {
       hlIndex = null;
@@ -783,11 +784,23 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
     if (!spinning) setLabel(`The wheel landed on ${segLabel(hlIndex)}`);
   }
 
-  /** Marquee chase while waiting for a spin (1.2 s 3-phase cycle). */
+  /** Lights chase while waiting for a spin. */
   function idle(on = true) {
     idleOn = !!on;
     if (spinning) return;
     bulbs(idleOn ? 'chase' : hlIndex == null ? 'rest' : 'lit');
+  }
+
+  /** Attach a garland (or anything with mode()/phase()) that should follow the wheel. Returns a detach function. */
+  function attachLights(l) {
+    if (!l) return () => {};
+    lights.add(l);
+    try {
+      l.mode?.(LIGHT_MODES[svgEl.dataset.bulbs] || 'twinkle');
+    } catch (e) {
+      console.error(e);
+    }
+    return () => lights.delete(l);
   }
 
   /** Replace the segment definitions (keeps rotation and highlight). */
@@ -802,9 +815,10 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
           s.color === p.color &&
           s.ink === p.ink &&
           s.icon === p.icon &&
+          s.art === p.art &&
           s.label === p.label &&
-          s.trim === p.trim &&
           s.pattern === p.pattern &&
+          s.stripe === p.stripe &&
           String(s.lines) === String(p.lines)
         );
       });
@@ -817,6 +831,7 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
   function destroy() {
     cancelSpin();
     clearTimeout(bulbTimer);
+    lights.clear();
     svgEl.innerHTML = '';
   }
 
@@ -830,6 +845,7 @@ export function createWheel(svgEl, segments = DEFAULT_SEGMENTS, opts = {}) {
     highlight,
     idle,
     bulbs,
+    attachLights,
     setSegments,
     destroy,
     cancel: cancelSpin,

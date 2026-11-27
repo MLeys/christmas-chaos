@@ -131,92 +131,106 @@ test('wheel: tickCount increments once per slot boundary', async () => {
   assert.equal(w.tickCount(to) - w.tickCount(from), 72 + w.mod(-(7 - 2) * 30 - 0, 360) / 30);
 });
 
-test('wheel: label lines and sizes match the A6 artboard (Big Shoulders 800, 30 px); long words shrink to fit', async () => {
+test('wheel: radial labels (Bagel Fat One 25, rim inward, like the TV concept) fit their slot; long words shrink', async () => {
   const w = await load('wheel.js');
   const L = (seg) => w.labelLayout(w.labelLines(seg));
-  const two = L({ lines: ['CHRISTMAS', 'TRIVIA'] });
-  assert.deepEqual(two.map((l) => l.y), [-226, -194]);
-  assert.ok(two[0].size >= 26 && two[0].size <= 30, `CHRISTMAS ~28 (got ${two[0].size})`);
-  assert.equal(two[1].size, 30);
-  const one = L({ lines: ['DARE'] });
-  assert.deepEqual([one[0].y, one[0].size], [-210, 30]);
-  const wide = L({ lines: ['SHOWDOWN'] });
-  assert.ok(wide[0].size < 30 && wide[0].size >= 18, `SHOWDOWN shrinks (got ${wide[0].size})`);
+  const two = L({ lines: ['Christmas', 'Trivia'] });
+  assert.deepEqual(two.map((l) => l.offset), [-13, 15], 'two lines either side of the slot centre line');
+  assert.deepEqual(two.map((l) => l.size), [25, 25]);
+  assert.ok(two.every((l) => l.start === w.LABEL_START && w.LABEL_START === 222), 'labels start just inside the art (r=222)');
+  const one = L({ lines: ['Dare'] });
+  assert.deepEqual([one[0].offset, one[0].size], [1, 25]);
+  const wide = L({ lines: ['Supercalifragilistic'] });
+  assert.ok(wide[0].size < 25 && wide[0].size >= 12, `long words shrink (got ${wide[0].size})`);
   for (const l of [...two, ...one, ...wide]) {
-    assert.ok(w.labelWidthEm(l.text) * l.size <= w.labelRoom(l.y, l.size) + 0.5, `${l.text} fits its slot`);
+    assert.ok(w.labelWidthEm(l.text) * l.size <= w.labelRoom(l.offset, l.size) + 0.5, `${l.text} fits its slot`);
   }
-  assert.deepEqual(w.labelLines({ label: 'Sound It Out' }), ['SOUND', 'IT OUT']);
-  assert.deepEqual(w.labelLines({ label: 'Dare' }), ['DARE']);
-  assert.deepEqual(w.labelLines({ label: 'Grinch Steal' }), ['GRINCH', 'STEAL']);
-  // the display-face table (Fraunces 900) is wider than the marquee face, for tv.js giant-word fitting
-  assert.ok(w.displayWidthEm('DOUBLE DOWN') > w.labelWidthEm('DOUBLE DOWN') * 1.3);
-  assert.equal(w.textWidthEm('AB', 'marquee'), w.labelWidthEm('AB'));
+  // every label on the real wheel fits at the full 25 px, and never runs into the hub
+  for (const seg of w.DEFAULT_SEGMENTS) {
+    for (const l of L(seg)) {
+      assert.equal(l.size, 25, `${l.text} at full size`);
+      assert.ok(l.start - w.labelWidthEm(l.text) * l.size >= 72, `${l.text} clears the hub`);
+    }
+  }
+  assert.deepEqual(w.labelLines({ label: 'Sound It Out' }), ['Sound', 'It Out'], 'sentence case is kept');
+  assert.deepEqual(w.labelLines({ label: 'Dare' }), ['Dare']);
+  assert.deepEqual(w.labelLines({ label: 'Grinch Steal' }), ['Grinch', 'Steal']);
+  // Bagel Fat One metrics (measured in Edge): "Christmas" is ~4.85 em; display + label faces are the same font
+  assert.ok(Math.abs(w.displayWidthEm('Christmas') - 4.85) < 0.06, `Christmas = ${w.displayWidthEm('Christmas')} em`);
+  assert.ok(w.displayWidthEm('DOUBLE DOWN') > w.displayWidthEm('Double Down'), 'capitals are wider');
+  assert.equal(w.textWidthEm('AB', 'display'), w.labelWidthEm('AB'));
 });
 
-test('wheel: DEFAULT_SEGMENTS mirror the server wheel (brief A6 fills, inks, trim and candy pattern)', async () => {
+test('wheel: DEFAULT_SEGMENTS mirror the server wheel (the TV concept fills, inks, 3D art and candy pattern)', async () => {
   const { DEFAULT_SEGMENTS } = await load('wheel.js');
-  const { hasIcon } = await load('icons.js');
+  const { hasIcon, hasArt } = await load('icons.js');
   const { SEGMENTS } = require('../src/game.js');
   assert.equal(DEFAULT_SEGMENTS.length, 12);
+  const W = '#FFFFFF';
+  const I = '#1C2333';
   const spec = [
-    ['Christmas Trivia', '#C8102E', '#FFF7EA', 'tree-pine'], ['Dare', '#F6C453', '#1A1206', 'drama'], ['Pop Culture', '#2450D0', '#FFF7EA', 'clapperboard'],
-    ['Hot Seat', '#FF8FB1', '#2A0A18', 'flame'], ['Christmas Movies', '#7E0B22', '#FFF7EA', 'popcorn'], ['Sound It Out', '#7B4CE0', '#FFF7EA', 'music'],
-    ['Grinch Steal', '#9BD13B', '#0B1430', 'hand-coins'], ['Showdown', '#5AA9E6', '#0B1430', 'swords'], ['Dare', '#F6C453', '#1A1206', 'drama'],
-    ['Rapid List', '#0E7C74', '#FFF7EA', 'list-checks'], ['All Play', '#FF9A3C', '#1A1206', 'zap'], ['Double Down', '#FFF7EA', '#0B1430', 'sparkles'],
+    ['Christmas Trivia', '#D42A2A', W, 'tree'], ['Dare', '#EDB321', I, 'masks'], ['Pop Culture', '#2E6FD1', W, 'clapper'],
+    ['Hot Seat', '#E9558A', W, 'fire'], ['Christmas Movies', '#9E1B32', W, 'popcorn'], ['Sound It Out', '#7B4BC9', W, 'music'],
+    ['Grinch Steal', '#7CB518', I, 'money'], ['Showdown', '#8ECAE6', I, 'boxing'], ['Dare', '#EDB321', I, 'masks'],
+    ['Rapid List', '#1F7A4A', W, 'list'], ['All Play', '#F28C28', I, 'zap'], ['Double Down', W, I, 'sparkles'],
   ];
   DEFAULT_SEGMENTS.forEach((s, i) => {
     assert.equal(s.index, i);
-    assert.deepEqual([s.label, s.color, s.ink, s.icon], spec[i]);
+    assert.deepEqual([s.label, s.color, s.ink, s.art], spec[i]);
     const g = SEGMENTS[i];
-    assert.deepEqual([s.label, s.color, s.ink, s.icon, s.trim, s.pattern], [g.label, g.color, g.ink, g.icon, g.trim, g.pattern], `slot ${i} matches the server`);
-    assert.deepEqual(s.lines, g.lines.map((l) => l.toUpperCase()));
-    assert.ok(hasIcon(s.icon));
+    assert.deepEqual([s.label, s.color, s.ink, s.icon, s.art, s.pattern, s.stripe], [g.label, g.color, g.ink, g.icon, g.art, g.pattern, g.stripe], `slot ${i} matches the server`);
+    assert.deepEqual(s.lines, g.lines);
+    assert.ok(hasIcon(s.icon), `Lucide fallback ${s.icon}`);
+    assert.ok(hasArt(s.art), `3D art ${s.art}`);
   });
-  assert.equal(DEFAULT_SEGMENTS[4].trim, '#F6C453');
+  assert.equal(DEFAULT_SEGMENTS[4].trim, undefined);
   assert.equal(DEFAULT_SEGMENTS[11].pattern, 'candy');
+  assert.equal(DEFAULT_SEGMENTS[11].stripe, '#D42A2A');
 });
 
-test('wheel: markup has 12 slots, 24 bulbs, hub, pointer and escapes labels', async () => {
+test('wheel: markup is the candy-cane wheel (rim, gutter, 3D art, radial labels, hub with Santa, star pointer) and escapes', async () => {
   const w = await load('wheel.js');
   const segs = w.DEFAULT_SEGMENTS.map((s) => ({ ...s }));
   segs[3] = { ...segs[3], lines: ['<script>x</script>'], color: 'red;background:url(x)' };
+  segs[5] = { ...segs[5], art: '../../secret' };
   const m = w.wheelMarkup(segs);
   assert.equal((m.match(/class="wheel__slot"/g) || []).length, 12);
-  assert.equal((m.match(/class="wheel__bulb"/g) || []).length, 24);
-  assert.equal((m.match(/class="wheel__halo"/g) || []).length, 24);
-  assert.ok(m.includes('class="wheel__hub"') && m.includes('class="wheel__pointer"'));
+  assert.equal((m.match(/class="wheel__art"/g) || []).length, 11, 'one 3D art image per slot (unknown art falls back)');
+  assert.equal((m.match(/class="wheel__icon"/g) || []).length, 1, '…to the Lucide glyph');
+  assert.ok(!m.includes('secret'), 'art ids are whitelisted');
+  assert.ok(m.includes('href="/assets/art/tree.png" x="-27" y="-288" width="54" height="54"'), 'art near the rim');
+  assert.equal((m.match(/class="wheel__label" transform="rotate\(90\)" x="-222"/g) || []).length, 21, 'radial labels from the rim inward');
+  assert.ok(/font-family="'Bagel Fat One'/.test(m), 'Bagel Fat One labels');
   assert.ok(!m.includes('<script>'));
-  assert.ok(m.includes('&lt;SCRIPT&gt;'));
+  assert.ok(m.includes('&lt;script&gt;'));
   assert.ok(!m.includes('url(x)'), 'unsafe colours are rejected');
-  assert.ok(m.includes(`d="${w.POINTER_PATH}"`), 'gold teardrop pointer');
-  assert.ok(m.includes('cy="-352" r="9.5" fill="#C8102E"'), 'cranberry jewel');
-  assert.ok(m.includes('class="wheel__rim" r="328"') && m.includes('stroke-width="28"'), '28 px tinsel rim');
-  assert.ok(m.includes('class="wheel__bevel" r="345" fill="none" stroke="#C9962E"'), 'brass outer bevel');
-  assert.ok(m.includes('class="wheel__gutter" r="311" fill="none" stroke="#0B1430" stroke-width="6"'), '6 px night gutter');
-  assert.equal((m.match(/class="wheel__lit wheel__lit--p[012]"/g) || []).length, 3, 'three bulb phase groups');
-  for (const k of [0, 1, 2]) {
-    const g = m.slice(m.indexOf(`wheel__lit--p${k}"`)).split('</g>')[0];
-    assert.equal((g.match(/class="wheel__core"/g) || []).length, 8, `8 bulbs in phase ${k}`);
-  }
-  const hub = m.slice(m.indexOf('class="wheel__hubicon"')).split('</g>')[0];
-  assert.equal((hub.match(/fill="#C8102E"/g) || []).length, 4, '4 cranberry peppermint blades');
-  assert.equal((hub.match(/fill="#FFF7EA"/g) || []).length, 4, '4 ivory peppermint blades');
-  // landed state: 45% dim + desaturate on the other slots, 4 px ivory outline on the winner
-  assert.ok(m.includes('class="wheel__dim"') && m.includes('fill-opacity=".55"') && m.includes('mix-blend-mode:saturation'));
-  assert.ok(m.includes('class="wheel__outline"') && m.includes('stroke="#FFF7EA" stroke-width="4"'));
-  // the default wheel: candy-cane stripes + ivory pill on Double Down, gold trim arc on Christmas Movies
+  // candy-cane rim, white gutter, white seams between slots
+  assert.ok(/<circle class="wheel__rim" r="334" fill="url\(#ccw\d+-rim\)"\/>/.test(m), 'candy-cane rim');
+  assert.ok(/<pattern id="ccw\d+-rim" width="34" height="34" patternUnits="userSpaceOnUse" patternTransform="rotate\(30\)"><rect width="34" height="34" fill="#FFFFFF"\/><rect width="14" height="34" fill="#D42A2A"\/>/.test(m), 'red on white stripes');
+  assert.ok(m.includes('class="wheel__gutter" r="308" fill="#FFFFFF"'), 'white gutter');
+  assert.equal((m.match(/class="wheel__face"[^>]*stroke="#FFFFFF" stroke-width="4"/g) || []).length, 12, 'white seams');
+  // hub + pointer
+  assert.ok(m.includes('class="wheel__hub"') && m.includes('class="wheel__santa" href="/assets/art/santa.png"'), 'peppermint hub with Santa');
+  assert.ok(/class="wheel__hubicon" transform="rotate\(0\)"><circle r="54" fill="url\(#ccw\d+-mint\)"/.test(m), 'peppermint stripes turn with the wheel');
+  assert.ok(m.includes('class="wheel__pointer"') && m.includes(`d="${w.POINTER_PATH}"`), 'gold star pointer');
+  assert.ok(m.includes('class="wheel__star" href="/assets/art/star.png"'), '3D star art');
+  assert.ok(!m.includes('wheel__bulb'), 'the garland is the light show now');
+  // stopped state: others wash out (opacity .82 over white + desaturate), winner gets a white outline
+  assert.ok(m.includes('class="wheel__dim"') && m.includes('fill="#FFFFFF" fill-opacity=".18"') && m.includes('mix-blend-mode:saturation'));
+  assert.ok(m.includes('class="wheel__outline"') && /class="wheel__outline"[^>]*stroke="#FFFFFF" stroke-width="8"/.test(m));
+  // the default wheel: candy stripes + one white label pill on Double Down only
   const d = w.wheelMarkup(w.DEFAULT_SEGMENTS, { id: 't1' });
   assert.ok(d.includes('<pattern id="t1-cane11"') && d.includes('fill="url(#t1-cane11)"'), 'candy pattern fill');
-  assert.equal((d.match(/class="wheel__pill"/g) || []).length, 1, 'ivory label pill on the candy slot only');
-  assert.ok(/stroke="#F6C453" stroke-width="4" stroke-linecap="round"/.test(d), 'gold inner arc on the trimmed slot');
-  assert.ok(d.includes('fill="url(#t1-velvet)"'), 'velvet folds on the trimmed slot');
-  // ids are unique per wheel so two wheels on one page never share gradients
+  assert.equal((d.match(/class="wheel__pill"/g) || []).length, 1, 'white label pill on the candy slot only');
+  assert.ok(/class="wheel__pill"[^>]*fill="#FFFFFF"/.test(d));
+  assert.ok(!/fill="#D42A2A" stroke="#FFFFFF" stroke-width="4"[^>]*\/><image class="wheel__art" href="\/assets\/art\/sparkles/.test(d), 'Double Down is striped, not flat red');
+  // ids are unique per wheel so two wheels on one page never share patterns
   const idOf = (x) => x.match(/id="(ccw\d+)-rim"/)[1];
   assert.notEqual(idOf(w.wheelMarkup()), idOf(w.wheelMarkup()));
-  const evil = w.wheelMarkup(segs.map((x, i) => (i === 2 ? { ...x, trim: 'url(x)', pattern: 'candy', stripe: 'javascript:x' } : x)));
-  assert.ok(!evil.includes('javascript') && !evil.includes('url(x)'), 'trim/stripe are sanitised');
+  const evil = w.wheelMarkup(segs.map((x, i) => (i === 2 ? { ...x, pattern: 'candy', stripe: 'javascript:x' } : x)));
+  assert.ok(!evil.includes('javascript'), 'stripe is sanitised');
   const mini = w.miniWheelMarkup();
-  assert.ok(mini.startsWith('<svg class="mini-wheel"'));
+  assert.ok(mini.startsWith('<svg class="mini-wheel"') && mini.includes('fill="#EDB321"'), 'mini wheel with a gold star');
 });
 
 test('wheel: chase rate follows the wheel speed', async () => {
@@ -449,6 +463,80 @@ test('wheel: bulbs chase with the spin, freeze lit for the 150 ms hit-stop, flas
   assert.equal(svg.dataset.bulbs, 'rest', 'restOn cancels the pending flash');
 });
 
+test('wheel: tease ending (pure) creeps into the slot before, hangs at the peg, then lands EXACTLY on every index', async () => {
+  const w = await load('wheel.js');
+  const starts = [0, 17.3, w.restRotation(5), 1234.5];
+  for (const from of starts) {
+    for (let i = 0; i < 12; i++) {
+      const plain = w.planSpin({ from, index: i, durationMs: 5000, startedAt: 0, now: 0 });
+      const plan = w.planSpin({ from, index: i, durationMs: 5000, startedAt: 0, now: 0, tease: true });
+      assert.equal(plan.tease, true);
+      assert.equal(plan.to, plain.to, 'same target as a normal spin');
+      let prev = -Infinity;
+      for (let t = 0; t < 5000; t += 5) {
+        const { rotation, done } = w.rotationAt(plan, t);
+        assert.equal(done, false);
+        assert.ok(rotation >= prev - 1e-9, 'never runs backwards');
+        prev = rotation;
+      }
+      // the stop and the hang both show the slot BEFORE the winner, right up to the peg
+      const stop = w.rotationAt(plan, 5000 * w.TEASE.stopAt).rotation;
+      const hang = w.rotationAt(plan, 5000 * w.TEASE.hangAt).rotation;
+      assert.equal(w.indexAtRotation(stop), (i + 1) % 12, 'stops in the slot before');
+      assert.equal(w.indexAtRotation(hang), (i + 1) % 12, 'hangs on the peg');
+      assert.ok(Math.abs(w.offsetFromCentre(hang)) > 14, 'right against the boundary');
+      const end = w.rotationAt(plan, 5000);
+      assert.equal(end.done, true);
+      assert.equal(end.rotation, w.restRotation(i), 'then settles exactly');
+      assert.equal(w.offsetFromCentre(end.rotation), 0);
+      assert.ok(Math.abs(w.angleDiff(w.rotationAt(plan, 4999).rotation, w.restRotation(i))) < 0.05);
+    }
+  }
+  assert.equal(w.planSpin({ from: 0, index: 11, turns: 0, tease: true }).tease, false, 'no tease on a tiny nudge');
+  const plan = w.planSpin({ from: 0, index: 3, durationMs: 5000, tease: true });
+  assert.ok(w.speedAt(plan, 0.1) > w.speedAt(plan, 0.85), 'slow creep near the end');
+});
+
+test('wheel: spinTo({tease:true}) lands exactly with the same ticks; the lights follow every mode and phase', async (t) => {
+  const w = await load('wheel.js');
+  const time = fakeTime(t);
+  const svg = new FakeEl();
+  const calls = [];
+  const lights = { mode: (m) => calls.push(['mode', m]), phase: (p) => calls.push(['phase', p]) };
+  const wheel = w.createWheel(svg, w.DEFAULT_SEGMENTS, { reducedMotion: false, lights });
+  t.after(() => wheel.destroy());
+  assert.deepEqual(calls[0], ['mode', 'twinkle'], 'resting wheel = twinkling lights');
+  for (const i of [3, 11, 0]) {
+    const from = wheel.rotation;
+    const expectedTicks = w.tickCount(w.spinTarget(from, i, 12, 6)) - w.tickCount(from);
+    let ticks = 0;
+    let teasing = false;
+    const p = wheel.spinTo(i, 5000, { tease: true, onTick: () => ticks++ });
+    let frames = 0;
+    while (time.pending() && frames < 2000) {
+      time.step();
+      frames++;
+      teasing ||= svg.classList.contains('is-teasing');
+    }
+    assert.equal(await p, true);
+    assert.equal(wheel.rotation, w.restRotation(i), `tease lands exactly on ${i}`);
+    assert.equal(ticks, expectedTicks, 'one tick per boundary, the tip-over included');
+    assert.ok(teasing, '.is-teasing during the creep');
+    assert.equal(svg.classList.contains('is-teasing'), false, 'cleared on landing');
+  }
+  const modes = calls.filter((c) => c[0] === 'mode').map((c) => c[1]);
+  assert.ok(modes.includes('spin') && modes.includes('lit'), `lights: ${modes.join(',')}`);
+  assert.ok(new Set(calls.filter((c) => c[0] === 'phase').map((c) => c[1])).size === 3, 'lights chase through 3 phases');
+  await new Promise((r) => setTimeout(r, w.HIT_STOP_MS + 40));
+  assert.equal(calls.filter((c) => c[0] === 'mode').pop()[1], 'flash', 'lights flash after the hit-stop');
+  const extra = [];
+  const detach = wheel.attachLights({ mode: (m) => extra.push(m) });
+  assert.deepEqual(extra, ['flash'], 'a late garland picks up the current mode');
+  detach();
+  wheel.idle(true);
+  assert.deepEqual(extra, ['flash'], 'detached');
+});
+
 /* ============================================================== client.js ================== */
 
 test('client: esc escapes every HTML-significant character', async () => {
@@ -475,6 +563,12 @@ test('client: h`` escapes interpolations, composes, and trusts only raw()/icon o
   const d = teamDisc({ color: '#FF5A4E', mascot: 'star', name: '<Evil>' }, { label: true });
   assert.equal(String(h`${d}`), d);
   assert.ok(d.includes('&lt;Evil&gt;'));
+  const { mascotImg, artImg } = await load('icons.js');
+  const m = mascotImg({ mascot: 'deer', name: '<Evil>' }, 40);
+  assert.equal(String(h`${m}`), m, 'mascotImg() output is trusted');
+  assert.ok(m.includes('alt="&lt;Evil&gt;"'));
+  const a = artImg('popcorn');
+  assert.equal(String(h`${a}`), a, 'artImg() output is trusted');
   const forged = '<svg class="icon" onload="alert(1)"></svg>';
   assert.equal(String(h`${forged}`), '&lt;svg class=&quot;icon&quot; onload=&quot;alert(1)&quot;&gt;&lt;/svg&gt;');
 });
@@ -519,12 +613,15 @@ test('client: timer math and ring markup', async () => {
   const ring = String(c.timerRing(run(10_000), now));
   assert.ok(ring.includes('stroke-dasharray="339.3"'));
   assert.ok(ring.includes('stroke-dashoffset="169.6"'), 'half drained');
-  assert.ok(ring.includes('>10<') && ring.includes('SECONDS'));
+  assert.ok(ring.includes('>10<') && ring.includes('>seconds<'), 'sentence-case unit');
+  assert.ok(ring.includes('class="timer-ring__cap"') && ring.includes('class="timer-ring__loop"'), 'ornament: gold cap + loop');
   assert.ok(!ring.includes('is-warn'));
-  assert.ok(String(c.timerRing(run(3000), now)).includes('is-warn'), 'red under 5 s');
-  assert.ok(String(c.timerRing({ running: false, remainingMs: 4000, durationMs: 20_000 }, now)).includes('PAUSED'));
+  assert.ok(String(c.timerRing(run(3000), now)).includes('is-warn'), 'fast pulse under 5 s');
+  assert.ok(String(c.timerRing({ running: false, remainingMs: 4000, durationMs: 20_000 }, now)).includes('>Paused<'));
   assert.ok(String(c.timerRing(run(3000), now, { size: 72 })).includes('timer-ring--compact'));
-  assert.ok(ring.includes('class="timer-ring__head"') && ring.includes('rotate(180.0deg)'), 'a glowing bulb rides the end of the arc');
+  assert.ok(String(c.timerRing(run(3000), now, { tone: 'holly' })).includes('timer-ring--holly'));
+  assert.ok(String(c.timerRing(run(10_000), now, { size: 150 })).includes('--ring-size:9.375rem'), 'TV concept size');
+  assert.ok(ring.includes('class="timer-ring__head"') && ring.includes('rotate(180.0deg)'), 'a glint rides the end of the arc');
 });
 
 test('client: getClientId is persistent and never uses crypto.randomUUID', async (t) => {
@@ -667,12 +764,43 @@ test('client: DOM helpers are safe without a DOM', async () => {
   c.showBanner('x', 'y');
   c.hideBanner('x');
   assert.equal(c.qs('div'), null);
-  const dare = String(c.slotChip({ label: 'Dare', color: '#F6C453', ink: '#1A1206', icon: 'drama' }));
-  assert.ok(dare.includes('--chip-bg:#F6C453') && dare.startsWith('<span class="chip"'));
-  assert.ok(String(c.slotChip({ label: 'Pop Culture', color: '#2450D0', ink: '#FFF7EA', icon: 'clapperboard' })).includes('chip--rimmed'), 'royal gets a tinsel rim');
-  assert.ok(!String(c.slotChip({ label: 'Christmas Trivia', color: '#C8102E', ink: '#FFF7EA', icon: 'tree-pine' })).includes('chip--rimmed'), 'cranberry pops on navy');
-  assert.ok(String(c.slotChip({ label: 'Christmas Movies', color: '#7E0B22', ink: '#FFF7EA', icon: 'popcorn', trim: '#F6C453' }, { size: 'sm' })).includes('chip chip--sm chip--rimmed chip--velvet'));
-  assert.ok(String(c.slotChip({ label: 'Double Down', color: '#FFF7EA', ink: '#0B1430', icon: 'sparkles', pattern: 'candy' })).includes('chip--candy'));
+  // category chip = slot colour + slot ink + the 3D slot art (TV concept)
+  const movies = String(c.slotChip({ label: 'Christmas Movies', color: '#9E1B32', ink: '#FFFFFF', icon: 'popcorn', art: 'popcorn' }));
+  assert.ok(movies.startsWith('<span class="chip chip--cat" style="--chip-bg:#9E1B32;--chip-ink:#FFFFFF">'));
+  assert.ok(movies.includes('src="/assets/art/popcorn.png" width="40" height="40"') && movies.endsWith('Christmas Movies</span>'));
+  assert.ok(String(c.slotChip({ label: 'Dare', color: '#EDB321', ink: '#1C2333', type: 'dare' }, { size: 'sm' })).includes('chip chip--cat chip--sm" style="--chip-bg:#EDB321;--chip-ink:#1C2333"><img class="art" src="/assets/art/masks.png" width="26"'), 'art by type when the segment has none');
+  assert.ok(String(c.slotChip({ label: 'Double Down', color: '#FFFFFF', ink: '#1C2333', art: 'sparkles', pattern: 'candy' })).includes('chip--candy'));
+  assert.ok(String(c.slotChip({ label: 'X', color: 'url(x)', ink: '#fff', icon: 'zap', art: '../../x' })).includes('icon-zap') , 'unknown art falls back to the Lucide icon');
+  assert.ok(!String(c.slotChip({ label: 'X', color: 'url(x)', ink: '#fff', icon: 'zap' })).includes('url(x)'));
+  assert.equal(c.slotArtId({ category: 'movies', type: 'trivia' }), 'popcorn');
+  assert.equal(c.slotArtId({ type: 'grinch' }), 'money');
+  assert.ok(String(c.slotArt({ art: 'zap' }, { size: 54 })).includes('src="/assets/art/zap.png"'));
+  // score tag: name on top, mascot + Bagel score; active = Up now; leader = glowing star
+  const tag = String(c.scoreTag({ id: 't3', name: '<b>Team Rudolph</b>', mascot: 'deer', color: '#D42A2A', score: 1150 }, { active: true, leader: true, badge: '×2' }));
+  assert.ok(tag.startsWith('<div class="score-tag is-active" style="--team:#D42A2A" data-team="t3">'));
+  assert.ok(tag.includes('<span class="up-now score-tag__upnow">Up now</span>') && tag.includes('glowing-star.png') && tag.includes('alt="Leader"'));
+  assert.ok(tag.includes('src="/assets/art/deer.png"') && tag.includes('&lt;b&gt;Team Rudolph&lt;/b&gt;') && tag.includes('>1,150</span>') && tag.includes('score-tag__badge'));
+  assert.ok(!String(c.scoreTag({ name: 'A', mascot: 'tree', score: 5 })).includes('up-now'), 'only the active team is up');
+  // phone buttons
+  const mint = String(c.peppermint({ spinning: true, attrs: c.raw('data-spin') }));
+  assert.ok(mint.startsWith('<button type="button" class="peppermint is-spinning" aria-label="Spin the wheel" aria-disabled="false" data-spin>'));
+  assert.ok(mint.includes('<span class="peppermint__word">Spin</span>'));
+  const armed = String(c.ornamentBuzz());
+  assert.ok(armed.startsWith('<button type="button" class="ornament-btn is-armed" aria-label="Buzz in"') && armed.includes('>Buzz</span>') && armed.includes('ornament-btn__cap'));
+  assert.ok(String(c.ornamentBuzz({ state: 'first' })).includes('is-first') && String(c.ornamentBuzz({ state: 'first' })).includes('You’re first!'));
+  const other = String(c.ornamentBuzz({ state: 'other', name: '<Elf Help>' }));
+  assert.ok(other.startsWith('<div class="ornament-btn is-other" role="img"') && other.includes('&lt;Elf Help&gt;'));
+  assert.ok(String(c.ornamentBuzz({ state: 'locked' })).includes('icon-lock'));
+  // presents, stockings, meters, Santa's list
+  const gift = String(c.present({ size: 'lg', label: 'Hard', points: 300, inside: 'popcorn', button: true, state: 'unwrapping' }));
+  assert.ok(gift.startsWith('<button type="button" class="present present--lg is-unwrapping"') && gift.includes('present__lid') && gift.includes('present__bow') && gift.includes('<b>300</b>'));
+  assert.ok(String(c.present({ color: 'url(x)' })).includes('--present:#D42A2A'), 'colours are sanitised');
+  assert.ok(String(c.stocking({ team: { mascot: 'snowman', color: '#F28C28' } })).includes('src="/assets/art/snowman.png"'), 'mascot peeks out of the stocking');
+  assert.ok(String(c.stocking({ state: 'coal' })).includes('is-coal') && String(c.stocking({ state: 'full' })).includes('icon-check'));
+  const meter = String(c.bellMeter({ label: 'Nailed it', count: 7, fill: 0.625 }));
+  assert.ok(meter.includes('bell-meter--holly') && meter.includes('--fill:0.625') && meter.includes('aria-valuenow="63"') && meter.includes('bell.png'));
+  const list = String(c.santaList({ items: ['Dasher', { text: 'Dancer', done: true }, { text: '', done: false }], total: 6 }));
+  assert.ok(list.includes('2 of 6') && (list.match(/<li class="is-done">/g) || []).length === 2 && (list.match(/<li class="is-empty">/g) || []).length === 4);
   assert.deepEqual(['#7E0B22', '#2450D0', '#7B4CE0', '#0E7C74', '#C8102E', '#F6C453', '#FF8FB1', '#9BD13B'].map(c.isDarkSlot), [true, true, true, true, false, false, false, false]);
   assert.ok(String(c.turnDots(2, 6)).includes('aria-label="Turn 3 of 6"'));
   const secret = String(c.secretCard({ label: 'Your movie', value: '<b>Home Alone</b>' }));
@@ -715,27 +843,40 @@ test('icons: icon() options, accessibility and sanitising', async () => {
   assert.ok(icon('star', { size: '1.5em' }).includes('style="width:1.5em;height:1.5em"'));
 });
 
-test('icons: MASCOTS are the 8 brief-A7 colour/mascot pairs (same as the server); teamDisc renders an ornament', async () => {
-  const { MASCOTS, mascotFor, teamDisc } = await load('icons.js');
+test('icons: MASCOTS are the 8 North Pole 3D mascots (same as the server); teamDisc renders the 3D art; ART is whitelisted', async () => {
+  const { MASCOTS, mascotFor, teamDisc, mascotImg, artImg, artSrc, hasArt, ART } = await load('icons.js');
   const server = require('../src/game.js').MASCOTS;
   assert.deepEqual(
-    MASCOTS.map((m) => [m.color, m.icon]),
-    [['#FF5F6D', 'candy-cane'], ['#F6C453', 'star'], ['#6CB8FF', 'snowflake'], ['#5FE0C1', 'tree-pine'], ['#FF8AD0', 'gift'], ['#DCE3F2', 'moon'], ['#FF9A3C', 'cookie'], ['#B794FF', 'bell']]
+    MASCOTS.map((m) => [m.id, m.color]),
+    [['deer', '#D42A2A'], ['tree', '#1F7A4A'], ['bell', '#EDB321'], ['gift', '#2E6FD1'], ['santa', '#7B4BC9'], ['snowman', '#F28C28'], ['cookie', '#E9558A'], ['star', '#0F8C8C']]
   );
   assert.deepEqual(MASCOTS.map((m) => [m.id, m.color, m.colorName.toLowerCase()]), server.map((m) => [m.mascot, m.color, m.colorName]), 'client and server agree');
-  assert.equal(mascotFor('bell').color, '#B794FF');
-  assert.equal(mascotFor('Sky').icon, 'snowflake');
-  assert.equal(mascotFor(4).id, 'gift');
-  assert.equal(mascotFor('???').id, 'candy-cane');
-  const d = teamDisc({ color: '#5FE0C1', mascot: 'tree-pine', name: 'The Grinches' }, { size: 'md', label: true });
-  assert.ok(d.includes('--team-color:#5FE0C1;--disc-size:4rem'));
-  assert.ok(d.startsWith('<span class="disc" '), 'plain disc by default');
-  assert.ok(d.includes('icon-tree-pine') && d.includes('stroke="var(--night)"'));
+  for (const m of MASCOTS) {
+    assert.ok(hasArt(m.art) && m.art === m.id, `${m.id} is a 3D art id`);
+    assert.ok(/^#(FFFFFF|1C2333)$/.test(m.ink), 'ink on the accent');
+  }
+  assert.equal(mascotFor('bell').color, '#EDB321');
+  assert.equal(mascotFor('Teal').id, 'star');
+  assert.equal(mascotFor(4).id, 'santa');
+  assert.equal(mascotFor('???').id, 'deer');
+  assert.equal(mascotFor('candy-cane').id, 'deer', 'old saves map to the nearest new mascot');
+  assert.equal(mascotFor('tree-pine').id, 'tree');
+  const d = teamDisc({ color: '#1F7A4A', mascot: 'tree', name: 'The Grinches' }, { size: 'md', label: true });
+  assert.ok(d.startsWith('<span class="disc disc--art" style="--team-color:#1F7A4A;--disc-size:4rem" data-mascot="tree"'), 'no colour ball: the 3D art');
+  assert.ok(d.includes('<img src="/assets/art/tree.png" alt=""'));
   assert.ok(d.includes('aria-label="The Grinches mascot: a Christmas tree"'));
-  assert.ok(teamDisc({ color: 'javascript:x', mascot: 'moon' }).includes('--team-color:#DCE3F2'), 'bad colour -> mascot colour');
+  assert.ok(teamDisc({ color: 'javascript:x', mascot: 'cookie' }).includes('--team-color:#E9558A'), 'bad colour -> mascot colour');
   assert.ok(teamDisc({ mascot: 'star' }).includes('aria-hidden="true"'));
-  assert.ok(teamDisc({ mascot: 'star' }, { ornament: true }).startsWith('<span class="disc disc--ornament"'));
-  assert.ok(teamDisc({ mascot: 'star' }, { leader: true, beacon: true, halo: true }).startsWith('<span class="disc disc--halo disc--ornament disc--leader disc--beacon"'));
+  assert.ok(teamDisc({ mascot: 'star' }, { leader: true, beacon: true, halo: true }).startsWith('<span class="disc disc--art disc--halo disc--ornament disc--leader disc--beacon"'));
+  const img = mascotImg({ mascot: 'santa', name: 'Naughty List' }, 64);
+  assert.ok(img.startsWith('<img class="art mascot-img" src="/assets/art/santa.png" width="64" height="64" style="width:4rem;height:4rem" alt="Naughty List"'), 'alt = team name');
+  assert.ok(mascotImg({ mascot: 'santa', name: 'N' }, { size: 'sm', alt: '' }).includes('alt="" aria-hidden="true"') , 'decorative when the name is printed beside it');
+  assert.equal(artSrc('../../etc/passwd'), '/assets/art/sparkles.png', 'unknown art falls back');
+  assert.equal(artSrc('elf'), '/assets/art/sparkles.png', 'the fantasy elves are not used');
+  assert.ok(artImg('popcorn', { size: 40, alt: '"x"' }).includes('alt="&quot;x&quot;"'));
+  assert.ok(ART.includes('glowing-star') && ART.includes('medal3') && !ART.includes('elf'));
+  const fs = require('node:fs');
+  for (const id of ART) assert.ok(fs.existsSync(path.join(ASSETS, 'art', id + '.png')), `art/${id}.png exists`);
 });
 
 /* ============================================================== sound.js =================== */
@@ -744,12 +885,14 @@ test('sound: every effect is a safe no-op before unlock; volume/mute clamp and p
   store.clear();
   const s = await load('sound.js');
   assert.equal(s.isUnlocked(), false);
-  for (const fn of ['tick', 'land', 'buzz', 'correct', 'wrong', 'beep', 'fanfare', 'applause', 'whoosh', 'leaderBeep', 'plugIn', 'dingLock', 'doubleDown', 'podium', 'sleighBells', 'steam']) {
+  const comedy = ['slideWhistle', 'sadTrombone', 'sleighRun', 'hoHoHo', 'boing', 'splat', 'kaChing', 'cymbal', 'crowdOoh'];
+  for (const fn of ['tick', 'land', 'buzz', 'correct', 'wrong', 'beep', 'fanfare', 'applause', 'whoosh', 'leaderBeep', 'plugIn', 'dingLock', 'doubleDown', 'podium', 'sleighBells', 'steam', ...comedy]) {
     assert.doesNotThrow(() => s[fn](), fn);
   }
   assert.equal(typeof s.drumroll(1000), 'function');
   assert.equal(typeof s.ambience(), 'function', 'ambience() returns stop()');
-  for (const name of ['leaderBeep', 'plugIn', 'dingLock', 'doubleDown', 'podium', 'sleighBells', 'steam']) assert.equal(typeof s.EFFECTS[name], 'function', name);
+  for (const name of ['leaderBeep', 'plugIn', 'dingLock', 'doubleDown', 'podium', 'sleighBells', 'steam', ...comedy]) assert.equal(typeof s.EFFECTS[name], 'function', name);
+  for (const [gag, snd] of Object.entries(s.GAG_SOUNDS)) assert.equal(typeof s.EFFECTS[snd], 'function', `${gag} -> ${snd}`);
   assert.doesNotThrow(() => s.play('correct'));
   assert.equal(s.play('nope'), undefined);
   assert.equal(await s.unlock(), false, 'no Web Audio in node');
@@ -798,4 +941,52 @@ test('sky: snow lanes skip the reading column; markup helpers count, phase and e
   const a = sky.rng(7);
   const b = sky.rng(7);
   assert.deepEqual([a(), a(), a()], [b(), b(), b()], 'deterministic layouts');
+});
+
+test('sky: garland geometry matches the TV concept and fits any width; markup has modes, phases and C9 colours', async () => {
+  const sky = await load('sky.js');
+  const tv = sky.garlandGeometry({ width: 1960 });
+  assert.equal(tv.points.length, 30, '30 bulbs across the TV');
+  assert.ok(tv.path.startsWith('M0 18 Q 140 134 280 18'), '7 swags, rope at 18, dipping to 76');
+  assert.equal((tv.path.match(/Q /g) || []).length, 7);
+  assert.ok(tv.points.every(([x, y]) => x > 0 && x < 1960 && y >= 18 && y <= 76.01), 'bulbs sit on the rope');
+  for (let i = 1; i < tv.points.length; i++) assert.ok(tv.points[i][0] > tv.points[i - 1][0], 'left to right');
+  const phone = sky.garlandGeometry({ width: 430, size: 'phone' });
+  assert.equal((phone.path.match(/Q /g) || []).length, 3, 'a short version tops the phone');
+  assert.ok(phone.points.length >= 10 && phone.points.length <= 13);
+  assert.ok(phone.height < 90 && tv.height <= 150);
+  const wide = sky.garlandGeometry({ width: 3840 });
+  assert.equal(wide.points.length, 59, 'more bulbs on a wider screen, same spacing');
+  const m = sky.garlandMarkup({ width: 1960 });
+  assert.ok(m.startsWith('<svg class="garland" viewBox="0 0 1960 136" data-mode="twinkle" data-phase="0" aria-hidden="true"'));
+  assert.equal((m.match(/class="garland__bulb p[012]"/g) || []).length, 30);
+  assert.equal((m.match(/class="garland__bulb p0"/g) || []).length, 10, 'three chase phases');
+  for (const c of sky.BULB_COLORS) assert.ok(m.includes(`--c:${c};`), `bulb colour ${c}`);
+  assert.ok(m.includes('stroke="#1B5E3B" stroke-width="30"') && m.includes('stroke="#2E8B57" stroke-width="26"') && m.includes('stroke="#43A36B" stroke-width="18"'), 'three-green pine rope');
+  assert.ok(sky.garlandMarkup({ mode: 'chase', className: 'x" onload="y' }).includes('data-mode="chase"') && sky.garlandMarkup({ className: 'x" onload="y' }).includes('x&quot; onload'));
+  assert.ok(sky.garlandMarkup({ colors: ['javascript:x'] }).includes('--c:#D42A2A'), 'colours are sanitised');
+  assert.deepEqual(sky.GARLAND_MODES, ['twinkle', 'chase', 'spin', 'lit', 'flash', 'blink', 'off']);
+  const g = sky.garland(null);
+  assert.equal(g.el, null, 'no container: safe no-op');
+  g.chase(0.5);
+  g.phase(2);
+  assert.equal(await g.flash(), undefined);
+  const bank = sky.snowbank();
+  assert.ok(bank.startsWith('<svg class="snowbank" viewBox="0 0 1920 250" preserveAspectRatio="none"') && bank.includes('fill="#E7EFF8"') && bank.includes('fill="#FFFFFF"'));
+});
+
+/* ============================================================== fx.js ====================== */
+
+test('fx: the comedy kit is safe without a DOM, every effect resolves false, play() dispatches by name', async () => {
+  const fx = await load('fx.js');
+  assert.deepEqual([...fx.EFFECT_NAMES], ['bounce', 'droop', 'wobble', 'shake', 'splat', 'coalDrop', 'dash', 'sneak', 'melt', 'peek', 'confetti', 'heartGrow']);
+  for (const n of fx.EFFECT_NAMES) {
+    const p = fx.FX[n]();
+    assert.ok(p instanceof Promise, `${n} returns a Promise`);
+    assert.equal(await p, false, `${n} is a no-op without a DOM`);
+  }
+  assert.equal(await fx.play('dash', 'deer'), false);
+  assert.equal(await fx.play('nope'), false);
+  assert.equal(fx.MAX_MS, 2500, 'gags never run longer than 2.5 s');
+  assert.equal(fx.reducedMotion(), false);
 });

@@ -1,15 +1,17 @@
 // Christmas Chaos — sky.js
-// Ambient pieces of the Midnight Premiere look (docs/design/MIDNIGHT-PREMIERE.md):
+// Ambient pieces of the North Pole Workshop look (docs/design/NORTH-POLE.md §4, NORTH-POLE-API.md):
 //
-//   const snow = snowfall(document.body, { count: 50, avoid: ['.question-card'] }); // flakes in the margins only
-//   starfield(stageEl, { count: 30 });                                              // static sparkles, top third
-//   el.innerHTML = bulbString({ count: 16 });            // warm bulbs on a wire (add .is-chase / .is-flash …)
-//   el.innerHTML = `<div class="marquee is-chase">${marqueeBulbs()}<span class="marquee__eyebrow">Now showing</span>
-//                   ${letterboard('Team Rudolph')}</div>`;
+//   const lights = garland(topEl, { size: 'tv' });       // swagged pine rope + C9 bulbs, any width
+//   lights.chase(0.6); lights.flash(); lights.blink('#1F9D57'); lights.twinkle();
+//   createWheel(svg, segs, { lights });                   // the bulbs chase with the wheel
+//   const snow = snowfall(stageEl, { avoid: ['.gift-tag'] }); // pale-blue flakes, never over the reading column
+//   el.insertAdjacentHTML('beforeend', snowbank());       // the two-layer snow hills along the bottom
+//   starfield(nightEl, { count: 30 });                    // Christmas Eve only (Final Chaos): static sparkles
 //
 // Markup helpers return plain strings built from escaped parts; wrap them in raw() inside client.js h``.
 // Everything is cheap: CSS animations on a handful of classes, no per-frame JS. Reduced motion (the media
 // query or html.reduce-motion) hides the snow and leaves every bulb lit and still (tokens.css).
+// bulbString / marqueeBulbs / letterboard are the old Midnight Premiere pieces, kept for compatibility.
 
 import { ICONS } from './icons.js';
 
@@ -72,8 +74,9 @@ function pickX(lanes, rand) {
 }
 
 /**
- * Snowfall behind the content of `container` (which should be a .night-sky or otherwise a stacking context).
- * 40–60 soft round flakes (2–6 px, opacity .3–.7, slow parallax) and about 1 in 10 a Lucide snowflake (14–20 px).
+ * Snowfall behind the content of `container` (a positioned element; .snow-page / .stage create the stacking context).
+ * Pale-blue round flakes (4–12 px, opacity .35–.85, slow parallax) so they read on white, and about 1 in 10 a
+ * Lucide snowflake (14–20 px). Reduced motion: no snow at all.
  * @param {Element} container
  * @param {{count?:number, seed?:number, lanes?:number[][], avoid?:(Element|string)[], margin?:number,
  *          flakeEvery?:number, speed?:number}} [opts]
@@ -91,7 +94,7 @@ export function snowfall(container, opts = {}) {
   layer.setAttribute('aria-hidden', 'true');
   container.prepend(layer);
 
-  const flakeSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="#E6ECF7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS.snowflake}</svg>`;
+  const flakeSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="#A9C3E2" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONS.snowflake}</svg>`;
 
   function blockedColumns() {
     const box = container.getBoundingClientRect();
@@ -111,9 +114,9 @@ export function snowfall(container, opts = {}) {
       for (let i = 1; i <= count; i++) {
         const x = r2(pickX(free, rand));
         const isFlake = flakeEvery > 0 && i % flakeEvery === 5;
-        const px = isFlake ? 14 + Math.round(rand() * 6) : 2 + Math.round(rand() * 4);
-        const depth = (px - 2) / 18; // 0 = far, 1 = near
-        const o = isFlake ? 0.35 + rand() * 0.25 : 0.3 + rand() * 0.4;
+        const px = isFlake ? 14 + Math.round(rand() * 6) : 4 + Math.round(rand() * 8);
+        const depth = (px - 4) / 16; // 0 = far, 1 = near
+        const o = isFlake ? 0.45 + rand() * 0.25 : 0.35 + rand() * 0.5;
         const dur = (30 - (isFlake ? 0.55 : depth * 2.2) * 12 + rand() * 4) / Math.max(0.2, speed);
         const drift = (rand() - 0.5) * 3;
         const sway = (rand() - 0.5) * 2.5;
@@ -126,13 +129,12 @@ export function snowfall(container, opts = {}) {
           `--drift:${drift.toFixed(2)}rem`,
           `--sway:${sway.toFixed(2)}rem`,
           `--y0:${Math.round(rand() * 100)}cqh`,
-          !isFlake && px >= 5 ? '--blur:blur(0.6px)' : '',
+          !isFlake && px >= 10 ? '--blur:blur(0.6px)' : '',
         ].filter(Boolean).join(';');
         parts.push(isFlake ? `<i class="is-flake" style="${style}">${flakeSvg}</i>` : `<i style="${style}"></i>`);
       }
     }
-    layer.innerHTML = parts.join('');
-    layer.classList.toggle('is-static', prefersReducedMotion());
+    layer.innerHTML = prefersReducedMotion() ? '' : parts.join('');
   }
 
   let raf = 0;
@@ -153,12 +155,223 @@ export function snowfall(container, opts = {}) {
   };
 }
 
+/* ------------------------------------------------------------------ garland ------------------- */
+
+/** C9 bulb colours along the garland (red, gold, blue, green, orange, magenta), as in the TV concept. */
+export const BULB_COLORS = Object.freeze(['#D42A2A', '#EDB321', '#2E7BE0', '#1F9D57', '#F28C28', '#C2185B']);
+/** Garland modes (svg[data-mode]); all CSS-driven in tokens.css. */
+export const GARLAND_MODES = Object.freeze(['twinkle', 'chase', 'spin', 'lit', 'flash', 'blink', 'off']);
+const GARLAND_SIZES = { tv: 1, host: 0.62, phone: 0.53 };
+
+/** Point on a quadratic Bézier. */
+function quad(p0, c, p1, t) {
+  const u = 1 - t;
+  return [u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1]];
+}
+
+/**
+ * Geometry of a swagged garland `width` design-px wide (pure; exported for tests).
+ * @param {{width?:number, size?:number|'tv'|'host'|'phone', swags?:number, bulbs?:number}} [o]
+ * @returns {{width:number, height:number, size:number, top:number, dip:number, path:string, points:number[][]}}
+ */
+export function garlandGeometry({ width = 1960, size = 'tv', swags, bulbs } = {}) {
+  const k = typeof size === 'number' && size > 0 ? size : GARLAND_SIZES[size] ?? 1;
+  const W = Math.max(60, Number(width) || 1960);
+  const top = 18 * k;
+  const dip = 58 * Math.min(1, k ** 1.2);
+  const nS = Math.max(1, Math.trunc(swags ?? Math.round(W / (280 * k))) || 1);
+  const nB = Math.max(1, Math.trunc(bulbs ?? Math.round(W / (65 * k))) || 1);
+  let d = `M0 ${r2(top)}`;
+  const pts = [];
+  for (let i = 0; i < nS; i++) {
+    const x0 = (i * W) / nS;
+    const x1 = ((i + 1) * W) / nS;
+    const c = [(x0 + x1) / 2, top + dip * 2];
+    d += ` Q ${r2(c[0])} ${r2(c[1])} ${r2(x1)} ${r2(top)}`;
+    for (let j = i ? 1 : 0; j <= 48; j++) pts.push(quad([x0, top], c, [x1, top], j / 48));
+  }
+  // cumulative arc length, then bulbs evenly spaced along the rope
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const total = cum[cum.length - 1];
+  const points = [];
+  let j = 1;
+  for (let b = 0; b < nB; b++) {
+    const target = (total * (b + 0.5)) / nB;
+    while (j < cum.length - 1 && cum[j] < target) j++;
+    const seg = cum[j] - cum[j - 1] || 1;
+    const t = (target - cum[j - 1]) / seg;
+    points.push([r2(pts[j - 1][0] + (pts[j][0] - pts[j - 1][0]) * t), r2(pts[j - 1][1] + (pts[j][1] - pts[j - 1][1]) * t)]);
+  }
+  const height = Math.ceil(top + dip + 60 * k);
+  return { width: r2(W), height, size: k, top: r2(top), dip: r2(dip), path: d, points };
+}
+
+/**
+ * The pine garland as an <svg> string: a swagged rope in three greens with C9 bulbs (soft halos) hanging from it.
+ * Size it with CSS (width 100%, height auto): the viewBox matches `width`, so nothing stretches.
+ * @param {{width?:number, size?:number|'tv'|'host'|'phone', swags?:number, bulbs?:number, colors?:string[],
+ *          mode?:string, seed?:number, className?:string}} [opts]
+ */
+export function garlandMarkup(opts = {}) {
+  const g = garlandGeometry(opts);
+  const k = g.size;
+  const colors = (Array.isArray(opts.colors) && opts.colors.length ? opts.colors : BULB_COLORS).map((c) => (/^#[0-9a-f]{3,8}$/i.test(String(c)) ? c : '#D42A2A'));
+  const mode = GARLAND_MODES.includes(opts.mode) ? opts.mode : 'twinkle';
+  const rand = rng(opts.seed ?? 1224);
+  const rope = (stroke, w, dash, op) =>
+    `<path d="${g.path}" fill="none" stroke="${stroke}" stroke-width="${r2(w * k)}" stroke-linecap="round"${dash ? ` stroke-dasharray="${dash.map((v) => r2(v * k)).join(' ')}"` : ''}${op < 1 ? ` opacity="${op}"` : ''}/>`;
+  const bulbs = g.points
+    .map(([x, y], i) => {
+      const c = colors[i % colors.length];
+      const tw = `--tw:${(-rand() * 4).toFixed(2)}s;--twd:${(2.8 + rand() * 2.2).toFixed(2)}s`;
+      return (
+        `<g class="garland__bulb p${i % 3}" style="--c:${c};${tw}" transform="translate(${x} ${r2(y + 10 * k)})">` +
+        `<ellipse class="garland__halo" cx="0" cy="${r2(22 * k)}" rx="${r2(20 * k)}" ry="${r2(26 * k)}" fill="${c}" opacity=".18"/>` +
+        `<rect class="garland__socket" x="${r2(-6 * k)}" y="${r2(-2 * k)}" width="${r2(12 * k)}" height="${r2(10 * k)}" rx="${r2(2 * k)}" fill="#7A6A44"/>` +
+        `<ellipse class="garland__glass" cx="0" cy="${r2(22 * k)}" rx="${r2(10 * k)}" ry="${r2(16 * k)}" fill="${c}"/>` +
+        `<ellipse class="garland__shine" cx="${r2(-3 * k)}" cy="${r2(16 * k)}" rx="${r2(3 * k)}" ry="${r2(6 * k)}" fill="#fff" opacity=".55"/>` +
+        `</g>`
+      );
+    })
+    .join('');
+  return (
+    `<svg class="garland${opts.className ? ' ' + esc(opts.className) : ''}" viewBox="0 0 ${g.width} ${g.height}" data-mode="${mode}" data-phase="0" aria-hidden="true" focusable="false">` +
+    `<g class="garland__rope">${rope('#1B5E3B', 30, null, 1)}${rope('#2E8B57', 26, [2, 7], 1)}${rope('#43A36B', 18, [1, 9], 0.9)}</g>` +
+    `<g class="garland__bulbs">${bulbs}</g></svg>`
+  );
+}
+
+/**
+ * Live garland: renders into `container` at its real width (in design px, so it scales with the TV root) and
+ * re-renders on resize. Returns a controller; the wheel drives it through mode()/phase() (createWheel lights).
+ * @param {Element} container  where the <svg class="garland"> goes (put .garland--top on it via className to hang
+ *                             it across the top edge, overhanging 20 px each side)
+ * @param {{size?:number|'tv'|'host'|'phone', swags?:number, bulbs?:number, colors?:string[], className?:string,
+ *          seed?:number, mode?:string, width?:number}} [opts]
+ * @returns {{el:SVGElement|null, mode:(m:string)=>void, phase:(k:number)=>void, twinkle:()=>void, chase:(cycleSec?:number)=>void,
+ *            flash:(times?:number)=>Promise<void>, blink:(color?:string, times?:number)=>Promise<void>, lit:()=>void, off:()=>void,
+ *            refresh:()=>void, destroy:()=>void}}
+ */
+export function garland(container, opts = {}) {
+  let current = GARLAND_MODES.includes(opts.mode) ? opts.mode : 'twinkle';
+  let after = 'twinkle';
+  let timer = 0;
+  let svg = null;
+  const api = {
+    el: null,
+    mode(m) {
+      if (!GARLAND_MODES.includes(m)) return;
+      clearTimeout(timer);
+      current = m;
+      if (m !== 'flash' && m !== 'blink') after = m;
+      if (svg) {
+        svg.dataset.mode = m;
+        if (m !== 'spin') svg.dataset.phase = '0';
+      }
+    },
+    phase(k) {
+      if (svg) svg.dataset.phase = String(((Math.trunc(k) % 3) + 3) % 3);
+    },
+    twinkle: () => api.mode('twinkle'),
+    lit: () => api.mode('lit'),
+    off: () => api.mode('off'),
+    /** Idle chase; cycleSec = seconds per 3-phase cycle (smaller = faster, default 1.2). */
+    chase(cycleSec = 1.2) {
+      if (svg) svg.style.setProperty('--chase', `${Math.max(0.15, Number(cycleSec) || 1.2)}s`);
+      api.mode('chase');
+    },
+    /** Flash every bulb `times` times (360 ms each), then go back to the previous steady mode. */
+    flash(times = 3) {
+      return api._burst('flash', times);
+    },
+    /** Blink every bulb in one colour (default holly green, the Correct blink), then back to the steady mode. */
+    blink(color = '#1F9D57', times = 3) {
+      if (svg) svg.style.setProperty('--blink', /^#[0-9a-f]{3,8}$/i.test(String(color)) ? color : '#1F9D57');
+      return api._burst('blink', times);
+    },
+    _burst(m, times) {
+      const back = after;
+      const n = Math.max(1, Math.min(12, Math.trunc(Number(times) || 3)));
+      api.mode(m);
+      if (svg) svg.style.setProperty('--flashes', String(n));
+      return new Promise((resolve) => {
+        timer = setTimeout(() => {
+          if (current === m) api.mode(back);
+          resolve();
+        }, prefersReducedMotion() ? 0 : n * 360 + 40);
+      });
+    },
+    refresh: () => build(),
+    destroy() {
+      clearTimeout(timer);
+      ro?.disconnect();
+      svg?.remove();
+      svg = null;
+      api.el = null;
+    },
+  };
+  if (!hasDOM() || !container) return api;
+
+  function designWidth() {
+    const root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const scale = document.documentElement.dataset.surface === 'tv' ? root / 16 : 1;
+    const px = svg?.getBoundingClientRect().width || container.getBoundingClientRect().width || 1920;
+    return Math.max(60, Math.round(px / scale));
+  }
+  let lastW = 0;
+  function build() {
+    const keep = svg;
+    const tmp = document.createElement('div');
+    if (!keep) {
+      tmp.innerHTML = garlandMarkup({ ...opts, width: opts.width || 1960, mode: current });
+      svg = tmp.firstElementChild;
+      container.append(svg);
+    }
+    const w = opts.width || designWidth();
+    if (keep && Math.abs(w - lastW) < 2) return;
+    lastW = w;
+    tmp.innerHTML = garlandMarkup({ ...opts, width: w, mode: current });
+    const fresh = tmp.firstElementChild;
+    for (const p of ['--chase', '--blink', '--flashes']) {
+      const v = svg.style.getPropertyValue(p);
+      if (v) fresh.style.setProperty(p, v);
+    }
+    fresh.dataset.phase = svg.dataset.phase || '0';
+    svg.replaceWith(fresh);
+    svg = fresh;
+    api.el = svg;
+  }
+  let raf = 0;
+  const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(build); }) : null;
+  build();
+  ro?.observe(container);
+  return api;
+}
+
+/* ------------------------------------------------------------------ snowbank ------------------ */
+
+/**
+ * The two-layer snow hills from the TV concept (pale back hill + white front hill) as an <svg> string. It stretches
+ * to its box (preserveAspectRatio none); put it in a .snowbank (absolute, bottom 0, 250 px tall on the TV).
+ * @param {{className?:string, back?:string, front?:string}} [opts]
+ */
+export function snowbank({ className = '', back = '#E7EFF8', front = '#FFFFFF' } = {}) {
+  const b = /^#[0-9a-f]{3,8}$/i.test(back) ? back : '#E7EFF8';
+  const f = /^#[0-9a-f]{3,8}$/i.test(front) ? front : '#FFFFFF';
+  return (
+    `<svg class="snowbank${className ? ' ' + esc(className) : ''}" viewBox="0 0 1920 250" preserveAspectRatio="none" aria-hidden="true" focusable="false">` +
+    `<path d="M0 120 C 160 60, 300 110, 460 80 S 760 40, 960 90 S 1300 50, 1480 86 S 1800 60, 1920 100 L1920 250 L0 250 Z" fill="${b}"/>` +
+    `<path d="M0 150 C 200 110, 380 150, 560 128 S 900 100, 1100 138 S 1460 112, 1660 140 S 1860 120, 1920 132 L1920 250 L0 250 Z" fill="${f}"/></svg>`
+  );
+}
+
 /* ------------------------------------------------------------------ stars --------------------- */
 
 const SPARKLE = ICONS.sparkle;
 
 /**
- * Static field of tiny 4-point sparkles at ~6 % in the top third, one or two twinkling (brief A1).
+ * Static field of tiny 4-point sparkles in the top third, one or two twinkling. Christmas Eve (Final Chaos) only.
  * @param {Element} container
  * @param {{count?:number, seed?:number, twinkle?:number, lanes?:number[][]}} [opts]
  * @returns {HTMLElement|null}
@@ -191,7 +404,7 @@ export function starfieldMarkup({ count = 30, seed = 2412, twinkle = 2, lanes = 
   return out.join('');
 }
 
-/* ------------------------------------------------------------------ bulbs --------------------- */
+/* ------------------------------------------------------------------ legacy bulbs -------------- */
 
 /**
  * A string of warm bulbs hanging from a wire (16 under the TV top bar). Phases p0/p1/p2 drive the 3-phase chase.

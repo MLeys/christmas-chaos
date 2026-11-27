@@ -1,10 +1,13 @@
 // Christmas Chaos — icons.js
-// Lucide line icons (lucide-static@0.460.0, ISC licence) as inner-SVG strings, plus the 8 team mascots.
+// Lucide line icons (lucide-static@0.460.0, ISC licence) as inner-SVG strings for small UI glyphs, the 3D
+// illustrations (Microsoft Fluent Emoji 3D, MIT: public/assets/art/*.png) and the 8 team mascots.
 // Pure ES module: no DOM access at import time, safe to import from node tests.
 //
-//   icon('tree-pine', { size: 34, stroke: 2.4, color: '#0B1430' })  -> '<svg ...>...</svg>'
+//   icon('tree-pine', { size: 34, stroke: 2.4, color: '#1C2333' })  -> '<svg ...>...</svg>'
 //   icon('crown', { label: 'Leader' })                                -> role="img" aria-label="Leader"
-//   teamDisc({ color: '#FF5F6D', mascot: 'candy-cane', name: 'Team Rudolph' }, { size: 64, ornament: true, leader: true })
+//   artImg('popcorn', { size: 40 })                                   -> '<img class="art" src="/assets/art/popcorn.png" ...>'
+//   mascotImg({ mascot: 'deer', name: 'Team Rudolph' }, 64)          -> the 3D reindeer <img>, alt "Team Rudolph"
+//   teamDisc({ color: '#D42A2A', mascot: 'deer', name: 'Team Rudolph' }, { size: 64, leader: true })
 //
 // Numeric sizes are design px at a 16 px root and are emitted in rem, so the TV (which scales
 // html font-size with the viewport) scales icons and discs with everything else.
@@ -135,24 +138,52 @@ export const ICONS = Object.freeze({
   "armchair": "<path d=\"M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3\"/><path d=\"M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z\"/><path d=\"M5 18v2\"/><path d=\"M19 18v2\"/>",
 });
 
-/** The 8 team mascots, in palette offer order (Midnight Premiere, brief A7). `id` is the value the server
- *  stores in team.mascot. Teams 7 (orange) and 8 (violet) each have a colour-blind lookalike, so they come last. */
+/* ------------------------------------------------------------------ 3D art ------------------- */
+
+/** Every 3D illustration in public/assets/art (NORTH-POLE.md §3). elf / elf-man exist but are not used. */
+export const ART = Object.freeze([
+  'santa', 'mrs-claus', 'deer', 'snowman', 'tree', 'gift', 'bell', 'star', 'glowing-star', 'cookie', 'candy', 'lollipop',
+  'ribbon', 'sled', 'snowflake', 'moon', 'mitten', 'scarf', 'cocoa', 'popcorn', 'film', 'clapper', 'music', 'fire', 'zap',
+  'sparkles', 'money', 'boxing', 'list', 'masks', 'trophy', 'party', 'medal1', 'medal2', 'medal3',
+]);
+const ART_SET = new Set(ART);
+export const ART_BASE = '/assets/art/';
+
+export function hasArt(id) {
+  return ART_SET.has(String(id ?? ''));
+}
+
+/** URL of a 3D illustration; unknown ids fall back to `fallback` (default sparkles). */
+export function artSrc(id, fallback = 'sparkles') {
+  const k = String(id ?? '').trim().toLowerCase();
+  return ART_BASE + (ART_SET.has(k) ? k : ART_SET.has(fallback) ? fallback : 'sparkles') + '.png';
+}
+
+/* ------------------------------------------------------------------ team mascots ------------- */
+
+/** The 8 team mascots in offer order (North Pole Workshop). `id` is the value the server stores in team.mascot
+ *  and the 3D art id; `color` the team accent (reads on white); `ink` the text colour on that accent; `icon`
+ *  a small Lucide fallback glyph for old code paths. Same order and colours as src/game.js MASCOTS. */
 export const MASCOTS = Object.freeze([
-  { id: 'candy-cane', icon: 'candy-cane', color: '#FF5F6D', colorName: 'Red', noun: 'a candy cane' },
-  { id: 'star', icon: 'star', color: '#F6C453', colorName: 'Gold', noun: 'a star' },
-  { id: 'snowflake', icon: 'snowflake', color: '#6CB8FF', colorName: 'Sky', noun: 'a snowflake' },
-  { id: 'tree-pine', icon: 'tree-pine', color: '#5FE0C1', colorName: 'Mint', noun: 'a Christmas tree' },
-  { id: 'gift', icon: 'gift', color: '#FF8AD0', colorName: 'Pink', noun: 'a gift' },
-  { id: 'moon', icon: 'moon', color: '#DCE3F2', colorName: 'Silver', noun: 'a moon' },
-  { id: 'cookie', icon: 'cookie', color: '#FF9A3C', colorName: 'Orange', noun: 'a cookie' },
-  { id: 'bell', icon: 'bell', color: '#B794FF', colorName: 'Violet', noun: 'a bell' },
+  { id: 'deer', art: 'deer', icon: 'sparkle', color: '#D42A2A', ink: '#FFFFFF', colorName: 'Red', noun: 'a reindeer' },
+  { id: 'tree', art: 'tree', icon: 'tree-pine', color: '#1F7A4A', ink: '#FFFFFF', colorName: 'Green', noun: 'a Christmas tree' },
+  { id: 'bell', art: 'bell', icon: 'bell', color: '#EDB321', ink: '#1C2333', colorName: 'Gold', noun: 'a bell' },
+  { id: 'gift', art: 'gift', icon: 'gift', color: '#2E6FD1', ink: '#FFFFFF', colorName: 'Blue', noun: 'a present' },
+  { id: 'santa', art: 'santa', icon: 'smile', color: '#7B4BC9', ink: '#FFFFFF', colorName: 'Violet', noun: 'Santa' },
+  { id: 'snowman', art: 'snowman', icon: 'snowflake', color: '#F28C28', ink: '#1C2333', colorName: 'Orange', noun: 'a snowman' },
+  { id: 'cookie', art: 'cookie', icon: 'cookie', color: '#E9558A', ink: '#FFFFFF', colorName: 'Pink', noun: 'a cookie' },
+  { id: 'star', art: 'star', icon: 'star', color: '#0F8C8C', ink: '#FFFFFF', colorName: 'Teal', noun: 'a star' },
 ].map((m) => Object.freeze(m)));
+
+/** Mascot ids from older saves (the Midnight Premiere Lucide mascots) -> the nearest North Pole mascot. */
+const LEGACY_MASCOTS = Object.freeze({ 'candy-cane': 'deer', 'tree-pine': 'tree', snowflake: 'snowman', moon: 'santa' });
 
 /** Find a mascot by id, icon name, colour name, hex colour or index. Falls back to the first mascot. */
 export function mascotFor(key) {
   if (typeof key === 'number' && MASCOTS[key]) return MASCOTS[key];
   if (key && typeof key === 'object') key = key.mascot ?? key.id;
-  const k = String(key ?? '').trim().toLowerCase();
+  let k = String(key ?? '').trim().toLowerCase();
+  k = LEGACY_MASCOTS[k] || k;
   return (
     MASCOTS.find((m) => m.id === k || m.icon === k || m.colorName.toLowerCase() === k || m.color.toLowerCase() === k) ||
     MASCOTS[0]
@@ -186,7 +217,7 @@ export function toRem(size, fallbackPx = 24) {
   return `${+(px / 16).toFixed(4)}rem`;
 }
 
-// Exact markup strings produced by icon()/teamDisc(). client.js's h`` trusts only these exact strings,
+// Exact markup strings produced by icon()/teamDisc()/artImg()/mascotImg(). client.js's h`` trusts only these exact strings,
 // so `${icon('star')}` can be interpolated without raw(). A string is only ever added after we build it
 // from validated, escaped parts, so membership means "this is our own markup".
 const TRUSTED = new Set();
@@ -195,7 +226,7 @@ function trust(s) {
   if (TRUSTED.size < TRUSTED_MAX) TRUSTED.add(s);
   return s;
 }
-/** True when `s` is exactly a string returned by icon() or teamDisc(). */
+/** True when `s` is exactly a string returned by icon(), teamDisc(), artImg() or mascotImg(). */
 export function isTrustedMarkup(s) {
   return typeof s === 'string' && TRUSTED.has(s);
 }
@@ -224,18 +255,45 @@ export function icon(name, opts = {}) {
   );
 }
 
+/**
+ * A 3D illustration as an <img> string (decorative unless `alt` is given).
+ * @param {string} id  art id (see ART); unknown ids render sparkles
+ * @param {{size?:number|string, alt?:string, className?:string, eager?:boolean}} [opts] size in design px (emitted in rem)
+ */
+export function artImg(id, opts = {}) {
+  const { size = 48, alt = '', className = '', eager = false } = opts || {};
+  const len = toRem(size, 48);
+  const n = Number(size);
+  const dims = Number.isFinite(n) && n > 0 ? ` width="${Math.round(n)}" height="${Math.round(n)}"` : '';
+  const cls = `art${className ? ' ' + escAttr(className) : ''}`;
+  const a11y = alt ? ` alt="${escAttr(alt)}"` : ' alt="" aria-hidden="true"';
+  return trust(`<img class="${cls}" src="${artSrc(id)}"${dims} style="width:${len};height:${len}"${a11y} draggable="false" decoding="async"${eager ? '' : ' loading="lazy"'}>`);
+}
+
+/**
+ * A team's 3D mascot as an <img>. alt = the team name (pass { alt: '' } when the name is printed right beside it).
+ * @param {{mascot?:string, name?:string}} team
+ * @param {number|string|{size?:number|string, alt?:string, className?:string}} [size] design px or a DISC_SIZES name, or options
+ */
+export function mascotImg(team = {}, size = 64) {
+  const o = size && typeof size === 'object' ? size : { size };
+  const m = mascotFor(team?.mascot);
+  const alt = o.alt ?? (team?.name ? String(team.name) : `Mascot: ${m.noun}`);
+  const px = DISC_SIZES[o.size] ?? o.size ?? 64;
+  return artImg(m.art, { size: px, alt, className: `mascot-img${o.className ? ' ' + o.className : ''}`, eager: true });
+}
+
 /** Named disc sizes in design px (SPEC: 36 phone header, 56 score tile, 84 hero, 104 podium, 240 turn intro). */
 export const DISC_SIZES = Object.freeze({ xs: 26, sm: 36, md: 64, lg: 84, xl: 104, hero: 240 });
 
 /**
- * Team disc — the Midnight Premiere ornament: colour ball + navy mascot glyph (~53%, stroke 2.4).
+ * Team disc: the team's 3D mascot in a sized box (no colour ball; the team colour is the tile / tag accent).
  * @param {{color?:string, mascot?:string, name?:string}} team
  * @param {{size?:number|'xs'|'sm'|'md'|'lg'|'xl'|'hero', label?:string|boolean, halo?:boolean, className?:string,
  *          ornament?:boolean, leader?:boolean, beacon?:boolean}} [opts]
- *   label: true -> "<name> mascot: a star"; string -> that; omitted -> decorative (aria-hidden).
- *   ornament: brass cap + loop on top (the disc grows ~30% taller visually; leave room above it).
- *   leader: gold star topper instead of the loop (implies ornament). beacon: pulsing red-nose dot (active team).
- *   halo: tinsel ring for the winner / active team.
+ *   label: true -> "<name> mascot: a reindeer"; string -> that; omitted -> decorative (aria-hidden).
+ *   leader: glowing-star sticker top-right. beacon: soft candy glow under the mascot (the team that is up).
+ *   halo: white snowball backdrop with a tinsel ring (winner / active). ornament: kept for old callers.
  */
 export function teamDisc(team = {}, opts = {}) {
   const { size = 64, label = false, halo = false, className = '', ornament = false, leader = false, beacon = false } = opts || {};
@@ -243,12 +301,10 @@ export function teamDisc(team = {}, opts = {}) {
   const color = safeColor(team?.color, m.color);
   const px = DISC_SIZES[size] ?? size;
   const len = toRem(px, 64);
-  const stroke = Number(px) >= 200 ? 2.2 : Number(px) <= 28 ? 2.6 : 2.4;
-  const glyph = icon(m.icon, { size: '53%', stroke, color: 'var(--night)' });
   const text =
     label === true ? `${team?.name ? team.name + ' mascot: ' : 'Mascot: '}${m.noun}` : typeof label === 'string' ? label : '';
   const a11y = text ? ` role="img" aria-label="${escAttr(text)}"` : ' aria-hidden="true"';
   const mods = [halo && 'disc--halo', (ornament || leader) && 'disc--ornament', leader && 'disc--leader', beacon && 'disc--beacon'].filter(Boolean);
-  const cls = `disc${mods.length ? ' ' + mods.join(' ') : ''}${className ? ' ' + escAttr(className) : ''}`;
-  return trust(`<span class="${cls}" style="--team-color:${color};--disc-size:${len}"${a11y}>${glyph}</span>`);
+  const cls = `disc disc--art${mods.length ? ' ' + mods.join(' ') : ''}${className ? ' ' + escAttr(className) : ''}`;
+  return trust(`<span class="${cls}" style="--team-color:${color};--disc-size:${len}" data-mascot="${m.id}"${a11y}><img src="${artSrc(m.art)}" alt="" draggable="false" decoding="async"></span>`);
 }

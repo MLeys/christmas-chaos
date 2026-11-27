@@ -2,9 +2,12 @@
 // Every sound is synthesised with Web Audio (no files, works offline). Browsers only allow audio after a
 // user gesture, so call unlock() from a click/tap (the TV's "Click to start the show" overlay).
 // Every effect is a safe no-op before unlock(), when muted, or when Web Audio is missing.
-// Midnight Premiere palette (brief A13): sleigh bells and celesta; wooden-clack ticks with a bell overtone;
-// celesta + timpani landing; major bell arpeggio for correct; a gentle muted-trombone wah for wrong; a brass
-// honk buzz; film-leader beeps; a relay clunk + hum into a fanfare for Double Down; fanfare + choir pad podium.
+// North Pole Workshop palette: sleigh bells and celesta; wooden-clack ticks with a bell overtone; celesta +
+// timpani landing; a major bell arpeggio for correct; a gentle muted-trombone wah for wrong; a brass honk buzz;
+// countdown beeps; the plug-in gag into a fanfare for Double Down; fanfare + choir pad podium.
+// Comedy layer (docs/design/COMEDY.md §3): slideWhistle (wrong), sadTrombone (time up), sleighRun (correct),
+// hoHoHo (Santa peeks), boing (bounce), splat (snowball), kaChing (steal), drumroll + cymbal (reveals),
+// crowdOoh (gasp). Pair them with the fx.js sight gags.
 //
 //   import * as sound from '/assets/sound.js';
 //   startButton.onclick = () => sound.unlock();
@@ -203,7 +206,7 @@ function hiss(out, { t = ctx.currentTime, dur = 0.1, gain = 0.2, type = 'bandpas
 }
 
 /* ------------------------------------------------------------------ instruments -------------- */
-// Midnight Premiere palette (brief A13): sleigh bells and celesta, a wooden clack, timpani, warm brass.
+// Sleigh bells and celesta, a wooden clack, timpani, warm brass.
 
 /** Struck bell: inharmonic partials, the high ones die first. */
 function bell(out, freq, t, { dur = 1.6, gain = 0.16 } = {}) {
@@ -416,7 +419,8 @@ export function steam(ms = 600) {
 }
 
 /**
- * Drumroll that crescendos for `ms` (snare over a rolling timpani), then a cymbal crash. Returns stop().
+ * Drumroll that crescendos for `ms` (snare over a rolling timpani), then a cymbal crash (crash: false to skip it,
+ * e.g. to call cymbal() yourself on the reveal). Returns stop().
  */
 export function drumroll(ms = 2000, { crash = true } = {}) {
   if (!ready()) return () => {};
@@ -432,7 +436,8 @@ export function drumroll(ms = 2000, { crash = true } = {}) {
   }
   if (crash) {
     timpani(out, t + dur, { freq: 73.4, gain: 0.5, dur: 0.9 });
-    hiss(out, { t: t + dur, dur: 1.6, gain: 0.26, type: 'highpass', freq: 4500, q: 0.5, attack: 0.002 });
+    hiss(out, { t: t + dur, dur: 1.8, gain: 0.26, type: 'highpass', freq: 4200, q: 0.5, attack: 0.002 });
+    hiss(out, { t: t + dur, dur: 1.2, gain: 0.12, type: 'bandpass', freq: 8200, q: 0.8, attack: 0.002 });
     jingle(out, t + dur, 0.1);
   }
   return () => {
@@ -546,7 +551,7 @@ export function podium() {
 }
 
 /**
- * Ambient bed for the lobby and turn intros: a faint projector hum with an occasional soft sleigh-bell shake.
+ * Ambient bed for the lobby and turn intros: a faint warm room hum with an occasional soft sleigh-bell shake.
  * Returns stop(); call it (or duck by stopping) before anything is read aloud.
  */
 export function ambience({ level = 0.5 } = {}) {
@@ -613,10 +618,231 @@ export function ambience({ level = 0.5 } = {}) {
   };
 }
 
+/* ------------------------------------------------------------------ comedy ------------------- */
+
+/** Slide whistle going DOWN (a wrong answer): a breathy whistle that blips up, then slides a long way down. */
+export function slideWhistle() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.01;
+  const out = bus(0.6);
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(1350, t);
+  osc.frequency.linearRampToValueAtTime(1650, t + 0.09);
+  osc.frequency.exponentialRampToValueAtTime(240, t + 0.82);
+  const lfo = ctx.createOscillator();
+  const lg = ctx.createGain();
+  lfo.frequency.value = 7;
+  lg.gain.setValueAtTime(10, t);
+  lg.gain.linearRampToValueAtTime(26, t + 0.8);
+  lfo.connect(lg).connect(osc.frequency);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.24, t + 0.04);
+  g.gain.setValueAtTime(0.24, t + 0.66);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+  osc.connect(g).connect(out);
+  osc.start(t);
+  lfo.start(t);
+  osc.stop(t + 0.95);
+  lfo.stop(t + 0.95);
+  hiss(out, { t, dur: 0.85, gain: 0.035, type: 'bandpass', freq: 1500, to: 400, q: 2, attack: 0.03 });
+}
+
+/** Sad trombone (time's up): wah, wah, wah, waaaah — four falling muted notes, the last one wobbling. */
+export function sadTrombone() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.01;
+  const out = bus(0.62);
+  const note = (freq, at, dur, wobble = 0) => {
+    const osc = ctx.createOscillator();
+    const f = ctx.createBiquadFilter();
+    const g = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(freq * 1.03, t + at);
+    osc.frequency.exponentialRampToValueAtTime(freq, t + at + 0.07);
+    if (wobble) {
+      const lfo = ctx.createOscillator();
+      const lg = ctx.createGain();
+      lfo.frequency.value = 5;
+      lg.gain.setValueAtTime(0, t + at);
+      lg.gain.linearRampToValueAtTime(wobble, t + at + 0.4);
+      lfo.connect(lg).connect(osc.frequency);
+      lfo.start(t + at);
+      lfo.stop(t + at + dur + 0.1);
+    }
+    f.type = 'lowpass';
+    f.Q.value = 7;
+    f.frequency.setValueAtTime(330, t + at);
+    f.frequency.exponentialRampToValueAtTime(1200, t + at + Math.min(0.18, dur * 0.4));
+    f.frequency.exponentialRampToValueAtTime(360, t + at + dur);
+    g.gain.setValueAtTime(0.0001, t + at);
+    g.gain.exponentialRampToValueAtTime(0.22, t + at + 0.04);
+    g.gain.setValueAtTime(0.2, t + at + dur * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + at + dur);
+    osc.connect(f).connect(g).connect(out);
+    osc.start(t + at);
+    osc.stop(t + at + dur + 0.05);
+  };
+  note(233.1, 0, 0.36);
+  note(220, 0.4, 0.36);
+  note(207.7, 0.8, 0.36);
+  note(196, 1.2, 1.15, 7);
+}
+
+/** Sleigh-bell run (correct): a quick rising bell glissando over a shake of sleigh bells. */
+export function sleighRun() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.01;
+  const out = bus(0.7);
+  [1046.5, 1174.7, 1318.5, 1568, 1760, 2093, 2349.3, 2637].forEach((f, k) => bell(out, f, t + k * 0.045, { dur: k === 7 ? 1.4 : 0.6, gain: 0.1 }));
+  for (let k = 0; k < 8; k++) jingle(out, t + 0.05 + k * 0.1, 0.09 * (k % 2 ? 0.6 : 1) * (1 - k / 12));
+}
+
+/** "Ho ho ho!" — a synthesised Santa laugh: three low, round "ho" syllables through an "o" vowel. */
+export function hoHoHo() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.02;
+  const out = bus(0.8);
+  const formants = [[450, 1, 6], [800, 0.55, 8], [2830, 0.08, 10]].map(([fr, gain, q]) => {
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = fr;
+    bp.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.value = gain * 3.2;
+    bp.connect(g).connect(out);
+    return bp;
+  });
+  const ho = (at, f0, f1, dur) => {
+    hiss(out, { t: t + at, dur: 0.07, gain: 0.06, type: 'bandpass', freq: 1300, q: 0.8, attack: 0.005 });
+    const osc = ctx.createOscillator();
+    const amp = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(f0, t + at + 0.03);
+    osc.frequency.exponentialRampToValueAtTime(f1, t + at + dur);
+    amp.gain.setValueAtTime(0.0001, t + at + 0.03);
+    amp.gain.exponentialRampToValueAtTime(0.32, t + at + 0.08);
+    amp.gain.exponentialRampToValueAtTime(0.0001, t + at + dur);
+    osc.connect(amp);
+    formants.forEach((bp) => amp.connect(bp));
+    osc.start(t + at + 0.03);
+    osc.stop(t + at + dur + 0.05);
+  };
+  ho(0, 132, 112, 0.28);
+  ho(0.32, 128, 106, 0.28);
+  ho(0.64, 124, 92, 0.55);
+}
+
+/** Boing: a cartoon spring (mascot bounce, the heart growing). */
+export function boing() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.005;
+  const out = bus(0.6);
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(150, t);
+  osc.frequency.exponentialRampToValueAtTime(560, t + 0.42);
+  const lfo = ctx.createOscillator();
+  const lg = ctx.createGain();
+  lfo.frequency.value = 17;
+  lg.gain.setValueAtTime(110, t);
+  lg.gain.exponentialRampToValueAtTime(4, t + 0.55);
+  lfo.connect(lg).connect(osc.frequency);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.32, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+  osc.connect(g).connect(out);
+  osc.start(t);
+  lfo.start(t);
+  osc.stop(t + 0.65);
+  lfo.stop(t + 0.65);
+  tone(out, { freq: 90, to: 60, type: 'sine', t, dur: 0.08, gain: 0.25, attack: 0.002 });
+}
+
+/** Splat: a wet snowball thud. */
+export function splat() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.005;
+  const out = bus(0.75);
+  tone(out, { freq: 150, to: 48, type: 'sine', t, dur: 0.14, gain: 0.45, attack: 0.002 });
+  hiss(out, { t, dur: 0.2, gain: 0.32, type: 'lowpass', freq: 1100, to: 260, q: 0.9, attack: 0.002 });
+  for (let k = 0; k < 6; k++) hiss(out, { t: t + 0.03 + Math.random() * 0.12, dur: 0.02 + Math.random() * 0.03, gain: 0.07, type: 'bandpass', freq: 1800 + Math.random() * 2500, q: 2, attack: 0.001 });
+}
+
+/** Ka-ching: the cash register (a steal) — two key clicks, the drawer rattle, then the bell. */
+export function kaChing() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.005;
+  const out = bus(0.7);
+  hiss(out, { t, dur: 0.025, gain: 0.3, type: 'highpass', freq: 2500, q: 1, attack: 0.001 });
+  hiss(out, { t: t + 0.07, dur: 0.025, gain: 0.3, type: 'highpass', freq: 2200, q: 1, attack: 0.001 });
+  hiss(out, { t: t + 0.1, dur: 0.16, gain: 0.12, type: 'bandpass', freq: 3200, q: 3, attack: 0.002 });
+  tone(out, { freq: 120, to: 80, type: 'triangle', t: t + 0.1, dur: 0.1, gain: 0.18, attack: 0.002 });
+  bell(out, 2637, t + 0.16, { dur: 1.3, gain: 0.16 });
+  bell(out, 3520, t + 0.2, { dur: 1.1, gain: 0.1 });
+}
+
+/** A cymbal crash (the end of a drumroll; reveals). */
+export function cymbal() {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.005;
+  const out = bus(0.7);
+  hiss(out, { t, dur: 1.8, gain: 0.26, type: 'highpass', freq: 4200, q: 0.5, attack: 0.002 });
+  hiss(out, { t, dur: 1.2, gain: 0.12, type: 'bandpass', freq: 8200, q: 0.8, attack: 0.002 });
+  hiss(out, { t, dur: 0.12, gain: 0.2, type: 'bandpass', freq: 600, q: 0.7, attack: 0.001 });
+}
+
+/** A crowd "ooooh!" (a gasp): many voices through an "oo" vowel, swelling up and sliding down. */
+export function crowdOoh(ms = 1600) {
+  if (!ready()) return;
+  const t = ctx.currentTime + 0.02;
+  const dur = Math.min(4000, Math.max(600, Number(ms) || 1600)) / 1000;
+  const out = bus(0.55);
+  const vowel = [[320, 1, 5], [800, 0.4, 7]].map(([fr, gain, q]) => {
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = fr;
+    bp.Q.value = q;
+    const g = ctx.createGain();
+    g.gain.value = gain * 2.6;
+    bp.connect(g).connect(out);
+    return bp;
+  });
+  const amp = ctx.createGain();
+  amp.gain.setValueAtTime(0.0001, t);
+  amp.gain.exponentialRampToValueAtTime(0.3, t + dur * 0.3);
+  amp.gain.setValueAtTime(0.3, t + dur * 0.45);
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  vowel.forEach((bp) => amp.connect(bp));
+  for (let k = 0; k < 9; k++) {
+    const o = ctx.createOscillator();
+    o.type = 'sawtooth';
+    const f0 = 170 + Math.random() * 120;
+    o.frequency.setValueAtTime(f0 * 0.92, t);
+    o.frequency.exponentialRampToValueAtTime(f0 * 1.12, t + dur * 0.35);
+    o.frequency.exponentialRampToValueAtTime(f0 * 0.86, t + dur);
+    o.detune.value = (Math.random() - 0.5) * 30;
+    o.connect(amp);
+    o.start(t + Math.random() * 0.06);
+    o.stop(t + dur + 0.1);
+  }
+  hiss(out, { t, dur, gain: 0.04, type: 'bandpass', freq: 500, q: 0.6, attack: dur * 0.3 });
+}
+
 /** Name -> effect, for fx dispatch: play('correct'). Unknown names are ignored. */
 export const EFFECTS = Object.freeze({
   tick, land, buzz, correct, wrong, beep, fanfare, applause, whoosh, drumroll,
   leaderBeep, plugIn, dingLock, doubleDown, podium, sleighBells, steam,
+  slideWhistle, sadTrombone, sleighRun, hoHoHo, boing, splat, kaChing, cymbal, crowdOoh,
+});
+
+/** Comedy sound for each fx.js sight gag (and the server's react moods). */
+export const GAG_SOUNDS = Object.freeze({
+  bounce: 'boing', droop: 'slideWhistle', wobble: 'boing', shake: 'splat', splat: 'splat', coalDrop: 'slideWhistle',
+  dash: 'sleighRun', sneak: 'kaChing', melt: 'sadTrombone', peek: 'hoHoHo', confetti: 'sleighBells', heartGrow: 'boing',
+  cheer: 'sleighRun', groan: 'sadTrombone', gasp: 'crowdOoh', laugh: 'hoHoHo',
 });
 export function play(name, ...args) {
   const fn = EFFECTS[name];

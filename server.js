@@ -191,19 +191,20 @@ function startServer(o = {}) {
     const fp = path.join(publicDir, file);
     noCache(res);
     if (fs.existsSync(fp)) return res.sendFile(fp);
-    res.status(200).type('html').send(`<!doctype html><meta charset="utf-8"><title>Christmas Chaos</title><body style="background:#0B1430;color:#FFF7EA;font-family:sans-serif;padding:40px"><h1>Christmas Chaos</h1><p>${file} is not built yet.</p>`);
+    res.status(200).type('html').send(`<!doctype html><meta charset="utf-8"><title>Christmas Chaos</title><body style="background:#F6F9FD;color:#1C2333;font-family:sans-serif;padding:40px"><h1>Christmas Chaos</h1><p>${file} is not built yet.</p>`);
   };
   app.get('/', page('index.html'));
   app.get('/index.html', page('index.html'));
   app.get('/tv', page('tv.html'));
   app.get('/host', page('host.html'));
   app.get(['/player', '/player.html'], (req, res) => res.redirect(302, '/'));
-  // Local fonts (offline-safe). Midnight Premiere: Fraunces (display), Figtree (UI), Big Shoulders Display
-  // (marquee). Lilita One + Fredoka stay mounted for anything not restyled yet.
+  // Local fonts (offline-safe). North Pole Workshop: Bagel Fat One (display) + Figtree (UI). Fraunces, Big
+  // Shoulders Display, Lilita One and Fredoka stay mounted for anything not restyled yet.
   const FONT_ROUTES = [
     ['fraunces', '@fontsource-variable/fraunces'],
     ['figtree', '@fontsource-variable/figtree'],
     ['big-shoulders-display', '@fontsource-variable/big-shoulders-display'],
+    ['bagel-fat-one', '@fontsource/bagel-fat-one'],
     ['lilita-one', '@fontsource/lilita-one'],
     ['fredoka', '@fontsource/fredoka'],
   ];
@@ -219,7 +220,7 @@ function startServer(o = {}) {
   app.get('/api/qr.svg', async (req, res) => {
     try {
       const url = joinUrlFor(joinIp);
-      if (qrCache.url !== url) qrCache = { url, svg: await QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#0B1430', light: '#FFF7EA' } }) };
+      if (qrCache.url !== url) qrCache = { url, svg: await QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M', color: { dark: '#1C2333', light: '#FFFFFF' } }) };
       res.set('Cache-Control', 'no-store').type('image/svg+xml').send(qrCache.svg);
     } catch (e) { res.status(500).type('text').send('qr failed'); }
   });

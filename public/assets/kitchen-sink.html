@@ -3,750 +3,498 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#0B1430">
-<title>Kitchen Sink · Midnight Premiere · Christmas Chaos</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23F6C453' stroke='%23C9962E' stroke-width='1.6' stroke-linejoin='round'%3E%3Cpath d='M11.5 2.3a.5.5 0 0 1 1 0l2.3 4.7 5.2.8a.5.5 0 0 1 .3.9l-3.7 3.6.9 5.1a.5.5 0 0 1-.8.6L12 15.6 7.4 18a.5.5 0 0 1-.8-.6l.9-5.1-3.7-3.6a.5.5 0 0 1 .3-.9l5.1-.8z'/%3E%3C/svg%3E">
-<link rel="preload" href="/fonts/fraunces/fraunces-latin-full-normal.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F6F9FD">
+<title>Kitchen Sink · North Pole Workshop · Christmas Chaos</title>
+<link rel="icon" href="/assets/art/tree.png">
+<link rel="preload" href="/fonts/bagel-fat-one/bagel-fat-one-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/figtree/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/big-shoulders-display/big-shoulders-display-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/tokens.css">
 <style>
-  body { background: var(--night); padding: 0 0 6rem; }
-  .ks-sky { position: fixed; inset: 0; z-index: -1; }
+  body { padding: 0 0 6rem; overflow-x: hidden; }
   .ks-top {
     position: sticky; top: 0; z-index: 30;
-    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem 2rem;
-    padding: 1rem 2.5rem 0.25rem;
-    background: linear-gradient(180deg, rgba(11, 20, 48, 0.96) 70%, rgba(11, 20, 48, 0));
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem 1.5rem;
+    padding: 0.75rem clamp(1rem, 3vw, 2.5rem);
+    background: rgba(246, 249, 253, 0.9); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    box-shadow: 0 1px 0 var(--hairline);
   }
-  .ks-top__right { justify-self: end; display: flex; flex-wrap: wrap; align-items: center; gap: 0.625rem 0.875rem; }
-  .ks-top label { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.9375rem; font-weight: 600; color: var(--frost); }
-  .ks-top input[type=range] { accent-color: var(--tinsel); width: 6.5rem; }
-  .ks-top input[type=checkbox] { accent-color: var(--tinsel); width: 1.125rem; height: 1.125rem; }
-  .ks-string { position: sticky; top: 4.75rem; z-index: 29; margin-top: -0.5rem; }
-  main.ks { max-width: 1480px; margin: 0 auto; padding: 1.5rem 2.5rem; display: flex; flex-direction: column; gap: 4.5rem; overflow-x: clip; }
-  .ks-sec { display: flex; flex-direction: column; gap: 1.5rem; scroll-margin-top: 8rem; }
-  .ks-sec > header { display: flex; flex-direction: column; gap: 0.5rem; }
-  .ks-sec > header h2 { font: 900 3rem/1 var(--font-display); font-variation-settings: var(--display-axes); letter-spacing: -0.01em; }
-  .ks-sec > header p { max-width: 62rem; color: var(--frost); font-size: 1.0625rem; line-height: 1.45; }
-  .ks-panel { position: relative; background: var(--night-2); border-radius: var(--r-card); padding: 2rem; display: flex; flex-direction: column; gap: 1.75rem; min-width: 0; box-shadow: inset 0 1px 0 var(--hilite), 0 1.25rem 3rem rgba(0, 0, 0, 0.35); }
-  .ks-row { display: flex; flex-wrap: wrap; gap: 1.5rem 1.25rem; align-items: flex-end; }
-  .ks-row--center { align-items: center; }
-  .ks-cap { font-size: 0.8125rem; color: var(--frost); line-height: 1.35; margin-top: 0.75rem; font-weight: 600; }
-  .ks-cap code { font: 600 0.8125rem ui-monospace, Consolas, monospace; color: var(--bulb); }
-  .ks-item { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+  .ks-top nav { display: flex; flex-wrap: wrap; gap: 0.25rem 0.875rem; font-weight: 700; font-size: 0.9375rem; }
+  .ks-top nav a { color: var(--ink-soft); text-decoration: none; }
+  .ks-top nav a:hover { color: var(--candy-deep); text-decoration: underline; }
+  .ks-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.875rem; font-size: 0.875rem; font-weight: 700; color: var(--ink-soft); }
+  .ks-ctl label { display: inline-flex; align-items: center; gap: 0.375rem; }
+  .ks-ctl input { accent-color: var(--candy); }
+  main.ks { max-width: 1480px; margin: 0 auto; padding: 1.5rem clamp(1rem, 3vw, 2.5rem); display: flex; flex-direction: column; gap: 4rem; }
+  .ks-sec { display: flex; flex-direction: column; gap: 1.25rem; scroll-margin-top: 5rem; min-width: 0; }
+  .ks-sec > header { display: flex; flex-direction: column; gap: 0.375rem; }
+  .ks-sec > header h2 { font: 400 clamp(2rem, 4vw, 2.75rem)/1.05 var(--font-display); color: var(--candy); text-shadow: 0 3px 0 #fff, 0 5px 0 rgba(165, 29, 31, 0.16); }
+  .ks-sec > header p { max-width: 62rem; color: var(--ink-soft); font-size: 1.0625rem; line-height: 1.45; }
+  .ks-kicker { font: 800 0.875rem/1 var(--font-ui); color: var(--holly); }
+  .ks-panel { position: relative; background: var(--paper); border-radius: var(--r-card); padding: clamp(1rem, 2.5vw, 2rem); display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; box-shadow: var(--shadow-tile); }
+  .ks-panel--snow { background: var(--snowbank); box-shadow: none; }
+  .ks-row { display: flex; flex-wrap: wrap; gap: 1.25rem 1.25rem; align-items: flex-end; }
+  .ks-row--c { align-items: center; }
+  .ks-row--top { align-items: flex-start; }
+  .ks-item { display: flex; flex-direction: column; align-items: flex-start; gap: 0.625rem; min-width: 0; }
   .ks-item--c { align-items: center; text-align: center; }
-  .ks-sub { font: 800 1rem/1 var(--font-marquee); letter-spacing: var(--tracking-marquee); text-transform: uppercase; color: var(--muted); }
-  .ks-grid { display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); align-items: start; }
-  .ks-grid--3 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); }
+  .ks-cap { font-size: 0.8125rem; color: var(--ink-soft); line-height: 1.35; font-weight: 600; max-width: 22rem; }
+  .ks-cap code, .ks-sec code { font: 600 0.8125rem ui-monospace, Consolas, monospace; color: var(--candy-deep); background: #FFF1F1; padding: 0.0625rem 0.3125rem; border-radius: 0.3125rem; }
+  .ks-sub { font: 800 1rem/1.1 var(--font-ui); color: var(--ink); }
+  .ks-grid { display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); align-items: start; }
 
-  /* TV composition frame (1920×1080 scaled to fit) */
-  .ks-tvframe { position: relative; overflow: hidden; border-radius: 1.25rem; box-shadow: 0 0 0 2px rgba(201, 150, 46, 0.5), 0 2rem 5rem rgba(0, 0, 0, 0.5); }
+  /* TV composition: 1920×1080 scaled to the frame */
+  .ks-tvframe { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 1.25rem; box-shadow: 0 0 0 1px var(--hairline), var(--shadow-pop); background: var(--snow); }
   .ks-tv { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; overflow: hidden; }
-  .tvx-top { position: absolute; left: 80px; right: 80px; top: 64px; height: 56px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 32px; }
-  .tvx-join { justify-self: end; display: flex; align-items: center; gap: 10px; white-space: nowrap; font: 700 28px/1 var(--font-ui); color: var(--frost); }
-  .tvx-join b { color: var(--tinsel); font-weight: 800; }
-  .tvx-string { position: absolute; left: 0; right: 0; top: 116px; }
-  .tvx-wheel { position: absolute; left: -42px; top: 58px; width: 940px; height: 940px; display: grid; place-items: center; }
-  .tvx-wheel svg { width: 760px; height: 760px; }
-  .tvx-card { position: absolute; left: 832px; top: 172px; width: 1008px; height: 692px; }
-  .tvx-card__in { position: absolute; inset: 72px 48px; display: flex; flex-direction: column; }
-  .tvx-head { display: flex; align-items: center; justify-content: space-between; gap: 24px; height: 160px; flex: none; }
-  .tvx-chips { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-  .tvx-chips > div { display: flex; align-items: center; gap: 14px; }
-  .tvx-pts { font: 800 2rem/1 var(--font-marquee); letter-spacing: 0.06em; color: var(--tinsel); white-space: nowrap; text-transform: uppercase; }
-  .tvx-who { margin-top: 24px; display: flex; align-items: center; gap: 14px; height: 48px; font-size: 32px; font-weight: 700; white-space: nowrap; }
-  .tvx-who strong { color: var(--team-red); }
-  .tvx-q { margin-top: 16px; }
-  .tvx-strip { position: absolute; left: 80px; top: 896px; width: 1760px; height: 120px; }
+  .tvx-garland { position: absolute; left: -20px; top: -18px; width: 1960px; z-index: 3; pointer-events: none; }
+  .tvx-top { position: absolute; z-index: 4; left: 72px; right: 72px; top: 112px; display: flex; align-items: center; justify-content: space-between; }
+  .tvx-join { font-size: 28px; font-weight: 600; color: var(--ink-soft); }
+  .tvx-join strong { color: var(--ink); font-weight: 800; }
+  .tvx-wheel { position: absolute; left: 54px; top: 258px; width: 676px; height: 676px; z-index: 1; }
+  .tvx-wheel svg { width: 100%; height: 100%; }
+  .tvx-card { position: absolute; z-index: 2; left: 776px; top: 235px; width: 1072px; height: 560px; }
+  .tvx-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+  .tvx-chips { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .tvx-head .film-cue { margin-top: 14px; }
+  .tvx-head .timer-ring { margin-top: 6px; }
+  .tvx-who { display: flex; align-items: center; gap: 14px; font-size: 32px; font-weight: 700; }
+  .tvx-who b { color: var(--candy); font-weight: 900; }
+  .tvx-card .question { font-size: 62px; }
+  .tvx-scores { position: absolute; z-index: 3; left: 72px; right: 72px; bottom: 40px; }
+  .ks-tv .snowbank { z-index: 2; }
 
   /* wheel lab */
-  .ks-wheel { display: grid; grid-template-columns: minmax(0, 720px) minmax(17.5rem, 1fr); gap: 2.5rem; align-items: center; }
-  .ks-wheel .wheel-wrap { width: 100%; max-width: 720px; padding: 3%; }
-  .ks-ctrl { display: flex; flex-direction: column; gap: 1rem; }
-  .ks-ctrl select, .ks-ctrl input[type=number] { height: 3rem; border-radius: 0.875rem; background: var(--night); color: var(--snow); border: 2px solid var(--line-strong); padding: 0 0.75rem; font: 600 1rem var(--font-ui); }
-  .ks-readout { font: 500 0.9375rem/1.6 ui-monospace, Consolas, monospace; color: var(--frost); background: var(--night); border-radius: 1rem; padding: 0.875rem 1rem; box-shadow: inset 0 0 0 1px var(--line-soft); }
-  .ks-readout b { color: var(--snow); font-weight: 700; }
-  @media (max-width: 1000px) { .ks-wheel { grid-template-columns: 1fr; } }
+  .lab { display: grid; grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem); gap: 1.5rem; align-items: start; }
+  .lab__stage { position: relative; padding-top: 3.25rem; border-radius: var(--r-card); background: var(--sky-wash) no-repeat, var(--snow); overflow: hidden; }
+  .lab__garland { position: absolute; left: -12px; right: -12px; top: -10px; }
+  .lab__wheel { width: min(100%, 34rem); margin: 0 auto 1.5rem; display: block; }
+  .lab__ctl { display: flex; flex-direction: column; gap: 0.875rem; }
+  .lab__ctl .row { --gap: 0.5rem; }
+  .lab__ctl select { height: 2.75rem; border-radius: var(--r-sm); border: 2px solid var(--snow-shade); padding: 0 0.5rem; font-weight: 700; background: #fff; }
+  .lab__log { font: 600 0.8125rem/1.4 ui-monospace, Consolas, monospace; color: var(--ink-soft); background: var(--snow); border-radius: 0.75rem; padding: 0.75rem; min-height: 4.5rem; white-space: pre-wrap; }
+  @media (max-width: 760px) { .lab { grid-template-columns: 1fr; } }
 
-  /* type specimens */
-  .ks-type { display: grid; grid-template-columns: 13rem 1fr; gap: 1.25rem 2rem; align-items: baseline; }
-  .ks-type > dt { font: 800 0.9375rem/1.2 var(--font-marquee); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
-  .ks-type > dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
-  @media (max-width: 700px) { .ks-type { grid-template-columns: 1fr; gap: 0.25rem; } .ks-type > dd { margin-bottom: 1rem; } }
+  /* swatches */
+  .sw { display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr)); gap: 0.75rem; }
+  .sw > div { border-radius: 1rem; overflow: hidden; background: #fff; box-shadow: var(--shadow-tile); font-size: 0.8125rem; }
+  .sw i { display: block; height: 3.5rem; }
+  .sw span { display: block; padding: 0.5rem 0.625rem; font-weight: 800; }
+  .sw small { display: block; padding: 0 0.625rem 0.5rem; color: var(--ink-soft); font: 600 0.75rem ui-monospace, Consolas, monospace; }
 
-  /* palette */
-  .ks-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: 0.75rem; }
-  .ks-sw { border-radius: 1rem; overflow: hidden; background: var(--night); box-shadow: inset 0 0 0 1px var(--line-soft); }
-  .ks-sw > i { display: block; height: 4.5rem; }
-  .ks-sw > div { padding: 0.625rem 0.75rem 0.75rem; display: flex; flex-direction: column; gap: 0.125rem; }
-  .ks-sw b { font: 800 0.9375rem/1.2 var(--font-ui); }
-  .ks-sw small { font: 500 0.8125rem/1.3 ui-monospace, Consolas, monospace; color: var(--frost); }
+  /* phone frames (390×844) */
+  .phones { display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center; }
+  .phone { position: relative; width: min(390px, 100%); height: 844px; overflow: hidden; border-radius: 2.25rem; background: var(--sky-wash-phone) no-repeat, var(--snow); box-shadow: 0 0 0 8px #1C2333, var(--shadow-pop); }
+  .phone__in { position: relative; height: 100%; display: flex; flex-direction: column; padding: 70px 20px 24px; }
+  .phone__garland { position: absolute; left: -10px; right: -10px; top: -10px; }
+  .phone h1 { font-family: var(--font-display); font-weight: 400; font-size: 40px; line-height: 1.05; color: var(--candy); text-align: center; margin: 34px 0 6px; text-shadow: 0 3px 0 #fff, 0 5px 0 rgba(165, 29, 31, 0.14); }
+  .phone .sub { text-align: center; font-size: 19px; font-weight: 600; color: var(--ink-soft); margin: 0 0 26px; }
+  .phone .peppermint, .phone .ornament-btn { margin: 0 auto; }
+  .phone__preview { margin-top: auto; padding-top: 22px; display: flex; align-items: center; gap: 16px; }
+  .phone__preview p { font-size: 16px; color: var(--ink-soft); font-weight: 600; }
+  .phone .score-mini { margin-top: 20px; }
 
-  /* discs */
-  .ks-discs { display: grid; grid-template-columns: repeat(auto-fill, minmax(14.5rem, 1fr)); gap: 0.75rem; }
-  .ks-disc { display: flex; align-items: center; gap: 1rem; padding: 1.5rem 1rem 1rem; border-radius: 1.25rem; background: var(--night); box-shadow: inset 0 0 0 1px var(--line-soft); }
-  .ks-disc small { display: block; color: var(--frost); font-size: 0.8125rem; font-weight: 600; }
-  .ks-disc b { font-weight: 800; }
+  /* comedy stage */
+  .gag-stage { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 2.5rem; padding: 2.5rem 1rem 2rem; border-radius: var(--r-card); background: var(--sky-wash) no-repeat, var(--snow); }
+  .gag-stage .gift-tag { width: min(100%, 26rem); }
+  .gag-btns { display: flex; flex-wrap: wrap; gap: 0.625rem; }
+  .sound-btns { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
-  /* strips */
-  .ks-strip { padding: 1.75rem 0.5rem 0.5rem; overflow-x: auto; }
-  .ks-strip .score-strip { min-width: 1100px; }
-
-  /* marquee */
-  .ks-marquee { display: grid; place-items: center; padding: 3rem 1rem 3.5rem; border-radius: var(--r-card); overflow: hidden; }
-  .ks-marquee .marquee { max-width: 100%; }
-  .ks-marquee .letterboard { font-size: clamp(2.5rem, 6vw, 5.5rem); }
-
-  /* splash + letterbox */
-  .ks-splash { position: relative; height: 30rem; border-radius: var(--r-card); overflow: hidden; }
-  .ks-splash .splash__word { font-size: clamp(3.5rem, 9vw, 8rem); }
-  .ks-splash .splash__sub { font-size: clamp(1.25rem, 2.4vw, 2rem); margin-top: 1.25rem; }
-  .ks-lbox { position: relative; height: 24rem; border-radius: var(--r-card); overflow: hidden; display: grid; place-items: center; text-align: center; }
-  .ks-lbox .letterbox { z-index: 2; }
-
-  /* phone */
-  .ks-phone { position: relative; width: 390px; max-width: 100%; min-height: 820px; border-radius: 2.5rem; padding: 1rem 1.25rem 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; text-align: center; box-shadow: 0 0 0 0.625rem #05091A, 0 0 0 0.75rem rgba(255, 247, 234, 0.12), 0 2rem 4rem rgba(0, 0, 0, 0.5); overflow: hidden; }
-  .ks-phones { display: flex; flex-wrap: wrap; gap: 3rem; justify-content: center; align-items: flex-start; padding: 1rem 0.75rem; }
-  .ph-head { align-self: stretch; --notch: 0.5rem; --perf-r: 0.5rem; --perf-x: 72%; min-height: 4rem; --ticket-bg: linear-gradient(90deg, rgba(255, 95, 109, 0.30) 0%, rgba(255, 95, 109, 0.13) 100%), var(--night-2); --ticket-ink: var(--snow); box-shadow: inset 0 0 0 1px rgba(255, 95, 109, 0.5); border-radius: 0.875rem; overflow: visible; }
-  .ph-head::after { border-left-color: rgba(255, 247, 234, 0.3); }
-  .ph-head .ticket__main { flex-direction: row; align-items: center; justify-content: flex-start; gap: 0.75rem; padding: 1.375rem 0.75rem 0.5rem 1.25rem; text-align: left; }
-  .ph-head .ticket__stub { gap: 0.1875rem; padding: 0.5rem 0.375rem; }
-  .ph-team { font: 800 1.125rem/1.1 var(--font-ui); }
-  .ph-you { font: 600 0.8125rem/1.1 var(--font-ui); color: var(--frost); }
-  .ph-score { font: 800 1.5rem/1 var(--font-ui); font-variant-numeric: tabular-nums; }
-  .ph-place { display: flex; align-items: center; gap: 0.25rem; font: 800 0.8125rem/1 var(--font-marquee); letter-spacing: 0.16em; color: var(--tinsel); text-transform: uppercase; }
-  .ph-place .icon { fill: var(--tinsel); }
-  .ph-title { font: 900 2.5rem/1.1 var(--font-display); font-variation-settings: var(--display-axes); letter-spacing: -0.01em; }
-  .ph-sub { font-size: 1.125rem; color: var(--frost); }
-  .ph-mates { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; }
-  .ph-mates .player-chip { font-size: 0.875rem; padding: 0.375rem 0.75rem; color: var(--frost); }
-  .ph-mates .player-chip.is-you { color: var(--snow); background: rgba(255, 95, 109, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 95, 109, 0.55); }
-  .ph-wait { width: 14.75rem; height: 14.75rem; border-radius: 50%; background: var(--night-3); box-shadow: inset 0 0 0 2px rgba(246, 196, 83, 0.45), inset 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; }
-
-  .ks-snd { display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr)); gap: 0.875rem; }
-  .ks-snd .btn { justify-content: flex-start; }
-  .ks-toc { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
-  .ks-toc a { text-decoration: none; }
-  @media (max-width: 760px) {
-    .ks-top { grid-template-columns: 1fr; padding: 0.75rem 1rem 0.25rem; position: static; }
-    .ks-top .wordmark { font-size: 2rem; }
-    .ks-top__mid { display: none; }
-    .ks-top__right { justify-self: start; }
-    .ks-string { position: static; margin-top: 0; --bulb-pad: 1rem; --wire-pad: 0.5rem; }
-    main.ks { padding: 1rem; gap: 3.5rem; }
-    .ks-panel { padding: 1.125rem; border-radius: 1.375rem; }
-    .ks-sec > header h2 { font-size: 2.25rem; }
-    .ks-phone { box-shadow: none; padding-inline: 0.5rem; border-radius: 1.5rem; }
-    .ks-phones { padding: 0; }
-  }
+  .ks-splash { position: relative; height: 22rem; border-radius: var(--r-card); overflow: hidden; }
+  .ks-splash .splash__word { font-size: clamp(3rem, 7vw, 5.5rem); }
+  .ks-splash .splash__sub { font-size: 1.5rem; margin-top: 1rem; }
+  .ks-night { position: relative; height: 16rem; border-radius: var(--r-card); overflow: hidden; display: grid; place-items: center; text-align: center; padding: 1rem; }
 </style>
 </head>
 <body>
-  <div class="ks-sky night-sky" id="sky" aria-hidden="true"></div>
-
-  <div class="ks-top">
-    <span class="wordmark" id="brand"></span>
-    <span class="pill ks-top__mid" id="round"></span>
-    <div class="ks-top__right">
-      <button class="btn btn--gold btn--sm" id="unlock" type="button">Unlock audio</button>
-      <button class="btn btn--secondary btn--sm" id="mute" type="button" aria-pressed="false"></button>
-      <label>Volume <input type="range" id="vol" min="0" max="1" step="0.05"></label>
-      <label><input type="checkbox" id="rm"> Reduce motion</label>
-    </div>
+<header class="ks-top">
+  <span class="wordmark wordmark--sm"><img class="art" src="/assets/art/tree.png" alt="">Christmas Chaos</span>
+  <nav aria-label="Sections">
+    <a href="#tv">TV</a><a href="#wheel">Wheel lab</a><a href="#buttons">Buttons</a><a href="#phone">Phone</a><a href="#cards">Cards</a>
+    <a href="#chips">Chips</a><a href="#teams">Mascots</a><a href="#scores">Score tags</a><a href="#timers">Timers</a><a href="#moments">Moments</a>
+    <a href="#comedy">Comedy kit</a><a href="#sound">Sound</a><a href="#palette">Palette</a>
+  </nav>
+  <div class="ks-ctl">
+    <button class="btn btn--secondary btn--sm" type="button" id="unlock">Enable sound</button>
+    <label>Volume <input type="range" id="vol" min="0" max="1" step="0.05"></label>
+    <label><input type="checkbox" id="rm"> Reduced motion</label>
   </div>
-  <div class="ks-string" id="string"></div>
+</header>
 
-  <main class="ks" id="main">
-    <!-- 00 TV composition -->
-    <section class="ks-sec" id="sec-tv">
-      <header>
-        <span class="eyebrow eyebrow--tv">Midnight Premiere · design system</span>
-        <h2>The big screen, assembled</h2>
-        <p>A 1920×1080 TV frame built only from the shared tokens and components below: night sky with stars and margin snow, the top bar with the round pill and bulb turn dots, the bulb string, the marquee wheel resting on Christmas Movies, a silver-screen title card and the frosted score strip. Compare it with the approved DirA-TV board.</p>
-        <nav class="ks-toc" aria-label="Sections" id="toc"></nav>
-      </header>
-      <div class="ks-tvframe" id="tvframe"><div class="ks-tv night-sky" id="tv"></div></div>
-    </section>
+<main class="ks">
+  <section class="ks-sec" id="tv">
+    <header><span class="ks-kicker">North Pole Workshop · approved</span><h2>The big screen, assembled</h2>
+      <p>A 1920×1080 TV frame built only from the shared pieces: <code>garland()</code>, <code>.wordmark</code>, <code>.pill</code> + <code>turnDots()</code>, <code>createWheel()</code> with the garland as its lights, a <code>.gift-tag</code> with <code>slotChip()</code>, <code>.film-cue</code>, the ornament <code>timerRing()</code>, <code>mascot()</code>, <code>.question</code> and a <code>.holly-ribbon</code>, then <code>snowbank()</code>, <code>scoreTag()</code> and <code>snowfall()</code>. Compare with <a href="/concepts/north-pole-tv.html">the concept</a>.</p></header>
+    <div class="ks-tvframe" id="tvframe"><div class="ks-tv snow-page" id="tvstage"></div></div>
+  </section>
 
-    <!-- 01 WHEEL -->
-    <section class="ks-sec" id="sec-wheel">
-      <header><span class="eyebrow">01 · wheel.js</span><h2>The marquee wheel</h2>
-        <p>28 px tinsel rim with a brass bevel, 24 bulbs in a 3-phase chase (1.2 s idle; follows the wheel's speed while spinning; 150 ms hit-stop, then 3 flashes on landing), a 6 px night gutter, snow dividers, Big Shoulders labels, a peppermint hub and a gold teardrop pointer. Double Down gets candy-cane stripes with an ivory pill; Christmas Movies gets a gold curtain-fringe trim.</p></header>
-      <div class="ks-panel">
-        <div class="ks-wheel">
-          <div class="wheel-wrap" id="wheel-wrap"><svg id="wheel"></svg></div>
-          <div class="ks-ctrl">
-            <label class="field"><span class="label">Land on</span><select id="w-index"></select></label>
-            <label class="field"><span class="label">Duration (ms)</span><input type="number" id="w-dur" value="5000" min="0" step="250"></label>
-            <div class="ks-row">
-              <button class="btn btn--primary btn--md" id="w-spin" type="button">Spin</button>
-              <button class="btn btn--secondary btn--md" id="w-late" type="button">Late join (−2.5 s)</button>
-              <button class="btn btn--secondary btn--md" id="w-random" type="button">Random</button>
-            </div>
-            <div class="ks-row">
-              <button class="btn btn--ghost btn--sm" id="w-rest" type="button">Rest on</button>
-              <button class="btn btn--ghost btn--sm" id="w-hl" type="button">Highlight</button>
-              <button class="btn btn--ghost btn--sm" id="w-clear" type="button">Clear highlight</button>
-              <button class="btn btn--ghost btn--sm" id="w-idle" type="button" aria-pressed="false">Idle chase</button>
-            </div>
-            <label class="field"><span class="label">Bulbs</span>
-              <select id="w-bulbs"><option>rest</option><option>chase</option><option>spin</option><option>lit</option><option>blink</option><option>off</option></select>
-            </label>
-            <div class="ks-readout" id="w-read" aria-live="polite"></div>
-          </div>
-        </div>
+  <section class="ks-sec" id="wheel">
+    <header><span class="ks-kicker">wheel.js · sky.js garland()</span><h2>Wheel lab</h2>
+      <p>The candy-cane wheel lands exactly on the chosen slot. The garland follows it: twinkle at rest, chase while it spins (speed follows the wheel), flash ×3 on landing. <b>Tease</b> creeps into the slot before, hangs on the peg, then tips into the real one.</p></header>
+    <div class="lab">
+      <div class="lab__stage"><div class="lab__garland" id="labGarland"></div><svg class="lab__wheel" id="labWheel"></svg></div>
+      <div class="ks-panel lab__ctl">
+        <span class="ks-sub">Spin</span>
+        <div class="row"><select id="labIdx" aria-label="Target slot"></select><button class="btn btn--primary btn--md" type="button" id="labSpin">Spin</button></div>
+        <label class="row" style="--gap:.5rem;font-weight:700"><input type="checkbox" id="labTease"> Tease ending</label>
+        <div class="row"><button class="btn btn--secondary btn--sm" type="button" id="labRandom">Random</button><button class="btn btn--secondary btn--sm" type="button" id="labIdle">Idle chase</button><button class="btn btn--secondary btn--sm" type="button" id="labRest">Rest</button></div>
+        <span class="ks-sub">Garland modes</span>
+        <div class="row"><button class="btn btn--secondary btn--sm" type="button" data-gm="twinkle">Twinkle</button><button class="btn btn--secondary btn--sm" type="button" data-gm="chase">Chase</button><button class="btn btn--secondary btn--sm" type="button" data-gm="fast">Fast chase</button><button class="btn btn--secondary btn--sm" type="button" data-gm="flash">Flash ×3</button><button class="btn btn--holly btn--sm" type="button" data-gm="blink">Blink green</button><button class="btn btn--secondary btn--sm" type="button" data-gm="off">Off</button></div>
+        <div class="lab__log" id="labLog" aria-live="polite">Ready.</div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- 02 BUTTONS -->
-    <section class="ks-sec" id="sec-buttons">
-      <header><span class="eyebrow">02 · .btn · .btn-round</span><h2>Buttons</h2>
-        <p>Three-layer pushable buttons: a blurred shadow, a darker edge and a bright front that rests 4 px up. A press drops it to 2 px in 34 ms; on release it eases back over 600 ms (cubic-bezier(.3,.7,.4,1)). Focus is a 3 px tinsel ring at 3 px. BUZZ is the only big red button.</p></header>
-      <div class="ks-panel">
-        <div class="ks-row">
-          <div class="ks-item"><button class="btn btn--primary btn--xl" type="button">Start the show</button><span class="ks-cap">Primary · cranberry · <code>.btn--xl</code> TV 28/800</span></div>
-          <div class="ks-item"><button class="btn btn--gold btn--xl" type="button" id="gold-btn"></button><span class="ks-cap">Gold · tinsel, brass edge</span></div>
-          <div class="ks-item"><button class="btn btn--secondary btn--xl" type="button">Skip question</button><span class="ks-cap">Secondary · night-3</span></div>
-          <div class="ks-item"><button class="btn btn--danger btn--xl" type="button">Undo last score</button><span class="ks-cap">Destructive · berry-hi outline</span></div>
-        </div>
-        <div class="ks-row">
-          <div class="ks-item"><button class="btn btn--holly" type="button" id="holly-btn"></button><span class="ks-cap">Correct only · holly</span></div>
-          <div class="ks-item"><button class="btn btn--ember" type="button">Steal from The Grinches</button><span class="ks-cap">Ember · steal</span></div>
-          <div class="ks-item"><button class="btn btn--primary is-pressed" type="button">Pressed</button><span class="ks-cap"><code>.is-pressed</code></span></div>
-          <div class="ks-item"><button class="btn btn--gold focus-ring" type="button">Focused</button><span class="ks-cap">3 px tinsel ring</span></div>
-          <div class="ks-item"><button class="btn btn--ghost" type="button">Ghost</button><span class="ks-cap">Ghost</span></div>
-          <div class="ks-item"><button class="btn btn--dashed" type="button">Next turn · after judging</button><span class="ks-cap">Dashed · waiting</span></div>
-          <div class="ks-item"><button class="btn btn--primary" type="button" disabled>Disabled</button><span class="ks-cap">Disabled</span></div>
-        </div>
-        <div class="ks-row" id="btn-sizes"></div>
-        <div class="ks-row ks-row--center" style="justify-content:space-around;padding-top:1rem;gap:3rem 2rem">
-          <div class="ks-item ks-item--c"><span class="btn-halo is-live"><button class="btn-round btn-round--spin" id="spin-btn" type="button" aria-label="Spin the wheel"></button></span><span class="ks-cap">SPIN · 280 tinsel, 16 chasing bulbs, 12 px brass edge</span></div>
-          <div class="ks-item ks-item--c"><span class="btn-halo btn-halo--buzz is-live"><button class="btn-round btn-round--buzz" id="buzz-btn" type="button" aria-label="Buzz in"></button></span><span class="ks-cap">BUZZ · 280 cranberry, 12 px #8E0B22 edge</span></div>
-          <div class="ks-item ks-item--c"><button class="btn-round btn-round--won btn-round--sm" type="button" id="won-btn"></button><span class="ks-cap">You were first · holly</span></div>
-          <div class="ks-item ks-item--c"><button class="btn-round btn-round--closed btn-round--sm" type="button" id="closed-btn" disabled></button><span class="ks-cap">Locked out</span></div>
-        </div>
+  <section class="ks-sec" id="buttons">
+    <header><span class="ks-kicker">.btn</span><h2>Buttons</h2><p>A bright front on a 6 px darker lip that compresses on press. Focus ring: 3 px tinsel, 3 px offset (tab to see it).</p></header>
+    <div class="ks-panel">
+      <div class="ks-row" id="btnRow"></div>
+      <div class="ks-row" id="btnSizes"></div>
+    </div>
+  </section>
+
+  <section class="ks-sec" id="phone">
+    <header><span class="ks-kicker">peppermint() · ornamentBuzz()</span><h2>On the phone</h2><p>SPIN is a 280 px peppermint; BUZZ is a red ornament: armed (sway + glint), you're first (holly), someone else (silver + name), locked (dim silver + lock). Old <code>.btn-round</code> markup now renders the same way.</p></header>
+    <div class="phones" id="phones"></div>
+    <div class="ks-panel">
+      <div class="ks-row ks-row--top" id="buzzStates"></div>
+      <div class="ks-row ks-row--top" id="legacyRound"></div>
+    </div>
+  </section>
+
+  <section class="ks-sec" id="cards">
+    <header><span class="ks-kicker">.card · .gift-tag · .holly-ribbon · .candy-frame</span><h2>Cards &amp; gift tags</h2></header>
+    <div class="ks-grid" id="cardGrid"></div>
+  </section>
+
+  <section class="ks-sec" id="chips">
+    <header><span class="ks-kicker">slotChip() · .chip · .tag · .pill · .up-now</span><h2>Chips, tags &amp; pills</h2><p>Category chips use the slot colour, its ink and the 3D slot art. Sentence case everywhere.</p></header>
+    <div class="ks-panel">
+      <div class="ks-row ks-row--c" id="slotChips"></div>
+      <div class="ks-row ks-row--c" id="miscChips"></div>
+      <div class="ks-row ks-row--c" id="pills"></div>
+    </div>
+  </section>
+
+  <section class="ks-sec" id="teams">
+    <header><span class="ks-kicker">mascotImg() · teamDisc()</span><h2>Team mascots</h2><p>The 3D art is the mascot: no colour disc. Each team still has an accent colour for its tag, stocking and splash.</p></header>
+    <div class="ks-panel"><div class="ks-row ks-row--top" id="mascots"></div><div class="ks-row ks-row--c" id="discs"></div></div>
+  </section>
+
+  <section class="ks-sec" id="scores">
+    <header><span class="ks-kicker">scoreTag() · .score-tags</span><h2>Score tags</h2><p>White tiles on the snowbank. The team that is up is a raised candy tile with an "Up now" pill; the leader gets a glowing-star sticker. With 7–8 teams the row compacts itself.</p></header>
+    <div class="ks-panel ks-panel--snow"><div class="score-tags" id="score6" style="padding-top:1.5rem"></div></div>
+    <div class="ks-panel ks-panel--snow"><div class="score-tags" id="score8" style="padding-top:1.5rem"></div></div>
+  </section>
+
+  <section class="ks-sec" id="timers">
+    <header><span class="ks-kicker">timerRing() · updateTimerRing()</span><h2>Ornament timers</h2><p>Red bauble, gold cap and loop, Bagel number, gold progress ring. Under 5 s it pulses fast.</p></header>
+    <div class="ks-panel"><div class="ks-row" id="timerRow" style="padding-top:2.5rem"></div></div>
+  </section>
+
+  <section class="ks-sec" id="moments">
+    <header><span class="ks-kicker">present() · stocking() · bellMeter() · santaList() · .stamp · .splash</span><h2>Stage moments</h2></header>
+    <div class="ks-panel"><span class="ks-sub">Pick a present (bigger bow = harder) — click one to unwrap it</span><div class="ks-row" id="presents" style="padding-top:3rem;gap:2.5rem"></div></div>
+    <div class="ks-grid">
+      <div class="ks-panel"><span class="ks-sub">Stockings: lobby teams and Hot Seat progress</span><div class="ks-row" id="stockings" style="padding-top:2.5rem;padding-bottom:1.5rem;gap:3.75rem 2rem"></div><div class="stocking-row" id="hotseat"></div></div>
+      <div class="ks-panel"><span class="ks-sub">Room vote</span><div id="meters" class="stack" style="--gap:1.25rem"></div></div>
+      <div class="ks-panel"><span class="ks-sub">Rapid List</span><div id="list"></div></div>
+      <div class="ks-panel"><span class="ks-sub">Wrong · points · toasts</span><div class="ks-row ks-row--c" id="stamps"></div><div class="row" id="toasts"></div></div>
+    </div>
+    <div class="ks-grid" id="splashes"></div>
+  </section>
+
+  <section class="ks-sec" id="comedy">
+    <header><span class="ks-kicker">fx.js + sound.js</span><h2>Comedy kit</h2><p>Every gag is ≤ 2.5 s, returns a Promise and becomes a quick fade under reduced motion. Each button plays the gag with its paired sound (<code>GAG_SOUNDS</code>). Enable sound first.</p></header>
+    <div class="gag-stage" id="gagStage"></div>
+    <div class="ks-panel"><div class="gag-btns" id="gagBtns"></div></div>
+  </section>
+
+  <section class="ks-sec" id="sound">
+    <header><span class="ks-kicker">sound.js</span><h2>Sound board</h2><p>Everything is synthesised (works offline). Nothing plays until "Enable sound".</p></header>
+    <div class="ks-panel"><div class="sound-btns" id="soundBtns"></div></div>
+  </section>
+
+  <section class="ks-sec" id="palette">
+    <header><span class="ks-kicker">tokens.css</span><h2>Palette &amp; type</h2></header>
+    <div class="ks-panel">
+      <div class="stack" style="--gap:.5rem">
+        <span class="display" style="font-size:4rem;color:var(--candy)">Bagel Fat One</span>
+        <span class="question" style="font-size:2.25rem">Figtree 800 — In the 1964 special, what does Hermey want to be?</span>
+        <span class="lede">Figtree 600 ink-soft — helper text, 18–19 px on phones.</span>
+        <span class="hand" style="font-size:1.75rem">Santa's handwriting — Dasher, Dancer, Prancer…</span>
       </div>
-    </section>
-
-    <!-- 03 TYPE -->
-    <section class="ks-sec" id="sec-type">
-      <header><span class="eyebrow">03 · type</span><h2>Fraunces · Figtree · Big Shoulders</h2>
-        <p>Fraunces 900 (opsz 144, SOFT 100) for the wordmark, splash words, team names and card titles, and only for static numbers. Figtree for questions, body, buttons and every score and timer (tabular figures). Big Shoulders Display for eyebrows, letterboards, wheel labels and credits.</p></header>
-      <div class="ks-panel">
-        <dl class="ks-type" id="type"></dl>
-      </div>
-    </section>
-
-    <!-- 04 PALETTE -->
-    <section class="ks-sec" id="sec-palette">
-      <header><span class="eyebrow">04 · tokens</span><h2>Palette</h2>
-        <p>Cool night surfaces; everything you can touch or celebrate is a warm light. Use at most two accents per screen beyond navy, red and gold. Green is only for Correct and chartreuse only for Grinch Steal. Never set cranberry text on navy.</p></header>
-      <div class="ks-panel"><div class="ks-swatches" id="swatches"></div></div>
-    </section>
-
-    <!-- 05 CARDS -->
-    <section class="ks-sec" id="sec-cards">
-      <header><span class="eyebrow">05 · .card · .title-card · .silver-screen</span><h2>Cards</h2>
-        <p>Solid night-2, radius 28, with a 1 px inner top highlight. Hero cards add a 2 px gold hairline. The title-card frame is a thin double gold rule with art-deco notches. The silver screen (Christmas Movies) is charcoal with a vignette, grain and sprocket holes.</p></header>
-      <div class="ks-grid">
-        <div class="card card--md"><span class="eyebrow">Card</span><h3 class="display" style="font-size:2.25rem">Pick your difficulty</h3><p class="lede" style="font-size:1.25rem">Body text always sits on a solid surface. Glass is only for the score strip and toasts.</p><div class="card__hint" id="hint1"></div></div>
-        <div class="card card--md card--hero"><span class="eyebrow">Card · hero</span><h3 class="display" style="font-size:2.25rem">Team Rudolph takes the lead</h3><p class="lede" style="font-size:1.25rem">The 2 px inner gold hairline is a foil edge for moments that matter.</p></div>
-        <div class="card title-card" style="min-height:20rem;justify-content:center;align-items:center;text-align:center;gap:1rem"><span class="eyebrow eyebrow--tv">Coming up next</span><h3 class="display" style="font-size:3.5rem">Round 3</h3><p class="lede" style="font-size:1.5rem">The final round.</p></div>
-        <div class="card card--slot card--md" style="--slot-color:var(--slot-dare);--slot-ink:var(--slot-dare-ink)" id="slotcard"></div>
-      </div>
-      <div class="silver-screen title-card" style="padding-inline:3rem" id="screen-card"></div>
-    </section>
-
-    <!-- 06 CHIPS -->
-    <section class="ks-sec" id="sec-chips">
-      <header><span class="eyebrow">06 · .chip · .stub-chip · .tag · .pill</span><h2>Chips &amp; tags</h2>
-        <p>Eyebrow chips are slot-colour pills with the icon and a Big Shoulders caps label. Dark slots get a tinsel rim, Christmas Movies wears velvet, and Double Down is an ivory pill with a candy-cane rim. Once a movie is revealed, the film shows as a ticket-stub chip in its own colour.</p></header>
-      <div class="ks-panel">
-        <div class="ks-row" id="chips-lg"></div>
-        <div class="ks-row" id="chips-md"></div>
-        <div class="ks-row" id="chips-sm"></div>
-        <div class="ks-row ks-row--center" id="chips-meta"></div>
-        <div class="ks-row ks-row--center" id="stubs"></div>
-        <div class="ks-row ks-row--center" id="chips-status"></div>
-        <div class="ks-row ks-row--center" id="chips-players"></div>
-      </div>
-    </section>
-
-    <!-- 07 TICKETS -->
-    <section class="ks-sec" id="sec-tickets">
-      <header><span class="eyebrow">07 · .ticket</span><h2>Tickets</h2>
-        <p>ADMIT ONE tickets with notched corners and a perforation. The difficulty tickets get richer foil as they get harder: silver, light gold, then full foil. Gold foil is reserved for the golden ticket and the podium. Points are punched as dot-matrix holes.</p></header>
-      <div class="ks-grid ks-grid--3" id="tickets"></div>
-    </section>
-
-    <!-- 08 ORNAMENTS -->
-    <section class="ks-sec" id="sec-teams">
-      <header><span class="eyebrow">08 · teamDisc()</span><h2>Ornament team discs</h2>
-        <p>A colour ball with a brass cap and loop and a navy mascot glyph. The leader wears a gold star topper (the crown is retired), and the team that is up wears the pulsing red-nose beacon. Teams 7 and 8 have colour-blind lookalikes, so they are offered last.</p></header>
-      <div class="ks-panel">
-        <div class="ks-discs" id="discs"></div>
-        <div class="ks-row ks-row--center" id="disc-sizes" style="gap:2.5rem;padding-top:1.5rem"></div>
-      </div>
-    </section>
-
-    <!-- 09 SCORE STRIP -->
-    <section class="ks-sec" id="sec-strip">
-      <header><span class="eyebrow">09 · .score-strip · .ribbon</span><h2>Score strip</h2>
-        <p>A frosted bar, the only glass besides toasts. The active tile scales to 1.06 with a tinsel border, a gold glow, the cranberry UP NOW ribbon with candy-stripe ends and the red-nose beacon. Points count up over 700 ms and the tile flashes its team colour once.</p></header>
-      <div class="ks-panel">
-        <div class="ks-row ks-row--center"><span class="ribbon">Up now</span><span class="ribbon ribbon--sm">Your turn · Round 2 of 3</span>
-          <button class="btn btn--gold btn--sm" id="bump" type="button">+300 to Team Rudolph</button>
-          <button class="btn btn--secondary btn--sm" id="next-active" type="button">Next team up</button></div>
-        <div class="ks-strip"><div class="score-strip" id="strip"></div></div>
-        <span class="ks-sub">8 teams</span>
-        <div class="ks-strip"><div class="score-strip" id="strip8"></div></div>
-      </div>
-    </section>
-
-    <!-- 10 MARQUEE + BULBS -->
-    <section class="ks-sec" id="sec-marquee">
-      <header><span class="eyebrow">10 · .marquee · .letterboard · .bulb-string</span><h2>Now showing</h2>
-        <p>A cranberry marquee ringed by 28 chasing bulbs, with letters dropping onto the ivory letterboard one every 40 ms. The bulb string has steady, chase, flash, off, plug-in (flicker, die, blaze) and multicolour C9 states.</p></header>
-      <div class="ks-panel">
-        <div class="ks-marquee velvet" id="marquee-host"></div>
-        <div class="ks-row"><button class="btn btn--primary btn--md" id="mq-replay" type="button">Replay letters</button><button class="btn btn--secondary btn--md" id="mq-flash" type="button">Flash 3×</button></div>
-        <span class="ks-sub">Bulb string</span>
-        <div id="strings" style="display:flex;flex-direction:column;gap:0.5rem"></div>
-        <div class="ks-row" id="string-ctrl"></div>
-      </div>
-    </section>
-
-    <!-- 11 TIMERS -->
-    <section class="ks-sec" id="sec-timer">
-      <header><span class="eyebrow">11 · timerRing()</span><h2>Timer rings</h2>
-        <p>A gold arc on a 12% snow track with a glowing bulb at its head and the number in Figtree 800 tabular. Under 5 s the arc turns berry-hi.</p></header>
-      <div class="ks-panel">
-        <div class="ks-row ks-row--center" id="rings" style="gap:2.5rem"></div>
-        <div class="ks-row ks-row--center"><span id="live-ring"></span>
-          <button class="btn btn--secondary btn--md" id="t-start" type="button">Restart 12 s</button>
-          <button class="btn btn--secondary btn--md" id="t-pause" type="button">Pause / resume</button>
-          <button class="btn btn--secondary btn--md" id="t-add" type="button">+10 s</button></div>
-      </div>
-    </section>
-
-    <!-- 12 SPLASH -->
-    <section class="ks-sec" id="sec-splash">
-      <header><span class="eyebrow">12 · .splash</span><h2>Splash</h2>
-        <p>A full-bleed slot colour with a monoline wrapping-paper repeat at 9%, and the word in Fraunces 900 WONK. It pops in from 0.6 to 1.08 to 1 over 400 ms.</p></header>
-      <div class="ks-panel">
-        <label class="field" style="max-width:20rem"><span class="label">Slot</span><select id="splash-pick" class="input input--sm"></select></label>
-        <div class="ks-splash" id="splash-host"></div>
-      </div>
-    </section>
-
-    <!-- 13 LETTERBOX + TOAST -->
-    <section class="ks-sec" id="sec-moments">
-      <header><span class="eyebrow">13 · .letterbox · toast() · showBanner()</span><h2>Letterbox, toasts &amp; the reconnect banner</h2>
-        <p>Letterbox bars slide in to 2.39:1 over 400 ms for Double Down and Grinch Steal. Toasts are frosted pills with a gold rim, and the reconnect banner is a gold marquee strip.</p></header>
-      <div class="ks-grid">
-        <div class="ks-panel">
-          <div class="ks-lbox candy-stripe" id="lbox"><div class="letterbox letterbox--contained is-on" id="lbars"></div>
-            <div style="background:var(--night);padding:1.5rem 2.5rem;border-radius:1.25rem;box-shadow:var(--hairline-gold)"><span class="eyebrow eyebrow--tv">Double feature</span><div class="display display--wonk" style="font-size:clamp(2.5rem,5vw,4rem);margin-top:.5rem">Double Down!</div></div></div>
-          <div class="ks-row"><button class="btn btn--secondary btn--md" id="lb-toggle" type="button">Toggle letterbox</button></div>
-        </div>
-        <div class="ks-panel">
-          <div class="ks-row ks-row--center" id="toasts-static"></div>
-          <div class="ks-row"><button class="btn btn--gold btn--md" id="toast-btn" type="button">Show a toast</button><button class="btn btn--secondary btn--md" id="banner-btn" type="button">Show the reconnect banner</button><button class="btn btn--ghost btn--md" id="banner-off" type="button">Hide banner</button></div>
-          <div class="banner" style="position:relative;animation:none;border-radius:1rem;z-index:0" id="banner-demo"></div>
-          <div class="ks-row ks-row--center" style="gap:2rem"><span class="stamp" id="stamp">Not this time</span><span class="points-pop">+300</span><span class="points-pop points-pop--down">−100</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 14 PHONE -->
-    <section class="ks-sec" id="sec-phone">
-      <header><span class="eyebrow">14 · phone controller</span><h2>On the phone</h2>
-        <p>The phone stays dark with the same glows. The header is a ticket stub tinted with the team colour. Each screen has one job, and after any submit the phone points people to the TV.</p></header>
-      <div class="ks-phones">
-        <div class="ks-phone night-sky" id="phone1"></div>
-        <div class="ks-phone night-sky" id="phone2"></div>
-      </div>
-    </section>
-
-    <!-- 15 SOUND -->
-    <section class="ks-sec" id="sec-sound">
-      <header><span class="eyebrow">15 · sound.js</span><h2>Sound board</h2>
-        <p>Sleigh bells and celesta. Unlock audio first (top right). Every effect is a no-op before unlock or while muted.</p></header>
-      <div class="ks-panel"><div class="ks-snd" id="snd"></div></div>
-    </section>
-  </main>
+      <div class="sw" id="swatches"></div>
+    </div>
+  </section>
+</main>
 
 <script type="module">
+import { h, raw, ic, art, mascot, disc, slotChip, turnDots, timerRing, scoreTag, peppermint, ornamentBuzz, present, stocking, bellMeter, santaList, secretCard, bindSecretCard, toast, showBanner, hideBanner, formatPoints } from '/assets/client.js';
+import { createWheel, DEFAULT_SEGMENTS } from '/assets/wheel.js';
+import { garland, snowfall, snowbank, starfield } from '/assets/sky.js';
 import { MASCOTS } from '/assets/icons.js';
-import { createWheel, DEFAULT_SEGMENTS, indexAtRotation, offsetFromCentre } from '/assets/wheel.js';
 import * as sound from '/assets/sound.js';
-import { snowfall, starfield, bulbString, marqueeBulbs, letterboard } from '/assets/sky.js';
-import { h, raw, ic, disc, slotChip, turnDots, toast, showBanner, hideBanner, timerRing, updateTimerRing,
-  formatPoints, formatDelta, onPress, secretCard, bindSecretCard, animateNumber } from '/assets/client.js';
+import * as fx from '/assets/fx.js';
 
 const $ = (s) => document.querySelector(s);
+const set = (sel, markup) => { $(sel).innerHTML = String(markup); };
 const segs = DEFAULT_SEGMENTS;
-const uniq = segs.filter((s, i, a) => a.findIndex((x) => x.label === s.label) === i);
-const RUDOLPH = { id: 't3', name: 'Team Rudolph', color: '#FF5F6D', mascot: 'candy-cane' };
-const teams = [
-  { id: 't1', name: 'The Grinches', color: '#5FE0C1', mascot: 'tree-pine', score: 900 },
-  { id: 't2', name: 'Jingle Bell Rockers', color: '#F6C453', mascot: 'star', score: 750 },
-  { ...RUDOLPH, score: 1150, multiplier: 2 },
-  { id: 't4', name: 'Elf Help', color: '#FF8AD0', mascot: 'gift', score: 400 },
-  { id: 't5', name: 'Naughty List', color: '#DCE3F2', mascot: 'moon', score: 650 },
-  { id: 't6', name: 'Frosty’s Crew <b>xss</b>', color: '#6CB8FF', mascot: 'snowflake', score: 300 },
+const now = Date.now();
+const run = (ms, total = 30000) => ({ running: true, endsAt: now + ms, durationMs: total, remainingMs: total });
+const TEAMS = [
+  { id: 't1', name: 'The Grinches', mascot: 'tree', score: 900 },
+  { id: 't2', name: 'Jingle Bell Rockers', mascot: 'bell', score: 750 },
+  { id: 't3', name: 'Team Rudolph', mascot: 'deer', score: 1150 },
+  { id: 't4', name: 'Elf Help', mascot: 'gift', score: 400 },
+  { id: 't5', name: 'Naughty List', mascot: 'santa', score: 650 },
+  { id: 't6', name: 'Frosty’s Crew', mascot: 'snowman', score: 300 },
+  { id: 't7', name: 'Cookie Monsters', mascot: 'cookie', score: 550 },
+  { id: 't8', name: 'Star Struck', mascot: 'star', score: 200 },
 ];
-const teams8 = [...teams, { id: 't7', name: 'Cookie Monsters', color: '#FF9A3C', mascot: 'cookie', score: 2450 }, { id: 't8', name: 'Bell Ringers', color: '#B794FF', mascot: 'bell', score: 50 }];
-const goldStar = (size) => ic('star', { size, stroke: 1.6, color: '#C9962E', className: 'icon--filled' });
+const rudolph = TEAMS[2];
 
-/* ---- sky + top bar ---- */
-const sky = $('#sky');
-starfield(sky, { count: 34, seed: 2412 });
-const snow = snowfall(sky, { count: 46, avoid: ['#main'], margin: 0.5 });
-$('#brand').innerHTML = h`${goldStar(30)}Christmas Chaos`;
-$('#round').innerHTML = h`Round 2 of 3<span aria-hidden="true" style="width:1px;height:1.625rem;background:rgba(255,247,234,.18)"></span>${turnDots(2, 6)}`;
-$('#string').innerHTML = bulbString({ count: 16 });
-$('#toc').innerHTML = h`${[...document.querySelectorAll('.ks-sec')].slice(1).map((s) => h`<a class="chip chip--sm chip--outline" href="#${s.id}">${s.querySelector('h2').textContent}</a>`)}`;
-const vol = $('#vol');
-const muteBtn = $('#mute');
-const syncAudio = () => {
-  vol.value = String(sound.getVolume());
-  muteBtn.innerHTML = h`${ic(sound.isMuted() ? 'volume-x' : 'volume-2', { size: 18 })}${sound.isMuted() ? 'Muted' : 'Sound on'}`;
-  muteBtn.setAttribute('aria-pressed', String(sound.isMuted()));
-  $('#unlock').textContent = sound.isUnlocked() ? 'Audio on' : 'Unlock audio';
-};
-sound.onChange(syncAudio);
-syncAudio();
-$('#unlock').addEventListener('click', async () => { await sound.unlock(); syncAudio(); sound.correct(); });
-muteBtn.addEventListener('click', () => sound.toggleMute());
-vol.addEventListener('input', () => sound.setVolume(vol.value));
-$('#rm').addEventListener('change', (e) => { document.documentElement.classList.toggle('reduce-motion', e.target.checked); snow.refresh(); });
-
-/* ---- helpers ---- */
-const tileHTML = (list, act) => {
-  const lead = Math.max(...list.map((t) => t.score));
-  return h`${list.map((t, i) => h`
-    <div class="score-tile ${i === act ? 'is-active' : ''}" data-team="${t.id}" style="--team:${t.color}">
-      ${i === act ? raw('<span class="tag score-tile__tag">Up now</span>') : ''}
-      ${i === act && t.multiplier === 2 ? raw('<span class="score-tile__badge" role="img" aria-label="Points doubled this turn">×2</span>') : ''}
-      ${disc(t, { size: 56, leader: t.score === lead })}
-      <div class="score-tile__body"><span class="score-tile__name">${t.name}${t.score === lead ? raw('<span class="sr-only">, leader</span>') : ''}</span>
-        <span class="score-tile__score"><span class="num" data-value="${t.score}">${formatPoints(t.score)}</span></span></div>
-    </div>`)}`;
-};
-const questionCard = (seg) => h`
-  <div class="tvx-card__in">
-    <div class="tvx-head">
-      <div class="tvx-chips">
-        <div>${slotChip(seg)}<span class="chip chip--outline">Medium</span><span class="tvx-pts">200 points</span></div>
-        <span class="stub-chip" style="--chip-bg:#FF3B3B;--chip-ink:#0B1430">${ic('film', { size: 28, stroke: 2.4 })}<span class="stub-chip__rule" aria-hidden="true"></span><span><span class="sr-only">From the film: </span>Rudolph the Red-Nosed Reindeer (1964)</span></span>
-      </div>
-      <span class="tvx-ring"></span>
-    </div>
-    <div class="tvx-who">${disc(RUDOLPH, { size: 44, leader: true })}<span><strong>Team Rudolph</strong> — answer out loud</span>${ic('mic', { size: 30, color: 'var(--frost)' })}</div>
-    <h1 class="question tvx-q">In the 1964 special, what does Hermey the elf want to be instead of a toymaker?</h1>
-    <div class="card__hint" style="margin-top:auto;background:#121216">${ic('bell-ring', { size: 32, color: 'var(--ember)' })}<span>Miss it? The other teams can buzz in and <strong>steal it for 100</strong>.</span></div>
-  </div>`;
-
-/* ---- 00 TV composition ---- */
-const tv = $('#tv');
-tv.innerHTML = h`
+/* ---------------- TV composition ---------------- */
+const tv = $('#tvstage');
+tv.innerHTML = String(h`
+  <div class="tvx-garland" id="tvGarland"></div>
   <header class="tvx-top">
-    <span class="wordmark">${goldStar(30)}Christmas Chaos</span>
-    <span class="pill">Round 2 of 3<span aria-hidden="true" style="width:1px;height:26px;background:rgba(255,247,234,.18)"></span>${turnDots(2, 6)}</span>
-    <span class="tvx-join">${ic('smartphone', { size: 28, color: 'var(--frost)' })}Join at <b>10.0.0.235:3000</b></span>
+    <span class="wordmark">${art('tree', { size: 64, eager: true })}Christmas Chaos</span>
+    <span class="pill" aria-label="Round 2 of 3, turn 3 of 6">Round 2 of 3 ${turnDots(2, 6, { label: false })}</span>
+    <span class="tvx-join">Join at <strong>10.0.0.235:3000</strong></span>
   </header>
-  <div class="tvx-string">${raw(bulbString({ count: 16 }))}</div>
-  <div class="tvx-wheel wheel-wrap"><svg id="tv-wheel"></svg></div>
-  <section class="tvx-card silver-screen title-card">${questionCard(segs[4])}</section>
-  <div class="tvx-strip score-strip">${tileHTML(teams.map((t) => ({ ...t, name: t.name.replace(' <b>xss</b>', ''), multiplier: 0 })), 2)}</div>`;
-tv.querySelector('.tvx-ring').innerHTML = timerRing({ running: true, endsAt: Date.now() + 18000, durationMs: 20000 }, Date.now(), { size: 160, unit: 'SEC' }).html;
-starfield(tv, { count: 30, seed: 2412, lanes: [[0, 42]] });
-snowfall(tv, { count: 54, avoid: ['.tvx-card', '.tvx-wheel'], margin: 0 });
-const tvWheel = createWheel($('#tv-wheel'), segs, { label: 'Wheel preview' });
+  <div class="tvx-wheel"><svg id="tvWheel"></svg></div>
+  <section class="gift-tag gift-tag--twine tvx-card" aria-label="Current question">
+    <div class="tvx-head">
+      <div>
+        <div class="tvx-chips">${slotChip(segs[4])}<span class="chip chip--level">Medium</span><span class="chip chip--points">200 points</span></div>
+        <div class="film-cue">${art('film', { size: 34 })}Rudolph the Red-Nosed Reindeer (1964)</div>
+      </div>
+      ${timerRing(run(18000), now, { size: 150 })}
+    </div>
+    <div class="tvx-who">${mascot(rudolph, { size: 58, alt: '' })}<span><b>Team Rudolph</b>, answer out loud</span></div>
+    <h2 class="question">In the 1964 special, what does Hermey the elf want to be instead of a toymaker?</h2>
+    <div class="holly-ribbon">Miss it? The other teams can buzz in and <strong>steal it for 100</strong>.</div>
+  </section>
+  ${raw(snowbank())}
+  <div class="score-tags tvx-scores">${TEAMS.slice(0, 6).map((t) => scoreTag(t, { active: t.id === 't3', leader: t.id === 't3' }))}</div>`);
+const tvLights = garland($('#tvGarland'), { width: 1960 });
+const tvWheel = createWheel($('#tvWheel'), segs, { lights: tvLights });
 tvWheel.restOn(4, { highlight: true });
-const fitTv = () => {
-  const frame = $('#tvframe');
-  const k = frame.clientWidth / 1920;
-  tv.style.transform = `scale(${k})`;
-  frame.style.height = `${Math.round(1080 * k)}px`;
-};
+tvLights.twinkle();
+snowfall(tv, { count: 46, avoid: ['.tvx-card'], margin: 1 });
+const fitTv = () => { tv.style.transform = `scale(${$('#tvframe').clientWidth / 1920})`; };
 new ResizeObserver(fitTv).observe($('#tvframe'));
 fitTv();
 
-/* ---- 01 wheel ---- */
-const wheel = createWheel($('#wheel'), segs);
-wheel.idle(true);
-$('#w-idle').setAttribute('aria-pressed', 'true');
-const sel = $('#w-index');
-sel.innerHTML = h`${segs.map((s) => h`<option value="${s.index}">${s.index} · ${s.label}</option>`)}`;
-sel.value = '4';
-let ticks = 0;
-const read = (extra = '') => {
-  const r = wheel.rotation;
-  const i = indexAtRotation(r);
-  $('#w-read').innerHTML = h`rotation <b>${r.toFixed(3)}°</b><br>under pointer <b>${i}</b> (${segs[i].label})<br>offset from centre <b>${offsetFromCentre(r).toFixed(6)}°</b><br>ticks <b>${ticks}</b> · bulbs <b>${$('#wheel').dataset.bulbs}</b> ${raw(extra)}`;
-};
-read();
-const doSpin = (index, lateMs = 0) => {
-  ticks = 0;
-  const dur = Number($('#w-dur').value) || 0;
-  read('<br>spinning…');
-  sound.whoosh(400);
-  const iv = setInterval(() => read('<br>spinning…'), 100);
-  wheel.spinTo(index, dur, { startedAt: Date.now() - lateMs, onTick: () => { ticks++; sound.tick(); }, onDone: () => sound.land() })
-    .then((landed) => { clearInterval(iv); read(landed ? '<br><b>landed</b>' : '<br>cancelled'); });
-};
-$('#w-spin').addEventListener('click', () => doSpin(Number(sel.value)));
-$('#w-late').addEventListener('click', () => doSpin(Number(sel.value), 2500));
-$('#w-random').addEventListener('click', () => { const i = Math.floor(Math.random() * 12); sel.value = String(i); doSpin(i); });
-$('#w-rest').addEventListener('click', () => { wheel.restOn(Number(sel.value)); read(); });
-$('#w-hl').addEventListener('click', () => { wheel.highlight(Number(sel.value)); read(); });
-$('#w-clear').addEventListener('click', () => { wheel.highlight(null); read(); });
-$('#w-idle').addEventListener('click', (e) => {
-  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
-  e.currentTarget.setAttribute('aria-pressed', String(on));
-  wheel.idle(on);
-  read();
-});
-$('#w-bulbs').addEventListener('change', (e) => { wheel.bulbs(e.target.value); read(); });
-window.__wheel = wheel;
-window.__tvWheel = tvWheel;
+/* ---------------- Wheel lab ---------------- */
+const labLights = garland($('#labGarland'), { size: 'host' });
+const labWheel = createWheel($('#labWheel'), segs, { lights: labLights });
+labWheel.restOn(0);
+$('#labIdx').innerHTML = segs.map((s, i) => `<option value="${i}">${i} · ${s.label}</option>`).join('');
+const log = (t) => { $('#labLog').textContent = t; };
+async function labSpin(i) {
+  const tease = $('#labTease').checked;
+  log(`Spinning to ${i} · ${segs[i].label}${tease ? ' (tease)' : ''}…`);
+  let ticks = 0;
+  const ok = await labWheel.spinTo(i, 5000, { tease, onTick: () => { ticks++; sound.tick(); }, onDone: () => sound.land() });
+  if (ok) log(`Landed on ${labWheel.index} · ${segs[labWheel.index].label} after ${ticks} ticks. Rotation ${labWheel.rotation}°.`);
+}
+$('#labSpin').onclick = () => labSpin(Number($('#labIdx').value));
+$('#labRandom').onclick = () => labSpin(Math.floor(Math.random() * 12));
+$('#labIdle').onclick = () => { labWheel.idle(true); log('Idle: the garland chases.'); };
+$('#labRest').onclick = () => { labWheel.idle(false); labWheel.restOn(labWheel.index ?? 0); log('Resting: the garland twinkles.'); };
+for (const b of document.querySelectorAll('[data-gm]')) {
+  b.onclick = () => {
+    const m = b.dataset.gm;
+    if (m === 'fast') labLights.chase(0.45);
+    else if (m === 'chase') labLights.chase(1.2);
+    else if (m === 'flash') labLights.flash(3);
+    else if (m === 'blink') labLights.blink('#1F9D57', 3);
+    else labLights.mode(m);
+    log(`garland.${m === 'fast' ? 'chase(0.45)' : m === 'blink' ? "blink('#1F9D57')" : m === 'flash' ? 'flash(3)' : m === 'chase' ? 'chase(1.2)' : `mode('${m}')`}`);
+  };
+}
 
-/* ---- 02 buttons ---- */
-$('#gold-btn').innerHTML = h`${ic('play', { size: 26, stroke: 2.4 })}Next turn`;
-$('#holly-btn').innerHTML = h`${ic('check', { size: 24, stroke: 3 })}Correct`;
-$('#btn-sizes').innerHTML = h`
-  <div class="ks-item"><button class="btn btn--secondary btn--sm" type="button">${ic('pause', { size: 18 })}Pause <span class="kbd">T</span></button><span class="ks-cap">--sm · host 44</span></div>
-  <div class="ks-item"><button class="btn btn--secondary btn--md" type="button">${ic('undo-2', { size: 20 })}Undo last change <span class="kbd">U</span></button><span class="ks-cap">--md · host 48</span></div>
-  <div class="ks-item"><button class="btn btn--holly btn--md" type="button">${ic('check', { size: 20, stroke: 2.6 })}Correct <span class="kbd">C</span></button><span class="ks-cap">--md holly + kbd</span></div>
-  <div class="ks-item" style="width:min(340px,100%)"><button class="btn btn--primary btn--lg btn--block" type="button">${ic('lock', { size: 24 })}Lock in answer</button><span class="ks-cap">--lg --block · phone primary 68</span></div>
-  <div class="ks-item"><button class="btn btn--secondary btn--sm btn--icon" type="button" aria-label="Add 50 points">${ic('plus', { size: 20 })}</button><span class="ks-cap">--icon 44</span></div>
-  <div class="ks-item"><button class="btn btn--link" type="button">Switch team</button><span class="ks-cap">--link</span></div>`;
-$('#spin-btn').innerHTML = h`${ic('rotate-cw', { size: 40, stroke: 2.6 })}<span>SPIN</span>`;
-$('#buzz-btn').innerHTML = h`<span>BUZZ</span>`;
-$('#won-btn').innerHTML = h`${ic('check', { size: 40, stroke: 3 })}<span>FIRST!</span>`;
-$('#closed-btn').innerHTML = h`${ic('lock', { size: 30 })}<span>LOCKED</span>`;
-onPress($('#spin-btn'), () => { const i = Math.floor(Math.random() * 12); sel.value = String(i); doSpin(i); $('#sec-wheel').scrollIntoView({ behavior: 'smooth' }); }, { haptic: 30 });
-onPress($('#buzz-btn'), () => { sound.buzz(); toast(h`<strong>You</strong> buzzed first! Answer out loud`, { tone: 'gold', icon: 'bell-ring' }); }, { haptic: 80 });
+/* ---------------- Buttons ---------------- */
+set('#btnRow', h`
+  <button class="btn btn--primary" type="button">Start the game</button>
+  <button class="btn btn--holly" type="button">${ic('check', { size: 22, stroke: 3 })}Correct</button>
+  <button class="btn btn--gold" type="button">Award points</button>
+  <button class="btn btn--secondary" type="button">Skip</button>
+  <button class="btn btn--ember" type="button">Open the steal</button>
+  <button class="btn btn--danger" type="button">${ic('trash-2', { size: 20 })}Remove team</button>
+  <button class="btn btn--ghost" type="button">Ghost</button>
+  <button class="btn btn--dashed" type="button">${ic('plus', { size: 20 })}Add a team</button>
+  <button class="btn btn--link" type="button">Link button</button>
+  <button class="btn btn--primary" type="button" disabled>Disabled</button>
+  <button class="btn btn--primary focus-ring" type="button">Focus ring</button>`);
+set('#btnSizes', h`
+  <button class="btn btn--primary btn--sm" type="button">Small 44 <kbd class="kbd">N</kbd></button>
+  <button class="btn btn--secondary btn--md" type="button">Medium 48 <kbd class="kbd">T</kbd></button>
+  <button class="btn btn--primary btn--lg" type="button">Phone 68</button>
+  <button class="btn btn--primary btn--xl" type="button">TV 80 ${raw('<kbd class="kbd">Space</kbd>')}</button>
+  <button class="btn btn--secondary btn--icon" type="button" aria-label="Settings">${ic('settings', { size: 26 })}</button>`);
 
-/* ---- 03 type ---- */
-$('#type').innerHTML = h`
-  <dt>Wordmark · Fraunces 900 SOFT 100 · 40</dt><dd><span class="wordmark">${goldStar(30)}Christmas Chaos</span></dd>
-  <dt>Splash · Fraunces 900 WONK · 144</dt><dd><span class="display display--wonk" style="font-size:clamp(3.5rem,8vw,9rem);color:var(--tinsel)">Steal!</span></dd>
-  <dt>Card title · Fraunces 900 · 56</dt><dd><span class="display" style="font-size:clamp(2.25rem,4vw,3.5rem)">Hum it. Don’t say it.</span></dd>
-  <dt>Question · Figtree 700 · 60/1.15</dt><dd><span class="question" style="font-size:clamp(2rem,4vw,3.75rem)">Which reindeer has a red nose?</span></dd>
-  <dt>Body · Figtree 500 · 36</dt><dd><span style="font-size:clamp(1.25rem,2.4vw,2.25rem);font-weight:500;color:var(--frost)">Spin from any Team Rudolph phone.</span></dd>
-  <dt>Score / timer · Figtree 800 tabular</dt><dd><span class="num" style="font-size:3rem">1,150 · 0:18 · 1,111</span></dd>
-  <dt>Eyebrow · Big Shoulders 800 · 28 +0.12em</dt><dd><span class="eyebrow eyebrow--tv">Now casting · Spun by Max</span></dd>
-  <dt>Letterboard · Big Shoulders 900</dt><dd><span class="marquee-text" style="font-size:clamp(2.5rem,5vw,4rem);font-weight:900">Team Rudolph</span></dd>
-  <dt>Credits · Big Shoulders 400</dt><dd><span style="font:400 1.75rem/1.2 var(--font-marquee);letter-spacing:0.08em;text-transform:uppercase;color:var(--frost)">Star Performer ……… Aunt Linda</span></dd>
-  <dt>Quote marks · Fraunces italic</dt><dd><span class="quote-marks" style="font-size:7rem;vertical-align:-0.45em">“</span><span style="font-size:1.75rem;font-weight:600">Every time a bell rings…</span><span class="quote-marks" style="font-size:7rem;vertical-align:-0.45em">”</span></dd>`;
+/* ---------------- Phone ---------------- */
+const phoneTag = h`<div class="gift-tag gift-tag--sm gift-tag--twine">${mascot(rudolph, { size: 52, alt: '' })}<div class="tag-head__who"><div class="tag-head__team">Team Rudolph</div><div class="tag-head__me">You’re Aunt Linda</div></div><div class="tag-head__pts">1,150</div></div>`;
+const mini = (teams) => h`<div class="score-mini">${teams.map((t, k) => h`<div class="score-mini__item ${k === 0 ? 'is-me' : ''}">${art(t.mascot, { size: 28 })}<span class="score-mini__name">${t.name}</span><span class="score-mini__pts">${formatPoints(t.score)}</span></div>`)}</div>`;
+set('#phones', h`
+  <div class="phone" aria-label="Phone: your team is up"><div class="phone__in"><div class="phone__garland" id="pg1"></div>
+    ${phoneTag}
+    <h1>Your team is up!</h1><p class="sub">Tap the peppermint to spin the wheel on the TV.</p>
+    ${peppermint({ live: true })}
+    <div class="phone__preview">${ornamentBuzz({ className: 'ornament-btn--sm', attrs: raw('tabindex="-1" aria-hidden="true"') })}<p>When a steal opens, this red ornament becomes your buzzer. First tap wins.</p></div>
+    ${mini([rudolph, TEAMS[0], TEAMS[1], TEAMS[4]])}
+  </div></div>
+  <div class="phone" aria-label="Phone: steal"><div class="phone__in"><div class="phone__garland" id="pg2"></div>
+    ${phoneTag}
+    <h1>Steal it for 100!</h1><p class="sub">Know the answer? Tap the ornament first.</p>
+    <div style="display:grid;place-items:center;margin-top:8px">${ornamentBuzz()}</div>
+    <p class="sub" style="margin-top:auto">The Grinches and Elf Help can buzz too.</p>
+  </div></div>
+  <div class="phone" aria-label="Phone: secret"><div class="phone__in"><div class="phone__garland" id="pg3"></div>
+    ${phoneTag}
+    <h1>You’re humming!</h1><p class="sub">Press and hold the present to see your song. Don’t let your team peek.</p>
+    ${secretCard({ label: 'Your song', value: 'Jingle Bell Rock', rule: 'No words — hum it!', hint: 'Tilt your phone toward you first' })}
+  </div></div>`);
+for (const id of ['#pg1', '#pg2', '#pg3']) garland($(id), { size: 'phone' });
+bindSecretCard($('#phones'));
+set('#buzzStates', h`${['armed', 'first', 'other', 'locked'].map((st) => h`<div class="ks-item ks-item--c">${ornamentBuzz({ state: st, name: 'The Grinches', className: 'ornament-btn--md' })}<span class="ks-cap"><code>ornamentBuzz({ state: '${st}' })</code></span></div>`)}
+  <div class="ks-item ks-item--c">${peppermint({ spinning: true })}<span class="ks-cap"><code>peppermint({ spinning: true })</code></span></div>`);
+document.querySelectorAll('.ornament-btn--md').forEach((b) => b.style.setProperty('--size', '13rem'));
+set('#legacyRound', h`
+  <div class="ks-item ks-item--c"><button class="btn-round btn-round--spin btn-round--sm" type="button"><span>SPIN</span></button><span class="ks-cap">old <code>.btn-round--spin</code></span></div>
+  <div class="ks-item ks-item--c"><button class="btn-round btn-round--buzz btn-round--sm" type="button">${ic('bell-ring', { size: 40 })}<span>BUZZ</span></button><span class="ks-cap">old <code>.btn-round--buzz</code></span></div>
+  <div class="ks-item ks-item--c"><div class="btn-round btn-round--won btn-round--sm">${ic('check', { size: 40, stroke: 3 })}<span>FIRST!</span></div><span class="ks-cap">old <code>--won</code></span></div>
+  <div class="ks-item ks-item--c"><div class="btn-round btn-round--closed btn-round--sm">${ic('lock', { size: 36 })}<span>LOCKED</span></div><span class="ks-cap">old <code>--closed</code></span></div>`);
 
-/* ---- 04 palette ---- */
-const SW = [
-  ['--night', 'Page', 'snow 17.1'], ['--night-2', 'Cards', 'snow 14.8'], ['--night-3', 'Raised, pills', 'snow 12.5'], ['--snow', 'Primary text', 'never #FFF'],
-  ['--frost', 'Secondary text', '11.4 on night'], ['--muted', 'Tertiary ≥ 28 px', '6.3 on night'], ['--cranberry', 'Buttons, BUZZ, ribbons', 'never text on navy'], ['--cranberry-edge', 'Edges, pressed', ''],
-  ['--berry-hi', 'Red text on dark', '6.6 on night'], ['--tinsel', 'Gold, SPIN, focus', '11.2 on night'], ['--brass', 'Edges, caps, bevel', ''], ['--bulb', 'Bulb core', '+ --bulb-halo'],
-  ['--velvet', 'Curtains, Movies', 'snow 10.1'], ['--screen', 'Silver screen', 'snow 16.1'], ['--peppermint', 'Info, Showdown', 'ink 12.4'], ['--holly', 'Correct only', 'ink 7.9'],
-  ['--ember', 'Steal, All Play', 'ink 8.6'], ['--grinch', 'Grinch Steal only', 'ink 10.0'],
+/* ---------------- Cards ---------------- */
+set('#cardGrid', h`
+  <div class="gift-tag gift-tag--md gift-tag--twine" style="margin-top:2.5rem"><span class="ks-sub">.gift-tag.gift-tag--md.gift-tag--twine</span><p class="lede">White card, punched hole with a gold eyelet and candy-striped twine. Lobby QR + join URL live on a big one.</p><div class="row">${ic('qr-code', { size: 64, color: 'var(--ink)' })}<span style="font:800 1.5rem/1.2 var(--font-ui)">Join at<br><span style="color:var(--candy-deep)">10.0.0.235:3000</span></span></div></div>
+  <div class="card card--md"><span class="ks-sub">.card.card--md</span><p class="lede">Plain white paper card. Rules and hints go on a holly ribbon across the bottom.</p><div class="holly-ribbon">Nail it and your team gets <strong>200</strong>.</div></div>
+  <div class="candy-frame card--md" style="padding:1.5rem;display:flex;flex-direction:column;gap:.75rem;align-items:center;text-align:center"><span class="ks-sub">.candy-frame (Dare stage)</span>${art('masks', { size: 72 })}<span class="display" style="font-size:2.75rem;color:var(--candy)">Aunt Linda</span><span class="lede">Do your best Buddy the Elf answering the phone.</span></div>
+  <div class="card card--note card--md"><span class="ks-sub">.card--note (host coach)</span><span style="font:800 .9375rem var(--font-ui);color:var(--candy-deep)">Say this</span><p style="font:700 1.5rem/1.3 var(--font-ui)">“Team Rudolph, you’re up! Somebody grab a phone and spin.”</p></div>
+  <div class="card card--md card--slot" style="--slot-color:var(--slot-grinch);--slot-ink:var(--slot-grinch-ink)"><span class="ks-sub" style="color:inherit">.card--slot (Grinch Steal)</span><p style="font-weight:700">Steal 150 points from a team that is ahead of you.</p></div>
+  <div class="card card--md"><span class="ks-sub">.holly-ribbon variants</span><div class="holly-ribbon holly-ribbon--plain">Miss it? Others can <strong>steal it for 100</strong>.</div><div class="holly-ribbon holly-ribbon--plain holly-ribbon--ember">Steal! Buzz in for <strong>100</strong>.</div><div class="card__hint">Old <code>.card__hint</code> → a small ribbon.</div></div>`);
+
+/* ---------------- Chips ---------------- */
+const uniq = segs.filter((s, i) => segs.findIndex((x) => x.label === s.label) === i);
+set('#slotChips', h`${uniq.map((s) => slotChip(s, { size: 'md' }))}`);
+set('#miscChips', h`
+  ${slotChip(segs[4])}<span class="chip chip--level">Medium</span><span class="chip chip--points">200 points</span><span class="chip chip--outline chip--md">Outline</span>
+  ${slotChip(segs[6], { size: 'sm' })}<span class="chip chip--sm chip--points">+50</span>
+  <span class="film-cue">${art('film', { size: 34 })}Elf (2003)</span>`);
+set('#pills', h`
+  <span class="pill">Round 2 of 3 ${turnDots(2, 6)}</span>
+  <span class="pill pill--snow">Round 3 of 3 ${turnDots(4, 6)}</span>
+  <span class="up-now">Up now</span>
+  <span class="tag">Tag</span><span class="tag tag--holly">${ic('check', { size: 14, stroke: 3 })}Correct</span><span class="tag tag--berry">Locked</span><span class="tag tag--ember">Steal</span><span class="tag tag--snow">Waiting</span><span class="tag tag--ghost">Ghost</span>
+  <span class="player-chip">Grandma Carol</span><span class="player-chip is-you">You</span><span class="player-chip is-offline">Uncle Dave</span>
+  <span class="delta delta--up">+300</span><span class="delta delta--down">−100</span>
+  <span class="row" style="--gap:.5rem">${['red', 'gold', 'blue', 'green', 'orange', 'magenta'].map((c) => raw(`<i class="bulb" style="--c:var(--bulb-${c})"></i>`))}<i class="bulb is-off"></i></span>`);
+
+/* ---------------- Mascots ---------------- */
+set('#mascots', h`${MASCOTS.map((m, i) => h`<div class="ks-item ks-item--c">${mascot({ mascot: m.id, name: TEAMS[i].name }, 84)}<span style="display:inline-block;width:2.5rem;height:.5rem;border-radius:9px;background:${m.color}"></span><span class="ks-cap"><b>${m.id}</b> · ${m.colorName} <code>${m.color}</code></span></div>`)}`);
+set('#discs', h`
+  <div class="ks-item ks-item--c">${disc(TEAMS[0], { size: 64 })}<span class="ks-cap">teamDisc()</span></div>
+  <div class="ks-item ks-item--c">${disc(rudolph, { size: 64, leader: true })}<span class="ks-cap">leader</span></div>
+  <div class="ks-item ks-item--c">${disc(TEAMS[3], { size: 64, beacon: true })}<span class="ks-cap">beacon (up now)</span></div>
+  <div class="ks-item ks-item--c">${disc(TEAMS[5], { size: 84, halo: true })}<span class="ks-cap">halo</span></div>
+  <div class="ks-item ks-item--c" style="padding:1.25rem">${disc(rudolph, { size: 180, label: true, className: 'disc--hero' })}<span class="ks-cap" style="margin-top:1.25rem">disc--hero (turn intro)</span></div>`);
+
+/* ---------------- Score tags ---------------- */
+set('#score6', h`${TEAMS.slice(0, 6).map((t) => scoreTag(t, { active: t.id === 't3', leader: t.id === 't3' }))}`);
+set('#score8', h`${TEAMS.map((t) => scoreTag(t, { active: t.id === 't5', leader: t.id === 't3', badge: t.id === 't5' ? '×2' : '' }))}`);
+
+/* ---------------- Timers ---------------- */
+set('#timerRow', h`
+  <div class="ks-item ks-item--c">${timerRing(run(18000), now, { size: 150 })}<span class="ks-cap">TV 150</span></div>
+  <div class="ks-item ks-item--c">${timerRing(run(3000), now, { size: 124 })}<span class="ks-cap">under 5 s: fast pulse</span></div>
+  <div class="ks-item ks-item--c">${timerRing({ running: false, remainingMs: 9000, durationMs: 20000 }, now, { size: 124 })}<span class="ks-cap">paused</span></div>
+  <div class="ks-item ks-item--c">${timerRing(run(12000), now, { size: 110, tone: 'holly' })}<span class="ks-cap">tone: holly</span></div>
+  <div class="ks-item ks-item--c">${timerRing(run(24000), now, { size: 110, tone: 'gold' })}<span class="ks-cap">tone: gold</span></div>
+  <div class="ks-item ks-item--c">${timerRing(run(7000), now, { size: 72 })}<span class="ks-cap">phone 72 (compact)</span></div>
+  <div class="ks-item ks-item--c"><div id="liveTimer"></div><span class="ks-cap">live (updateTimerRing)</span></div>`);
+{
+  let t0 = Date.now();
+  const T = () => ({ running: true, endsAt: t0 + 20000, durationMs: 20000, remainingMs: 20000 });
+  const { updateTimerRing } = await import('/assets/client.js');
+  $('#liveTimer').innerHTML = String(timerRing(T(), Date.now(), { size: 124 }));
+  setInterval(() => { if (Date.now() > t0 + 20500) t0 = Date.now(); updateTimerRing($('#liveTimer'), T(), Date.now()); }, 250);
+}
+
+/* ---------------- Moments ---------------- */
+const levels = [['sm', 'Easy', 100, '#1F7A4A', '#EDB321'], ['md', 'Medium', 200, '#2E6FD1', '#FFFFFF'], ['lg', 'Hard', 300, '#D42A2A', '#EDB321']];
+set('#presents', h`${levels.map(([size, label, pts, color, ribbon]) => present({ size, label, points: pts, color, ribbon, inside: size === 'lg' ? 'popcorn' : size === 'md' ? 'masks' : 'tree', button: true, attrs: raw('data-unwrap') }))}`);
+document.querySelectorAll('[data-unwrap]').forEach((b) => b.addEventListener('click', () => {
+  if (b.classList.contains('is-unwrapping')) { b.classList.remove('is-unwrapping'); return; }
+  b.classList.add('is-unwrapping'); sound.whoosh(500); setTimeout(() => sound.land(), 350);
+}));
+set('#stockings', h`${TEAMS.slice(0, 4).map((t) => stocking({ team: t, label: t.name, hung: true, ariaLabel: `${t.name} stocking` }))}${stocking({ color: '#C9D8EA', state: 'empty', label: 'Needs elves' })}`);
+set('#hotseat', h`${['full', 'full', 'coal', 'full', '', ''].map((st, k) => stocking({ color: '#D42A2A', state: st || 'empty', size: 56, ariaLabel: `Question ${k + 1}` }))}`);
+set('#meters', h`${bellMeter({ label: 'Nailed it', count: 7, fill: 0.7, tone: 'holly' })}${bellMeter({ label: 'Good try', count: 3, fill: 0.3, tone: 'tinsel' })}`);
+set('#list', h`${santaList({ items: ['Dasher', 'Dancer', 'Prancer', 'Vixen'], total: 6, size: 'sm' })}`);
+set('#stamps', h`<span class="stamp is-in">Not this time</span><span class="points-pop">+200</span><span class="points-pop points-pop--down">−150</span>`);
+set('#toasts', h`<button class="btn btn--secondary btn--sm" type="button" id="t1">toast()</button><button class="btn btn--secondary btn--sm" type="button" id="t2">success</button><button class="btn btn--secondary btn--sm" type="button" id="t3">error</button><button class="btn btn--secondary btn--sm" type="button" id="t4">Reconnect banner</button>`);
+$('#t1').onclick = () => toast(h`Aunt Linda joined <strong>Team Rudolph</strong>`);
+$('#t2').onclick = () => toast('Points saved', { tone: 'success' });
+$('#t3').onclick = () => toast('That name is taken', { tone: 'error' });
+$('#t4').onclick = () => { showBanner('demo', 'Reconnecting to the workshop'); setTimeout(() => hideBanner('demo'), 3000); };
+set('#splashes', h`
+  <div class="ks-splash"><div class="splash splash--contained" style="--splash-bg:var(--slot-grinch);--splash-ink:var(--slot-grinch-ink)"><span class="splash__eyebrow">${art('money', { size: 40 })}The wheel landed on</span><h1 class="splash__word">Grinch Steal!</h1><p class="splash__sub">Steal 150 from a team ahead of you</p></div></div>
+  <div class="ks-splash"><div class="splash splash--contained splash--candy"><span class="splash__eyebrow">${art('sparkles', { size: 40 })}Spin again!</span><h1 class="splash__word">Double Down!</h1><p class="splash__sub" style="background:#fff;border-radius:1rem;padding:.25rem .75rem">Everything you win this turn is doubled</p></div></div>
+  <div class="ks-night night-sky" id="eve"><div><span class="display" style="font-size:3rem">Christmas Eve</span><p class="lede" style="margin-top:.5rem">.night-sky — Final Chaos only: the one dark screen</p></div></div>`);
+starfield($('#eve'), { count: 26 });
+
+/* ---------------- Comedy kit ---------------- */
+set('#gagStage', h`
+  <div class="ks-item ks-item--c">${mascot(rudolph, { size: 120, alt: '', className: 'gag-mascot' })}<span class="ks-cap">mascot</span></div>
+  <section class="gift-tag gift-tag--md gag-card"><span class="ks-sub">Team Rudolph answers…</span><p class="question" style="font-size:1.75rem">Which reindeer has a red nose?</p><div class="holly-ribbon holly-ribbon--plain" style="font-size:1.125rem">Hint ribbon</div></section>
+  <div class="ks-item ks-item--c" style="padding-top:1.5rem"><div id="gagTimer"></div><span class="ks-cap">ornament timer</span></div>`);
+const resetTimer = () => { $('#gagTimer').innerHTML = String(timerRing({ running: true, endsAt: Date.now() + 1000, durationMs: 20000 }, Date.now(), { size: 110 })); };
+resetTimer();
+const GAGS = [
+  ['bounce', 'Bounce (cheer)', () => fx.bounce($('.gag-mascot'))],
+  ['droop', 'Droop (sad)', () => fx.droop($('.gag-mascot'))],
+  ['wobble', 'Wobble', () => fx.wobble($('.gag-card'))],
+  ['shake', 'Shake', () => fx.shake($('.gag-card'))],
+  ['splat', 'Snowball splat', () => fx.splat($('.gag-card'))],
+  ['coalDrop', 'Coal drop (wrong)', () => fx.coalDrop($('.gag-card'))],
+  ['dash', 'Reindeer dash (correct)', () => fx.dash('deer')],
+  ['sneak', 'Grinch sneak (steal)', () => fx.sneak('money', { from: $('.gag-mascot') })],
+  ['melt', 'Melt (time up)', () => fx.melt($('#gagTimer .timer-ring')).then(() => setTimeout(resetTimer, 700))],
+  ['peek', 'Santa peek', () => fx.peek('santa', 'bottom-right', { say: 'Ho ho ho!' })],
+  ['confetti', 'Confetti', () => fx.confetti()],
+  ['heartGrow', 'Heart grows 3 sizes', () => fx.heartGrow($('.gag-card'))],
 ];
-const cs = getComputedStyle(document.documentElement);
-$('#swatches').innerHTML = h`${SW.map(([v, role, note]) => h`<div class="ks-sw"><i style="background:var(${v})"></i><div><b>${v}</b><small>${cs.getPropertyValue(v).trim()} · ${role}</small>${note ? h`<small>${note}</small>` : ''}</div></div>`)}
-  <div class="ks-sw"><i style="background:var(--foil)"></i><div><b>--foil</b><small>golden ticket + podium only</small></div></div>
-  <div class="ks-sw"><i style="background:var(--candy)"></i><div><b>--candy</b><small>Double Down stripes</small></div></div>`;
+set('#gagBtns', h`${GAGS.map(([k, label]) => h`<button class="btn btn--secondary btn--sm" type="button" data-gag="${k}">${label}</button>`)}`);
+for (const [k, , play] of GAGS) {
+  $(`[data-gag="${k}"]`).onclick = async (e) => {
+    const b = e.currentTarget;
+    b.disabled = true;
+    const snd = sound.GAG_SOUNDS[k];
+    if (snd) sound.play(snd);
+    const t = performance.now();
+    await play();
+    b.disabled = false;
+    b.title = `${Math.round(performance.now() - t)} ms`;
+  };
+}
 
-/* ---- 05 cards ---- */
-$('#hint1').innerHTML = h`${ic('bell-ring', { size: 28, color: 'var(--ember)' })}<span>Miss it? Others can <strong>steal it for 100</strong>.</span>`;
-$('#slotcard').innerHTML = h`<span class="chip chip--md" style="--chip-bg:#1A1206;--chip-ink:#F6C453;align-self:flex-start">${ic('clapperboard', { size: 22, color: '#F6C453' })}Take 1 · Dare</span>
-  <h3 class="display" style="font-size:clamp(2rem,3.5vw,3rem)">Act out a Christmas movie, no words!</h3>
-  <p style="font-size:1.375rem;font-weight:600">Aunt Linda has the secret on her phone. Team Rudolph has 60 seconds.</p>`;
-$('#screen-card').innerHTML = h`<div style="display:flex;flex-direction:column;gap:1.25rem;padding:1rem 0.5rem">
-  <div class="row" style="--gap:.875rem">${slotChip(segs[4])}<span class="chip chip--outline">Hard</span><span class="tvx-pts">300 points</span></div>
-  <div style="display:flex;gap:1rem;align-items:flex-start"><span class="quote-marks" style="font-size:9rem;margin-top:2.25rem">“</span><h3 class="question" style="font-size:clamp(1.75rem,3.4vw,3rem)">Finish the quote: “Every time a bell rings…”</h3></div>
-  <span class="stub-chip stub-chip--dark" style="--chip-bg:#1B1B1F;--chip-ink:#FFF7EA">${ic('bell', { size: 26, color: '#D7DDEA' })}<span class="stub-chip__rule" aria-hidden="true"></span>It’s a Wonderful Life (1946)</span></div>`;
-
-/* ---- 06 chips ---- */
-$('#chips-lg').innerHTML = h`${uniq.map((s) => slotChip(s))}`;
-$('#chips-md').innerHTML = h`${uniq.map((s) => slotChip(s, { size: 'md' }))}`;
-$('#chips-sm').innerHTML = h`${uniq.map((s) => slotChip(s, { size: 'sm' }))}`;
-$('#chips-meta').innerHTML = h`
-  <span class="chip chip--outline">Hard</span><span class="chip chip--outline chip--md">Medium</span><span class="chip chip--outline chip--sm">Easy</span>
-  <span class="tvx-pts">300 points</span>
-  <span class="pill">Round 2 of 3 ${turnDots(2, 6)}</span>`;
-const FILMS = [
-  ['It’s a Wonderful Life', '#1B1B1F', '#FFF7EA', 'bell'], ['Christmas Vacation', '#0B1430', '#FFF7EA', 'lightbulb'], ['Elf', '#FFD23F', '#0B1430', 'film'],
-  ['Home Alone', '#D62828', '#FFF7EA', 'film'], ['The Polar Express', '#E9B949', '#0B1430', 'train-front'], ['A Christmas Story', '#F6B042', '#0B1430', 'lamp'],
-  ['Jack Frost', '#CDEFFF', '#0B1430', 'snowflake'], ['Scrooged', '#C0186F', '#FFF7EA', 'tv'],
-];
-$('#stubs').innerHTML = h`${FILMS.map(([n, bg, ink, i]) => h`<span class="stub-chip stub-chip--sm${ink === '#FFF7EA' && /^#(0|1|2)/.test(bg) ? ' stub-chip--dark' : ''}" style="--chip-bg:${bg};--chip-ink:${ink}">${ic(i, { size: 18 })}<span class="stub-chip__rule" aria-hidden="true"></span>${n}</span>`)}`;
-$('#chips-status').innerHTML = h`
-  <span class="tag">Up now</span>
-  <span class="tag tag--holly">${ic('check', { size: 16, stroke: 3 })}Locked in</span>
-  <span class="tag tag--ember">Steal</span><span class="tag tag--berry">Locked out</span><span class="tag tag--pine">Answered</span><span class="tag tag--ghost">Waiting</span>
-  <span style="display:inline-flex;align-items:center;gap:.625rem;font-size:1.125rem;font-weight:700;color:var(--tinsel)">wagering<span class="dots"><i></i><i></i><i></i></span></span>
-  <span class="delta delta--up">${formatDelta(300)}</span><span class="delta delta--down">${formatDelta(-100)}</span>`;
-$('#chips-players').innerHTML = h`${['Aunt Linda', 'Sam', 'Noah', 'Max'].map((n) => h`<span class="player-chip">${n}</span>`)}<span class="player-chip is-you">Priya (you)</span><span class="player-chip is-offline">${ic('wifi-off', { size: 16 })}Grandpa Joe</span><span class="player-chip">${'<img src=x onerror=alert(1)>'}</span>`;
-
-/* ---- 07 tickets ---- */
-$('#tickets').innerHTML = h`
-  <div class="ks-item"><div class="drop" style="width:100%"><div class="ticket" style="--perf-x:66%;min-height:11rem">
-    <div class="ticket__main"><span class="ticket__admit">Admit one · Tonight’s feature</span><span class="ticket__title">Scan to get your ticket</span><span class="ticket__fine">10.0.0.235:3000 · Screen 1</span></div>
-    <div class="ticket__stub">${ic('qr-code', { size: 64, stroke: 1.8 })}<span class="ticket__num">No. 001225</span></div></div></div>
-    <span class="ks-cap">Lobby · ADMIT ONE <code>.ticket</code></span></div>
-  <div class="ks-item"><div class="drop" style="width:100%"><div class="ticket ticket--gold is-shimmer" style="min-height:11rem">
-    <div class="ticket__main"><span class="ticket__admit">Admit one · Team Rudolph</span><span class="punched" style="font-size:5.5rem;line-height:.9">+300</span><span class="ticket__fine">No. 001225 · Golden ticket</span></div>
-    <div class="ticket__stub">${ic('star', { size: 40, stroke: 1.8 })}<span class="ticket__num">Correct</span></div></div></div>
-    <span class="ks-cap">Golden ticket · foil, sheen, punched points <code>.ticket--gold .punched</code></span></div>
-  <div class="ks-item"><div class="drop" style="width:100%"><div class="ticket ticket--sealed" style="min-height:11rem">
-    <div class="ticket__main"><span class="ticket__admit" style="color:var(--tinsel)">Final Chaos · sealed</span><span class="ticket__title">${ic('lock', { size: 30, color: 'var(--tinsel)' })} Locked</span><span class="ticket__fine">Team Rudolph has wagered</span></div>
-    <div class="ticket__stub">${disc(RUDOLPH, { size: 48 })}</div></div></div>
-    <span class="ks-cap">Sealed wager <code>.ticket--sealed</code></span></div>
-  ${[['ticket--silver', 'Easy', '100'], ['ticket--light-gold', 'Medium', '200'], ['ticket--gold', 'Hard', '300']].map(([c, n, p]) => h`
-  <div class="ks-item"><div class="drop" style="width:100%"><div class="ticket ${c}" style="--perf-x:62%">
-    <div class="ticket__main"><span class="ticket__admit">Admit one</span><span class="ticket__title">${n}</span></div>
-    <div class="ticket__stub"><span class="ticket__title" style="font-family:var(--font-marquee);font-size:2.75rem">${p}</span><span class="ticket__fine">points</span></div></div></div>
-    <span class="ks-cap">Difficulty · <code>.${c}</code></span></div>`)}`;
-
-/* ---- 08 ornaments ---- */
-const NAMES = ['Team Rudolph', 'Jingle Bell Rockers', 'Frosty’s Crew', 'The Grinches', 'Elf Help', 'Naughty List', 'Cookie Monsters', 'Bell Ringers'];
-$('#discs').innerHTML = h`${MASCOTS.map((m, i) => h`<div class="ks-disc">${disc({ color: m.color, mascot: m.id, name: NAMES[i] }, { size: 56, ornament: true, label: true })}<div><b>${i + 1} · ${m.colorName}</b><small>${m.color} · ${m.id}${i >= 6 ? ' · offer last' : ''}</small></div></div>`)}`;
-$('#disc-sizes').innerHTML = h`${[[36, 'Phone header 36', {}], [56, 'Score tile 56', { ornament: true }], [56, 'Leader · star topper', { leader: true }], [56, 'Up now · red-nose beacon', { ornament: true, beacon: true }], [104, 'Podium 104', { leader: true }], [200, 'Turn intro 200', { ornament: true }]].map(([s, c, o]) => h`<div class="ks-item ks-item--c">${disc(RUDOLPH, { size: s, ...o })}<span class="ks-cap">${c}</span></div>`)}`;
-
-/* ---- 09 strip ---- */
-let active = 2;
-const renderStrip = () => {
-  $('#strip').innerHTML = tileHTML(teams, active);
-  $('#strip8').innerHTML = tileHTML(teams8, 6);
-};
-renderStrip();
-$('#bump').addEventListener('click', () => {
-  const t = teams[2];
-  const tile = $('#strip [data-team="t3"]');
-  if (!tile) return;
-  t.score += 300;
-  animateNumber(tile.querySelector('.num'), t.score, { duration: 700 });
-  tile.classList.remove('is-bump'); void tile.offsetWidth; tile.classList.add('is-bump');
-  sound.correct();
-});
-$('#next-active').addEventListener('click', () => { active = (active + 1) % teams.length; renderStrip(); });
-
-/* ---- 10 marquee + bulbs ---- */
-const renderMarquee = () => {
-  $('#marquee-host').innerHTML = h`<div class="marquee is-chase" id="mq">${raw(marqueeBulbs())}<span class="marquee__eyebrow">Now showing</span>${raw(letterboard('Team Rudolph'))}<span style="font:700 1.375rem/1.2 var(--font-ui);color:var(--snow)">Spin from any Team Rudolph phone</span></div>`;
-};
-renderMarquee();
-$('#mq-replay').addEventListener('click', renderMarquee);
-$('#mq-flash').addEventListener('click', () => { const m = $('#mq'); m.classList.remove('is-chase', 'is-flash'); void m.offsetWidth; m.classList.add('is-flash'); setTimeout(() => { m.classList.remove('is-flash'); m.classList.add('is-chase'); }, 1200); });
-$('#strings').innerHTML = ['', 'is-chase', 'bulb-string--c9 is-chase'].map((c) => bulbString({ count: 16, className: c })).join('');
-$('#string-ctrl').innerHTML = h`${['is-flash', 'is-off', 'is-plugin'].map((c) => h`<button class="btn btn--secondary btn--sm" type="button" data-state="${c}">${c === 'is-flash' ? 'Flash 3×' : c === 'is-off' ? 'Off' : 'Plug-in gag'}</button>`)}`;
-$('#string-ctrl').addEventListener('click', (e) => {
-  const b = e.target.closest('[data-state]');
-  if (!b) return;
-  const el = $('#strings .bulb-string');
-  el.className = `bulb-string ${b.dataset.state}`;
-  if (b.dataset.state === 'is-plugin') sound.plugIn();
-  if (b.dataset.state !== 'is-off') setTimeout(() => { el.className = 'bulb-string'; }, 1800);
-});
-
-/* ---- 11 timers ---- */
-let timer = { running: true, endsAt: Date.now() + 18000, durationMs: 20000, remainingMs: 18000 };
-const now0 = Date.now();
-$('#rings').innerHTML = h`
-  <div class="ks-item ks-item--c">${timerRing({ running: true, endsAt: now0 + 18000, durationMs: 20000 }, now0, { size: 160, unit: 'SEC' })}<span class="ks-cap">TV · 160 · 18 s left</span></div>
-  <div class="ks-item ks-item--c">${timerRing({ running: true, endsAt: now0 + 3500, durationMs: 20000 }, now0, { size: 160, unit: 'SEC' })}<span class="ks-cap">Under 5 s · berry-hi</span></div>
-  <div class="ks-item ks-item--c">${timerRing({ running: false, remainingMs: 9000, durationMs: 20000 }, now0, { size: 124 })}<span class="ks-cap">Paused</span></div>
-  <div class="ks-item ks-item--c">${timerRing({ running: true, endsAt: now0 + 41000, durationMs: 45000 }, now0, { size: 72 })}<span class="ks-cap">Phone · 72</span></div>
-  <div class="ks-item ks-item--c" style="background:var(--slot-dare);color:var(--slot-dare-ink);padding:1rem 1.25rem;border-radius:1.25rem">${timerRing({ running: true, endsAt: now0 + 42000, durationMs: 60000 }, now0, { size: 112, ink: true })}<span class="ks-cap" style="color:inherit">--ink on a slot card</span></div>`;
-$('#live-ring').innerHTML = timerRing(timer, Date.now(), { size: 124 }).html;
-let lastSec = 0;
-const loop = () => {
-  const s = updateTimerRing($('#live-ring'), timer, Date.now());
-  if (s !== lastSec) { if (s > 0 && s <= 5 && timer.running) sound.beep(s === 1); lastSec = s; }
-  requestAnimationFrame(loop);
-};
-requestAnimationFrame(loop);
-$('#t-start').addEventListener('click', () => { timer = { running: true, endsAt: Date.now() + 12000, durationMs: 12000, remainingMs: 12000 }; });
-$('#t-pause').addEventListener('click', () => {
-  const now = Date.now();
-  timer = timer.running ? { ...timer, running: false, remainingMs: Math.max(0, timer.endsAt - now) } : { ...timer, running: true, endsAt: now + timer.remainingMs };
-});
-$('#t-add').addEventListener('click', () => {
-  timer = timer.running ? { ...timer, endsAt: timer.endsAt + 10000, durationMs: timer.durationMs + 10000 } : { ...timer, remainingMs: timer.remainingMs + 10000, durationMs: timer.durationMs + 10000 };
-});
-
-/* ---- 12 splash ---- */
-const sp = $('#splash-pick');
-sp.innerHTML = h`${uniq.map((s) => h`<option value="${s.index}">${s.label}</option>`)}`;
-sp.value = '11';
-const SUBS = { doubledown: h`Team Rudolph spins again. Everything you win is <span class="highlight-word">doubled</span>`, grinch: h`Steal 150 from a team ahead of you`, dare: h`One performer. No script.` };
-const renderSplash = () => {
-  const s = segs[Number(sp.value)];
-  const candy = s.pattern === 'candy';
-  $('#splash-host').innerHTML = h`<div class="splash splash--contained ${candy ? 'splash--candy' : ''}" style="--splash-bg:${s.color};--splash-ink:${s.ink}">
-    <span class="splash__eyebrow">${ic(s.icon, { size: 26, color: 'currentColor' })}The wheel landed on</span>
-    <h1 class="splash__word">${s.label}!</h1>
-    <p class="splash__sub" ${candy ? raw('style="background:var(--snow);padding:.25rem 1rem;border-radius:.75rem"') : ''}>${SUBS[s.type] || 'Get ready, Team Rudolph'}</p></div>`;
-};
-sp.addEventListener('change', renderSplash);
-renderSplash();
-
-/* ---- 13 letterbox + toasts ---- */
-$('#lb-toggle').addEventListener('click', () => $('#lbars').classList.toggle('is-on'));
-$('#toasts-static').innerHTML = h`
-  <div class="toast" style="animation:none">${ic('bell', { size: 24, color: 'var(--tinsel)' })}<span class="toast__text"><strong>Priya</strong> joined Team Rudolph</span></div>
-  <div class="toast toast--success" style="animation:none">${ic('circle-check', { size: 24, color: 'var(--holly)' })}<span class="toast__text">Answer locked in</span></div>
-  <div class="toast toast--error" style="animation:none">${ic('triangle-alert', { size: 24, color: 'var(--berry-hi)' })}<span class="toast__text">That name is taken</span></div>`;
-$('#banner-demo').innerHTML = h`${ic('wifi-off', { size: 22 })}<span>Reconnecting to the game</span><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>`;
-$('#toast-btn').addEventListener('click', () => { toast(h`<strong>Team Rudolph</strong> is up next`, { tone: 'gold', icon: 'star' }); sound.dingLock(); });
-$('#banner-btn').addEventListener('click', () => showBanner('net', 'Reconnecting to the game', { tone: 'warn' }));
-$('#banner-off').addEventListener('click', () => hideBanner('net'));
-$('#stamp').addEventListener('click', (e) => { const s = e.currentTarget; s.classList.remove('is-in'); void s.offsetWidth; s.classList.add('is-in'); sound.wrong(); });
-
-/* ---- 14 phone ---- */
-const phoneHead = h`<div class="ticket ph-head">
-  <div class="ticket__main">${disc(RUDOLPH, { size: 36, leader: true })}<div style="min-width:0"><div class="ph-team">Team Rudolph</div><div class="ph-you">You’re Max</div></div></div>
-  <div class="ticket__stub"><span class="ph-score">1,150<span class="sr-only"> points</span></span><span class="ph-place">${ic('star', { size: 11, stroke: 1.5 })}1st place</span></div></div>`;
-$('#phone1').innerHTML = h`${phoneHead}
-  <span class="ribbon ribbon--sm" style="margin-top:1rem">Your turn · Round 2 of 3</span>
-  <h3 class="ph-title">Your team is up!</h3><p class="ph-sub">Tap SPIN to spin the wheel on the TV.</p>
-  <span class="btn-halo is-live" style="margin:1.25rem 0 1rem"><button class="btn-round btn-round--spin" type="button" aria-label="Spin the wheel on the TV" id="ph-spin">${ic('rotate-cw', { size: 40, stroke: 2.6 })}<span>SPIN</span></button></span>
-  <p style="display:flex;align-items:center;gap:.5rem;font-weight:600;font-size:1.0625rem">${ic('users', { size: 22, color: 'var(--frost)' })}Anyone on Team Rudolph can spin</p>
-  <div class="ph-mates">${['Aunt Linda', 'Sam', 'Noah'].map((n) => h`<span class="player-chip">${n}</span>`)}<span class="player-chip is-you">Max · you</span></div>`;
-$('#phone2').innerHTML = h`${phoneHead}
-  <span class="eyebrow" style="margin-top:1rem">Steal · buzz in for 150</span>
-  <h3 class="ph-title">Know it?</h3>
-  <span class="btn-halo btn-halo--buzz is-live" style="margin:1rem 0 1.25rem"><button class="btn-round btn-round--buzz" type="button" aria-label="Buzz in">BUZZ</button></span>
-  ${secretCard({ label: 'Your movie', value: 'Home Alone', rule: 'Act it out, no words!', tag: 'For your eyes only' })}
-  <div class="ph-wait">${ic('projector', { size: 56, color: 'var(--tinsel)', stroke: 2 })}<span class="marquee-text" style="font-size:1.5rem">Eyes on the TV</span><span style="font-size:.9375rem;color:var(--frost);font-weight:600">Now showing: Dare</span></div>`;
-document.querySelectorAll('[data-secret-card]').forEach((el) => bindSecretCard(el));
-document.querySelectorAll('.ks-phone').forEach((p, i) => snowfall(p, { count: 14, seed: 844 + i, lanes: [[0, 9], [91, 100]] }));
-
-/* ---- 15 sound ---- */
-const SOUNDS = [
-  ['tick', 'Wheel tick', 'rotate-cw', () => sound.tick()], ['land', 'Landing', 'target', () => sound.land()], ['correct', 'Correct', 'check', () => sound.correct()],
-  ['wrong', 'Wrong (wah)', 'x', () => sound.wrong()], ['buzz', 'Buzz-in honk', 'bell-ring', () => sound.buzz()], ['leaderBeep', 'Film-leader beep', 'film', () => sound.leaderBeep()],
-  ['beep', 'Final beep', 'timer', () => sound.beep(true)], ['plugIn', 'Plug-in gag', 'zap', () => sound.plugIn()], ['doubleDown', 'Double Down', 'sparkles', () => sound.doubleDown()],
-  ['dingLock', 'Wager locked', 'lock', () => sound.dingLock()], ['fanfare', 'Fanfare', 'party-popper', () => sound.fanfare()], ['podium', 'Podium + choir', 'trophy', () => sound.podium()],
-  ['sleighBells', 'Sleigh bells', 'bell', () => sound.sleighBells()], ['steam', 'Steam wipe', 'refresh-cw', () => sound.steam()], ['whoosh', 'Whoosh', 'arrow-right', () => sound.whoosh()],
-  ['applause', 'Applause', 'hand-metal', () => sound.applause()], ['drumroll', 'Drumroll', 'hourglass', () => sound.drumroll(1600)],
-];
+/* ---------------- Sound board ---------------- */
+const SOUNDS = Object.keys(sound.EFFECTS);
+set('#soundBtns', h`${SOUNDS.map((n) => h`<button class="btn btn--secondary btn--sm ${['slideWhistle', 'sadTrombone', 'sleighRun', 'hoHoHo', 'boing', 'splat', 'kaChing', 'cymbal', 'crowdOoh'].includes(n) ? 'btn--gold' : ''}" type="button" data-snd="${n}">${n}</button>`)}<button class="btn btn--secondary btn--sm" type="button" id="amb">ambience() on/off</button>`);
+document.querySelectorAll('[data-snd]').forEach((b) => (b.onclick = () => sound.play(b.dataset.snd)));
 let stopAmb = null;
-$('#snd').innerHTML = h`${SOUNDS.map(([k, label, i]) => h`<button class="btn btn--secondary btn--md" type="button" data-snd="${k}">${ic(i, { size: 20, color: 'var(--tinsel)' })}${label}</button>`)}<button class="btn btn--gold btn--md" type="button" id="amb">${ic('projector', { size: 20 })}Ambience: off</button>`;
-$('#snd').addEventListener('click', async (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  if (!sound.isUnlocked()) await sound.unlock();
-  if (b.id === 'amb') {
-    if (stopAmb) { stopAmb(); stopAmb = null; } else stopAmb = sound.ambience();
-    b.innerHTML = h`${ic('projector', { size: 20 })}Ambience: ${stopAmb ? 'on' : 'off'}`.html;
-    return;
-  }
-  SOUNDS.find((s) => s[0] === b.dataset.snd)?.[3]();
-});
-document.documentElement.dataset.ready = '1';
+$('#amb').onclick = () => { if (stopAmb) { stopAmb(); stopAmb = null; } else stopAmb = sound.ambience(); };
+$('#unlock').onclick = async () => { const ok = await sound.unlock(); $('#unlock').textContent = ok ? 'Sound on' : 'No audio'; if (ok) sound.sleighBells(900); };
+$('#vol').value = String(sound.getVolume());
+$('#vol').oninput = (e) => sound.setVolume(e.target.value);
+$('#rm').onchange = (e) => document.documentElement.classList.toggle('reduce-motion', e.target.checked);
+
+/* ---------------- Palette ---------------- */
+const SW = [['--snow', 'page'], ['--snowbank', 'surfaces'], ['--snow-shade', 'hairlines'], ['--paper', 'cards'], ['--candy', 'primary'], ['--candy-deep', 'lip / red text'], ['--holly', 'correct'], ['--holly-deep', 'lip'], ['--tinsel', 'stars, points'], ['--tinsel-deep', 'lip'], ['--ink', 'text'], ['--ink-soft', 'secondary text'], ['--cocoa', 'wood'], ['--grinch', 'Grinch only'], ['--ember', 'steal'], ['--movie', 'Christmas Movies'], ['--sky', 'team'], ['--violet', 'team'], ['--pink', 'team'], ['--teal', 'team']];
+set('#swatches', h`${SW.map(([v, use]) => h`<div><i style="background:var(${v});box-shadow:inset 0 0 0 1px rgba(28,35,51,.08)"></i><span>${use}</span><small>${v}</small></div>`)}`);
 </script>
 </body>
 </html>

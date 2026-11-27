@@ -11,7 +11,10 @@
 // Pure helpers (esc, h, raw, formatPoints, timer math …) have no DOM access at import time, so node tests
 // can import this module directly.
 
-import { icon, teamDisc, isTrustedMarkup, safeColor } from './icons.js';
+import { icon, teamDisc, isTrustedMarkup, safeColor, artImg, mascotImg, mascotFor, hasArt } from './icons.js';
+
+// The 3D art helpers live in icons.js (pure); re-exported here so pages import everything from one place.
+export { artImg, mascotImg, mascotFor };
 
 /* ================================================================== escaping & templates ====== */
 
@@ -159,30 +162,33 @@ const RING_R = 54;
 const RING_C = 2 * Math.PI * RING_R; // 339.29
 
 /**
- * Timer ring markup (gold arc on a 12% snow track with a glowing bulb at its head, number in Figtree 800
- * tabular; berry-hi in the last 5 s).
+ * The ornament timer (NORTH-POLE.md §4): a shiny red bauble with a gold cap + loop, the number in Bagel Fat One
+ * white and a gold progress ring; it pulses fast in the last 5 s. Class names are the old .timer-ring ones.
+ * The cap + loop stick out ~20% of the size above the ball, so leave headroom.
  * @param {object|null} timer  state.timer {running, endsAt, durationMs, remainingMs, label}
  * @param {number} now          server time (client.serverNow())
- * @param {{size?:number, unit?:string, ink?:boolean, className?:string}} [opts] size in design px (default 124)
+ * @param {{size?:number, unit?:string, ink?:boolean, tone?:'candy'|'holly'|'gold', className?:string}} [opts]
+ *   size = ball diameter in design px (default 124; the TV concept uses 150). Under 90 px the unit is dropped.
  */
 export function timerRing(timer, now = Date.now(), opts = {}) {
-  const { size = 124, unit = 'SECONDS', ink = false, className = '' } = opts;
+  const { size = 124, unit = 'seconds', ink = false, tone = 'candy', className = '' } = opts;
   const frac = timerFraction(timer, now);
   const secs = timerText(timer, now);
   const warn = timerWarn(timer, now);
   const paused = !!timer && !timer.running && timerRemaining(timer, now) > 0;
   const compact = Number(size) < 90; // phone-size rings drop the SECONDS label
-  const cls = ['timer-ring', compact && 'timer-ring--compact', warn && 'is-warn', paused && 'is-paused', ink && 'timer-ring--ink', className]
+  const cls = ['timer-ring', compact && 'timer-ring--compact', warn && 'is-warn', paused && 'is-paused', ink && 'timer-ring--ink', tone === 'holly' && 'timer-ring--holly', tone === 'gold' && 'timer-ring--gold', className]
     .filter(Boolean)
     .join(' ');
   const offset = (RING_C * (1 - frac)).toFixed(1);
   return h`<div class="${cls}" style="--ring-size:${+(Number(size) / 16 || 7.75).toFixed(4)}rem" role="timer" aria-label="${secs} seconds left" data-timer-ring>
-  <svg viewBox="0 0 124 124" aria-hidden="true" focusable="false"><circle class="timer-ring__track" cx="62" cy="62" r="54" fill="none" stroke-width="10"/><circle class="timer-ring__arc" cx="62" cy="62" r="54" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${offset}" transform="rotate(-90 62 62)"/><g class="timer-ring__head" style="${headStyle(frac)}"><circle cx="62" cy="8" r="8.5"/><circle cx="62" cy="8" r="4"/></g></svg>
-  <div class="timer-ring__center"><span class="timer-ring__num">${secs}</span><span class="timer-ring__unit">${paused ? 'PAUSED' : unit}</span></div>
+  <span class="timer-ring__loop" aria-hidden="true"></span><span class="timer-ring__cap" aria-hidden="true"></span>
+  <svg viewBox="-5 -5 134 134" aria-hidden="true" focusable="false"><circle class="timer-ring__track" cx="62" cy="62" r="54" fill="none" stroke-width="10"/><circle class="timer-ring__arc" cx="62" cy="62" r="54" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${offset}" transform="rotate(-90 62 62)"/><g class="timer-ring__head" style="${headStyle(frac)}"><circle cx="62" cy="8" r="8.5"/><circle cx="62" cy="8" r="4"/></g></svg>
+  <div class="timer-ring__center"><span class="timer-ring__num">${secs}</span><span class="timer-ring__unit">${paused ? 'Paused' : unit}</span></div>
 </div>`;
 }
 
-/** The glowing bulb rides the end of the arc (clockwise from 12 o'clock). */
+/** A white glint rides the end of the gold arc (clockwise from 12 o'clock). */
 function headStyle(frac) {
   return `transform-box:view-box;transform-origin:62px 62px;transform:rotate(${(360 * frac).toFixed(1)}deg)`;
 }
@@ -191,7 +197,7 @@ function headStyle(frac) {
  * Update an existing timer ring in place (no re-render, no flicker). Returns the whole seconds shown,
  * so callers can beep when the number changes.
  */
-export function updateTimerRing(el, timer, now = Date.now(), { unit = 'SECONDS' } = {}) {
+export function updateTimerRing(el, timer, now = Date.now(), { unit = 'seconds' } = {}) {
   const ring = el?.matches?.('[data-timer-ring]') ? el : el?.querySelector?.('[data-timer-ring]');
   if (!ring) return 0;
   const frac = timerFraction(timer, now);
@@ -206,7 +212,7 @@ export function updateTimerRing(el, timer, now = Date.now(), { unit = 'SECONDS' 
   const num = ring.querySelector('.timer-ring__num');
   if (num && num.textContent !== text) num.textContent = text;
   const u = ring.querySelector('.timer-ring__unit');
-  const unitText = paused ? 'PAUSED' : unit;
+  const unitText = paused ? 'Paused' : unit;
   if (u && u.textContent !== unitText) u.textContent = unitText;
   ring.setAttribute('aria-label', `${text} seconds left`);
   return timerSeconds(timer, now);
@@ -224,7 +230,40 @@ export function disc(team, opts) {
   return raw(teamDisc(team, opts));
 }
 
-const CHIP_SIZES = { lg: { icon: 26 }, md: { icon: 22 }, sm: { icon: 18 } };
+const CHIP_SIZES = { lg: { art: 40, icon: 26 }, md: { art: 32, icon: 22 }, sm: { art: 26, icon: 18 } };
+
+/** Fallback 3D art per wheel-segment type, for segments that arrive without an `art` field. */
+const TYPE_ART = { trivia: 'tree', dare: 'masks', hotseat: 'fire', sounditout: 'music', grinch: 'money', showdown: 'boxing', rapidlist: 'list', allplay: 'zap', doubledown: 'sparkles' };
+
+/** The segment's 3D art id (segment.art, else by type/category), or '' when none fits. */
+export function slotArtId(seg) {
+  if (seg?.art && hasArt(seg.art)) return seg.art;
+  if (seg?.category === 'movies') return 'popcorn';
+  if (seg?.category === 'popculture') return 'clapper';
+  return TYPE_ART[seg?.type] || '';
+}
+
+/**
+ * A wheel segment's 3D art as trusted <img> markup (decorative). Falls back to the Lucide icon when the segment has
+ * no art. size in design px (default 54, the wheel's art size).
+ * @param {{art?:string, icon?:string, type?:string, category?:string, ink?:string}} seg
+ * @param {{size?:number|string, alt?:string, className?:string}} [opts]
+ */
+export function slotArt(seg, { size = 54, alt = '', className = '' } = {}) {
+  const id = slotArtId(seg);
+  if (id) return raw(artImg(id, { size, alt, className, eager: true }));
+  return ic(seg?.icon || 'sparkles', { size, color: safeColor(seg?.ink, 'currentColor'), className });
+}
+
+/** A 3D illustration as trusted markup for h`` (same options as icons.js artImg()). */
+export function art(id, opts) {
+  return raw(artImg(id, opts));
+}
+
+/** A team's 3D mascot as trusted markup (alt = team name; same arguments as icons.js mascotImg()). */
+export function mascot(team, size) {
+  return raw(mascotImg(team, size));
+}
 
 /** Relative luminance + hue of a #RRGGBB colour (null for anything else). */
 function colorInfo(hex) {
@@ -256,25 +295,123 @@ export function isDarkSlot(color) {
 }
 
 /**
- * Eyebrow chip for a wheel segment: icon + Big Shoulders caps label on the slot colour.
- * Dark slots get a tinsel rim, Christmas Movies (trim) gets velvet folds, Double Down (pattern 'candy') is an
- * ivory pill with a candy-cane rim.
- * @param {{label:string,color:string,ink:string,icon:string,trim?:string,pattern?:string}} seg
- * @param {{size?:'lg'|'md'|'sm', text?:string}} [opts] lg = TV 28px, md = 22px, sm = phone 16px
+ * Category chip for a wheel segment: the slot colour + slot ink with the 3D slot art (TV concept
+ * "Christmas Movies" chip). Double Down (pattern 'candy') is a white pill with a candy-cane rim.
+ * @param {{label:string,color:string,ink:string,icon?:string,art?:string,type?:string,pattern?:string}} seg
+ * @param {{size?:'lg'|'md'|'sm', text?:string}} [opts] lg = TV 26 px / 40 px art, md = 20 / 32, sm = phone 16 / 26
  */
 export function slotChip(seg, { size = 'lg', text } = {}) {
   const s = CHIP_SIZES[size] || CHIP_SIZES.lg;
   const candy = seg?.pattern === 'candy';
-  const bg = safeColor(seg?.color, '#1F2C5E');
-  const ink = safeColor(seg?.ink, '#FFF7EA');
-  const mods = [
-    size !== 'lg' && CHIP_SIZES[size] && `chip--${size}`,
-    candy && 'chip--candy',
-    !candy && (seg?.trim || isDarkSlot(bg)) && 'chip--rimmed',
-    !candy && seg?.trim && 'chip--velvet',
-  ].filter(Boolean);
-  const cls = mods.length ? ' ' + mods.join(' ') : '';
-  return h`<span class="chip${raw(cls)}" style="--chip-bg:${bg};--chip-ink:${ink}">${ic(seg?.icon || 'sparkles', { size: s.icon, color: ink })}${text ?? seg?.label ?? ''}</span>`;
+  const bg = safeColor(seg?.color, '#2E6FD1');
+  const ink = safeColor(seg?.ink, '#FFFFFF');
+  const mods = ['chip--cat', size !== 'lg' && CHIP_SIZES[size] && `chip--${size}`, candy && 'chip--candy'].filter(Boolean);
+  const id = slotArtId(seg);
+  const pic = id ? raw(artImg(id, { size: s.art, eager: true })) : ic(seg?.icon || 'sparkles', { size: s.icon, color: ink });
+  return h`<span class="chip ${raw(mods.join(' '))}" style="--chip-bg:${bg};--chip-ink:${ink}">${pic}${text ?? seg?.label ?? ''}</span>`;
+}
+
+/**
+ * Score tag (TV concept): team name on top, 3D mascot + score below. Active = candy tile raised with an "Up now"
+ * pill; leader = glowing-star sticker; badge = the candy-striped "×2" (Double Down turn).
+ * @param {{id?:string,name:string,mascot:string,color?:string,score?:number}} team
+ * @param {{active?:boolean, leader?:boolean, badge?:string, upNow?:string, score?:number|string, className?:string}} [o]
+ */
+export function scoreTag(team = {}, { active = false, leader = false, badge = '', upNow = 'Up now', score, className = '' } = {}) {
+  const pts = score ?? formatPoints(team?.score ?? 0);
+  const cls = ['score-tag', active && 'is-active', className].filter(Boolean).join(' ');
+  const teamColor = safeColor(team?.color, mascotFor(team?.mascot).color);
+  return h`<div class="${cls}" style="--team:${teamColor}" data-team="${team?.id ?? ''}">${active && upNow ? h`<span class="up-now score-tag__upnow">${upNow}</span>` : ''}${leader ? raw(artImg('glowing-star', { size: 52, alt: 'Leader', className: 'score-tag__lead', eager: true })) : ''}${badge ? h`<span class="score-tag__badge">${badge}</span>` : ''}${raw(mascotImg(team, { size: 64, alt: '', className: 'score-tag__mascot' }))}<span class="score-tag__name">${team?.name ?? ''}</span><span class="score-tag__pts" data-score>${pts}</span></div>`;
+}
+
+/**
+ * Peppermint SPIN button (phone). Bind it yourself (onPress). attrs: raw('data-spin data-needs-online').
+ * @param {{label?:string, ariaLabel?:string, spinning?:boolean, live?:boolean, disabled?:boolean, className?:string, attrs?:any}} [o]
+ */
+export function peppermint({ label = 'Spin', ariaLabel = 'Spin the wheel', spinning = false, live = false, disabled = false, className = '', attrs = '' } = {}) {
+  const cls = ['peppermint', spinning && 'is-spinning', live && 'is-live', className].filter(Boolean).join(' ');
+  return h`<button type="button" class="${cls}" aria-label="${ariaLabel}" aria-disabled="${disabled ? 'true' : 'false'}" ${attrs}><span class="peppermint__candy" aria-hidden="true"></span><span class="peppermint__shine" aria-hidden="true"></span><span class="peppermint__core"><span class="peppermint__word">${label}</span></span></button>`;
+}
+
+const BUZZ_STATES = {
+  armed: { word: 'Buzz', icon: '', sub: '' },
+  first: { word: 'You’re first!', icon: 'check', sub: 'Answer out loud' },
+  other: { word: '', icon: '', sub: 'buzzed first' },
+  locked: { word: 'Locked out', icon: 'lock', sub: '' },
+};
+
+/**
+ * Ornament BUZZ button (phone). state: 'armed' (sway + glint) · 'first' (holly, check) · 'other' (silver + name) ·
+ * 'locked' (dim silver + lock). Only 'armed' is a pressable <button>; the others are role="img".
+ * @param {{state?:'armed'|'first'|'other'|'locked', name?:string, word?:string, sub?:string, ariaLabel?:string, className?:string, attrs?:any}} [o]
+ */
+export function ornamentBuzz({ state = 'armed', name = '', word, sub, ariaLabel, className = '', attrs = '' } = {}) {
+  const st = BUZZ_STATES[state] ? state : 'armed';
+  const d = BUZZ_STATES[st];
+  const w = word ?? d.word;
+  const sb = sub ?? d.sub;
+  const cls = ['ornament-btn', `is-${st}`, className].filter(Boolean).join(' ');
+  const inner = h`<span class="ornament-btn__loop" aria-hidden="true"></span><span class="ornament-btn__cap" aria-hidden="true"></span><span class="ornament-btn__ball">${d.icon ? ic(d.icon, { size: st === 'first' ? 72 : 60, stroke: 3, color: 'currentColor' }) : ''}${st === 'other' && name ? h`<span class="ornament-btn__name">${name}</span>` : ''}${w ? h`<span class="ornament-btn__word"${st !== 'armed' ? raw(' style="font-size:calc(var(--size) * .13)"') : ''}>${w}</span>` : ''}${sb ? h`<span class="ornament-btn__sub">${sb}</span>` : ''}</span>`;
+  const label = ariaLabel ?? (st === 'armed' ? 'Buzz in' : st === 'first' ? 'You buzzed first. Answer out loud.' : st === 'other' ? `${name || 'Another team'} buzzed first` : 'Buzzer locked');
+  return st === 'armed'
+    ? h`<button type="button" class="${cls}" aria-label="${label}" ${attrs}>${inner}</button>`
+    : h`<div class="${cls}" role="img" aria-label="${label}" ${attrs}>${inner}</div>`;
+}
+
+// The bow on top of a present: two loops, two tails and a knot in currentColor (the ribbon colour), lightly shaded.
+const BOW_SVG = '<svg viewBox="0 0 100 60" aria-hidden="true" focusable="false"><path d="M47 44 L36 60 L44 58 L47 63 L50 46 Z M53 44 L64 60 L56 58 L53 63 L50 46 Z" fill="currentColor"/><path d="M50 42 C36 8 6 4 6 26 C6 44 32 46 50 42 Z M50 42 C64 8 94 4 94 26 C94 44 68 46 50 42 Z" fill="currentColor"/><path d="M50 42 C40 20 18 14 15 27 C14 36 34 41 50 42 Z M50 42 C60 20 82 14 85 27 C86 36 66 41 50 42 Z" fill="#000" fill-opacity=".14"/><path d="M14 18 C20 10 30 10 36 16" stroke="#fff" stroke-opacity=".55" stroke-width="3" stroke-linecap="round" fill="none"/><ellipse class="present__knot" cx="50" cy="41" rx="9" ry="8" fill="currentColor"/><ellipse cx="50" cy="41" rx="9" ry="8" fill="#000" fill-opacity=".1"/><path d="M6 26 C6 44 32 46 50 42 C68 46 94 44 94 26" stroke="#1C2333" stroke-opacity=".12" stroke-width="1.5" fill="none"/></svg>';
+
+/**
+ * A wrapped present (difficulty picker, wheel-land unwrap, wagers, podium blocks).
+ * @param {{color?:string, ribbon?:string, size?:'sm'|'md'|'lg', label?:string, points?:string|number, inside?:string,
+ *          state?:'closed'|'unwrapping'|'open'|'sealed', button?:boolean, ariaLabel?:string, className?:string, attrs?:any}} [o]
+ *   inside: 3D art id revealed when it unwraps. button: render a <button> (difficulty picker).
+ */
+export function present({ color = '#D42A2A', ribbon = '#EDB321', size = 'md', label = '', points = '', inside = '', state = 'closed', button = false, ariaLabel = '', className = '', attrs = '' } = {}) {
+  const sz = ['sm', 'md', 'lg'].includes(size) ? size : 'md';
+  const st = { unwrapping: 'is-unwrapping', open: 'is-open', sealed: 'is-sealed' }[state] || '';
+  const cls = ['present', `present--${sz}`, st, className].filter(Boolean).join(' ');
+  const style = `--present:${safeColor(color, '#D42A2A')};--ribbon:${safeColor(ribbon, '#EDB321')}`;
+  const body = h`${inside ? h`<span class="present__inside">${raw(artImg(inside, { size: 120, eager: true }))}</span>` : ''}<span class="present__box" aria-hidden="true"></span><span class="present__lid" aria-hidden="true"><span class="present__bow">${raw(BOW_SVG)}</span></span>${label || points !== '' ? h`<span class="present__label">${label}${points !== '' ? h`<b>${points}</b>` : ''}</span>` : ''}`;
+  return button
+    ? h`<button type="button" class="${cls}" style="${style}" aria-label="${ariaLabel || [label, points].filter(Boolean).join(' ')}" ${attrs}>${body}</button>`
+    : h`<div class="${cls}" style="${style}" ${ariaLabel ? raw(`role="img" aria-label="${esc(ariaLabel)}"`) : raw('aria-hidden="true"')} ${attrs}>${body}</div>`;
+}
+
+/**
+ * A Christmas stocking in a team colour. Lobby: pass team (its mascot peeks out of the cuff). Hot Seat progress:
+ * state 'full' (holly ✓), 'coal' (✗), 'empty' (dashed).
+ * @param {{color?:string, team?:object, mascot?:string, state?:''|'full'|'coal'|'empty', label?:string, size?:number, hung?:boolean, ariaLabel?:string}} [o]
+ */
+export function stocking({ color, team, mascot: m, state = '', label = '', size = 96, hung = false, ariaLabel = '' } = {}) {
+  const mas = team || m ? mascotFor(team?.mascot ?? m) : null;
+  const c = safeColor(color ?? team?.color ?? mas?.color, '#D42A2A');
+  const cls = ['stocking', state && `is-${state}`, hung && 'is-hung'].filter(Boolean).join(' ');
+  const badge = state === 'full' ? ic('check', { size: 24, stroke: 3.4, color: '#FFFFFF' }) : state === 'coal' ? ic('x', { size: 24, stroke: 3.4, color: '#FFFFFF' }) : '';
+  const a11y = ariaLabel ? raw(`role="img" aria-label="${esc(ariaLabel)}"`) : raw('aria-hidden="true"');
+  return h`<span class="${cls}" style="--stocking:${c};--w:${+(Number(size) / 16 || 6).toFixed(4)}rem" ${a11y}>${mas && !state ? raw(artImg(mas.art, { size: Math.round(Number(size) * 0.64), className: 'stocking__peek', eager: true })) : ''}<svg viewBox="0 0 100 140" aria-hidden="true" focusable="false"><path class="stocking__body" d="M20 30 H74 V84 C74 92 79 97 87 101 C99 108 101 124 90 132 C81 139 68 138 57 132 L31 118 C21 112 20 104 20 95 Z"/><path class="stocking__trim" d="M57 132 C68 138 81 139 90 132 C97 127 99 118 96 111 C90 117 80 120 69 116 C64 121 60 127 57 132 Z" opacity=".9"/><path class="stocking__shade" d="M20 30 H32 V112 C24 108 20 102 20 95 Z"/><rect class="stocking__cuff" x="12" y="10" width="70" height="26" rx="11"/><path d="M14 30 H80" stroke="#E3ECF6" stroke-width="4" stroke-linecap="round"/><circle cx="76" cy="9" r="6" fill="none" stroke="#C48A0A" stroke-width="3"/></svg>${badge ? h`<span class="stocking__badge">${badge}</span>` : ''}${label ? h`<span class="stocking__label">${label}</span>` : ''}</span>`;
+}
+
+/**
+ * Sleigh-bell meter (room vote): a strap filling to `fill` (0..1) with the 3D bell riding the end.
+ * @param {{label:string, count?:number|string, fill?:number, tone?:'holly'|'tinsel'|'candy', ringing?:boolean}} o
+ */
+export function bellMeter({ label = '', count = '', fill = 0, tone = 'holly', ringing = false } = {}) {
+  const f = Math.max(0, Math.min(1, Number(fill) || 0));
+  const cls = ['bell-meter', `bell-meter--${['holly', 'tinsel', 'candy'].includes(tone) ? tone : 'holly'}`, ringing && 'is-ringing'].filter(Boolean).join(' ');
+  return h`<div class="${cls}" style="--fill:${f.toFixed(3)}" role="meter" aria-label="${label}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(f * 100)}"><div class="bell-meter__head"><span class="bell-meter__label">${label}</span><span class="bell-meter__count">${count}</span></div><div class="bell-meter__track"><div class="bell-meter__fill"></div>${raw(artImg('bell', { size: 60, className: 'bell-meter__bell', eager: true }))}</div></div>`;
+}
+
+/**
+ * Santa's list (Rapid List): a paper scroll; done items get a holly check, the rest are blank lines.
+ * @param {{title?:string, items?:Array<string|{text:string,done?:boolean}>, total?:number, size?:'md'|'sm'}} [o]
+ */
+export function santaList({ title = 'Santa’s list', items = [], total, size = 'md' } = {}) {
+  const list = items.map((it) => (typeof it === 'string' ? { text: it, done: true } : it || {}));
+  const n = Math.max(Number(total) || 0, list.length);
+  const done = list.filter((i) => i.done).length;
+  const rows = Array.from({ length: n }, (_, k) => list[k] || { text: '', done: false });
+  return h`<div class="santa-list${size === 'sm' ? ' santa-list--sm' : ''}"><div class="santa-list__head"><span class="santa-list__title">${title}</span><span class="santa-list__count">${done} of ${n}</span></div><ol class="santa-list__items">${rows.map((r) => h`<li class="${r.done ? 'is-done' : 'is-empty'}">${r.text || raw('&nbsp;')}</li>`)}</ol></div>`;
 }
 
 /** Turn dots for the header: done (gold), current (ring), upcoming (dim). */
@@ -416,23 +553,24 @@ export function onPress(el, handler, { haptic = 0 } = {}) {
 /* ================================================================== press-and-hold secret ===== */
 
 /**
- * Press-and-hold secret card markup (Phone-Secret artboard). Bind it with bindSecretCard().
- * @param {{label:string, value:string, rule?:string, tag?:string, hint?:string, tone?:'gold'|'violet'}} o
+ * Press-and-hold secret: a wrapped present (candy paper, tinsel ribbon + bow) that shows a white card while held.
+ * Bind it with bindSecretCard().
+ * @param {{label:string, value:string, rule?:string, tag?:string, hint?:string, tone?:'candy'|'gold'|'violet'}} o
  */
-export function secretCard({ label = 'Your secret', value = '', rule = '', tag = 'For your eyes only', hint = 'Tilt your phone toward you first', tone = 'gold' } = {}) {
+export function secretCard({ label = 'Your secret', value = '', rule = '', tag = 'For your eyes only', hint = 'Tilt your phone toward you first', tone = 'candy' } = {}) {
   const fs = secretFontSize(value);
   return h`<button type="button" class="secret secret--${tone === 'violet' ? 'violet' : 'gold'}" aria-pressed="false" aria-label="${`Secret card. Press and hold to see your ${label.toLowerCase()}.`}" data-secret-card>
   <span class="secret__face secret__face--hidden">
     <span class="secret__frame" aria-hidden="true"></span>
     <span class="secret__tag">${tag}</span>
-    <span class="secret__eye">${ic('eye', { size: 56, color: 'var(--tinsel)' })}</span>
+    <span class="secret__eye">${ic('eye', { size: 52, color: 'currentColor' })}</span>
     <span class="secret__title">Hold to peek</span>
     <span class="secret__hint">${hint}</span>
   </span>
   <span class="secret__face secret__face--shown" aria-hidden="true">
     <span class="secret__label">${ic('eye', { size: 20, color: 'currentColor' })}${label}</span>
     <span class="secret__value" style="--secret-fs:${fs}">${value}</span>
-    ${rule ? h`<span class="secret__rule"><span class="secret__rule-icon">${ic('volume-x', { size: 22, color: '#FFF7EA' })}</span><span>${rule}</span></span>` : ''}
+    ${rule ? h`<span class="secret__rule"><span class="secret__rule-icon">${ic('volume-x', { size: 22, color: '#FFFFFF' })}</span><span>${rule}</span></span>` : ''}
     <span class="secret__release">${ic('hand', { size: 16, color: 'currentColor' })}Let go to hide it</span>
   </span>
 </button>`;
@@ -516,7 +654,7 @@ export function bindSecretCard(el, { onReveal, onHide } = {}) {
 /* ================================================================== toast & banner =========== */
 
 const TOAST_ICONS = { gold: 'bell', info: 'info', success: 'circle-check', error: 'triangle-alert', warn: 'triangle-alert' };
-const TOAST_COLORS = { gold: 'var(--tinsel)', info: 'var(--frost)', success: 'var(--holly)', error: 'var(--berry-hi)', warn: 'var(--tinsel)' };
+const TOAST_COLORS = { gold: 'var(--tinsel-deep)', info: 'var(--ink-soft)', success: 'var(--holly)', error: 'var(--candy)', warn: 'var(--tinsel-deep)' };
 
 function region(id, cls, attrs) {
   let r = document.getElementById(id);
@@ -531,7 +669,7 @@ function region(id, cls, attrs) {
 }
 
 /**
- * Pill toast with a gold border (System artboard). Text is escaped; pass h``/raw() for markup.
+ * White pill toast with a coloured rim (tinsel, holly = success, candy = error). Text is escaped; pass h``/raw() for markup.
  * @param {string|Raw} msg
  * @param {{tone?:'gold'|'info'|'success'|'error'|'warn', icon?:string|false, duration?:number, position?:'top'|'bottom'}} [o]
  * @returns {() => void} dismiss
