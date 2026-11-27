@@ -13,7 +13,7 @@ import {
   connect, h, raw, ic, disc, slotChip, turnDots, formatPoints, formatDelta, possessive, ordinal, listJoin, plural,
   timerRemaining, reducedMotion, enterFullscreen, animateNumber,
 } from '/assets/client.js';
-import { createWheel, labelWidthEm } from '/assets/wheel.js';
+import { createWheel, displayWidthEm } from '/assets/wheel.js';
 import { hasIcon, safeColor } from '/assets/icons.js';
 import * as sound from '/assets/sound.js';
 
@@ -105,9 +105,9 @@ function fit(text, steps) {
   for (let i = 0; i < steps.length; i++) if (n <= steps[i]) return `fit-${i + 1}`;
   return `fit-${steps.length + 1}`;
 }
-/** Size bucket for a giant uppercase Lilita word inside a fixed-width column (uses the wheel's glyph table). */
+/** Size bucket for a giant uppercase display word (Fraunces 900, var(--font-display)) inside a fixed-width column. */
 function wordFit(text, widthEm) {
-  const longest = Math.max(...String(text).toUpperCase().split(/\s+/).map((w) => labelWidthEm(w)));
+  const longest = Math.max(...String(text).toUpperCase().split(/\s+/).map((w) => displayWidthEm(w)));
   const em = widthEm / Math.max(0.1, longest);
   if (em >= 9.375) return 'fit-1';
   if (em >= 7.5) return 'fit-2';

@@ -28,36 +28,42 @@ const PTS = {
   grinch: 150, gift: 100,
 };
 
-const CREAM = '#FFF6E5';
-const NIGHT = '#0B1F17';
-const seg = (index, type, label, lines, color, ink, icon, points, rule, category) =>
-  Object.freeze({ index, type, ...(category ? { category } : {}), label, lines, color, ink, icon, points, rule });
+// Midnight Premiere palette (docs/design/MIDNIGHT-PREMIERE.md, brief A6/A7). Clients draw these exactly.
+const IVORY = '#FFF7EA';
+const INK = '#0B1430';
+const GOLD_INK = '#1A1206';
+const seg = (index, type, label, lines, color, ink, icon, points, rule, category, extra) =>
+  Object.freeze({ index, type, ...(category ? { category } : {}), label, lines, color, ink, icon, points, rule, ...(extra || {}) });
 const TRIVIA_RULE = 'Pick Easy, Medium or Hard, then answer out loud in 20 s. Miss it and the other teams can steal.';
 const DARE_RULE = 'One of you performs the dare. Nail it for 200!';
+// Optional drawing hints: trim = gold inner arc (curtain fringe); pattern 'candy' = 45deg ivory/cranberry
+// candy-cane stripes with an ivory label pill (color is the pill/base colour, ink the label colour).
 const SEGMENTS = Object.freeze([
-  seg(0, 'trivia', 'Christmas Trivia', ['Christmas', 'Trivia'], '#C8232C', CREAM, 'tree-pine', '100\u2013300', TRIVIA_RULE, 'christmas'),
-  seg(1, 'dare', 'Dare', ['Dare'], '#F5B82E', '#1A1206', 'drama', '200', DARE_RULE),
-  seg(2, 'trivia', 'Pop Culture', ['Pop', 'Culture'], '#1F6FD1', CREAM, 'clapperboard', '100\u2013300', TRIVIA_RULE, 'popculture'),
-  seg(3, 'hotseat', 'Hot Seat', ['Hot', 'Seat'], '#D63384', CREAM, 'flame', '50\u2013300', 'One player, alone, 45 seconds: up to 6 quick questions. 50 points each.'),
-  seg(4, 'trivia', 'Christmas Movies', ['Christmas', 'Movies'], '#8E1B3A', CREAM, 'popcorn', '100\u2013300', TRIVIA_RULE, 'movies'),
-  seg(5, 'sounditout', 'Sound It Out', ['Sound', 'It Out'], '#7A4FD3', CREAM, 'music', '200', 'One of you hums a secret song (no words!). Your team has 30 s to name it.'),
-  seg(6, 'grinch', 'Grinch Steal', ['Grinch', 'Steal'], CREAM, NIGHT, 'hand-coins', '150', 'Steal 150 points from a team that is ahead of you.'),
-  seg(7, 'showdown', 'Showdown', ['Showdown'], '#8FD8FF', NIGHT, 'swords', '200', 'Pick a rival team. One player from each team goes head to head. Winner takes 200.'),
-  seg(8, 'dare', 'Dare', ['Dare'], '#F5B82E', '#1A1206', 'drama', '200', DARE_RULE),
-  seg(9, 'rapidlist', 'Rapid List', ['Rapid', 'List'], '#0B8A75', CREAM, 'list-checks', '50\u2013300', 'Shout as many answers as you can in 30 s. 50 each, up to 300.'),
-  seg(10, 'allplay', 'All Play', ['All', 'Play'], '#F2731D', NIGHT, 'zap', '100+', 'Every team types an answer on a phone. 100 for each right answer, +50 for the first.'),
-  seg(11, 'doubledown', 'Double Down', ['Double', 'Down'], '#1E8A4C', CREAM, 'sparkles', '\u00D72', 'Spin again! Everything your team wins this turn is doubled.'),
+  seg(0, 'trivia', 'Christmas Trivia', ['Christmas', 'Trivia'], '#C8102E', IVORY, 'tree-pine', '100\u2013300', TRIVIA_RULE, 'christmas'),
+  seg(1, 'dare', 'Dare', ['Dare'], '#F6C453', GOLD_INK, 'drama', '200', DARE_RULE),
+  seg(2, 'trivia', 'Pop Culture', ['Pop', 'Culture'], '#2450D0', IVORY, 'clapperboard', '100\u2013300', TRIVIA_RULE, 'popculture'),
+  seg(3, 'hotseat', 'Hot Seat', ['Hot', 'Seat'], '#FF8FB1', '#2A0A18', 'flame', '50\u2013300', 'One player, alone, 45 seconds: up to 6 quick questions. 50 points each.'),
+  seg(4, 'trivia', 'Christmas Movies', ['Christmas', 'Movies'], '#7E0B22', IVORY, 'popcorn', '100\u2013300', TRIVIA_RULE, 'movies', { trim: '#F6C453' }),
+  seg(5, 'sounditout', 'Sound It Out', ['Sound', 'It Out'], '#7B4CE0', IVORY, 'music', '200', 'One of you hums a secret song (no words!). Your team has 30 s to name it.'),
+  seg(6, 'grinch', 'Grinch Steal', ['Grinch', 'Steal'], '#9BD13B', INK, 'hand-coins', '150', 'Steal 150 points from a team that is ahead of you.'),
+  seg(7, 'showdown', 'Showdown', ['Show', 'Down'], '#5AA9E6', INK, 'swords', '200', 'Pick a rival team. One player from each team goes head to head. Winner takes 200.'),
+  seg(8, 'dare', 'Dare', ['Dare'], '#F6C453', GOLD_INK, 'drama', '200', DARE_RULE),
+  seg(9, 'rapidlist', 'Rapid List', ['Rapid', 'List'], '#0E7C74', IVORY, 'list-checks', '50\u2013300', 'Shout as many answers as you can in 30 s. 50 each, up to 300.'),
+  seg(10, 'allplay', 'All Play', ['All', 'Play'], '#FF9A3C', GOLD_INK, 'zap', '100+', 'Every team types an answer on a phone. 100 for each right answer, +50 for the first.'),
+  seg(11, 'doubledown', 'Double Down', ['Double', 'Down'], IVORY, INK, 'sparkles', '\u00D72', 'Spin again! Everything your team wins this turn is doubled.', undefined, { pattern: 'candy', stripe: '#C8102E' }),
 ]);
 
+// Team palette in offer order (brief A7). Teams 1-6 stay apart under simulated colour-blindness;
+// 7 (orange) and 8 (violet) each have a lookalike, so they are offered last. Glyphs are drawn in INK.
 const MASCOTS = Object.freeze([
-  { mascot: 'star', color: '#FF5A4E', colorName: 'red' },
-  { mascot: 'bell', color: '#FFC93C', colorName: 'gold' },
-  { mascot: 'candy-cane', color: '#5AC8FA', colorName: 'sky' },
-  { mascot: 'tree-pine', color: '#7EE081', colorName: 'lime' },
-  { mascot: 'gift', color: '#B794FF', colorName: 'violet' },
-  { mascot: 'cookie', color: '#FF9F43', colorName: 'orange' },
-  { mascot: 'moon', color: '#FF7AB6', colorName: 'pink' },
-  { mascot: 'snowflake', color: '#3DDBC4', colorName: 'teal' },
+  { mascot: 'candy-cane', color: '#FF5F6D', colorName: 'red' },
+  { mascot: 'star', color: '#F6C453', colorName: 'gold' },
+  { mascot: 'snowflake', color: '#6CB8FF', colorName: 'sky' },
+  { mascot: 'tree-pine', color: '#5FE0C1', colorName: 'mint' },
+  { mascot: 'gift', color: '#FF8AD0', colorName: 'pink' },
+  { mascot: 'moon', color: '#DCE3F2', colorName: 'silver' },
+  { mascot: 'cookie', color: '#FF9A3C', colorName: 'orange' },
+  { mascot: 'bell', color: '#B794FF', colorName: 'violet' },
 ]);
 const MASCOT_NAMES = MASCOTS.map((m) => m.mascot);
 const PALETTE = MASCOTS.map((m) => m.color);

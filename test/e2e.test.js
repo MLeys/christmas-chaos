@@ -738,10 +738,11 @@ test('server: http routes, QR colours, fonts, join IP switching, hello validatio
     assert.equal(qr.status, 200);
     assert.match(qr.headers.get('content-type'), /image\/svg\+xml/);
     const svg = await qr.text();
-    assert.ok(svg.includes('#FFF6E5') && svg.includes('#0B1F17'));
-    for (const f of ['/fonts/lilita-one/lilita-one-latin-400-normal.woff2', '/fonts/fredoka/fredoka-latin-400-normal.woff2', '/fonts/fredoka/fredoka-latin-500-normal.woff2', '/fonts/fredoka/fredoka-latin-600-normal.woff2', '/fonts/fredoka/fredoka-latin-700-normal.woff2']) {
+    assert.ok(svg.includes('#FFF7EA') && svg.includes('#0B1430'));
+    for (const f of ['/fonts/fraunces/fraunces-latin-full-normal.woff2', '/fonts/fraunces/fraunces-latin-full-italic.woff2', '/fonts/figtree/figtree-latin-wght-normal.woff2', '/fonts/big-shoulders-display/big-shoulders-display-latin-wght-normal.woff2', '/fonts/lilita-one/lilita-one-latin-400-normal.woff2', '/fonts/fredoka/fredoka-latin-400-normal.woff2', '/fonts/fredoka/fredoka-latin-500-normal.woff2', '/fonts/fredoka/fredoka-latin-600-normal.woff2', '/fonts/fredoka/fredoka-latin-700-normal.woff2']) {
       const r = await fetch(srv.url + f);
       assert.equal(r.status, 200, f);
+      assert.match(r.headers.get('content-type') || '', /font\/woff2/, f);
     }
     assert.equal((await fetch(srv.url + '/fonts/fredoka/../../package.json')).status, 404);
     const red = await fetch(srv.url + '/player', { redirect: 'manual' });

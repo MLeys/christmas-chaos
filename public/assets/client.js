@@ -159,7 +159,8 @@ const RING_R = 54;
 const RING_C = 2 * Math.PI * RING_R; // 339.29
 
 /**
- * Timer ring markup (gold arc on a 12% cream track, number in Lilita; red in the last 5 s).
+ * Timer ring markup (gold arc on a 12% snow track with a glowing bulb at its head, number in Figtree 800
+ * tabular; berry-hi in the last 5 s).
  * @param {object|null} timer  state.timer {running, endsAt, durationMs, remainingMs, label}
  * @param {number} now          server time (client.serverNow())
  * @param {{size?:number, unit?:string, ink?:boolean, className?:string}} [opts] size in design px (default 124)
@@ -176,9 +177,14 @@ export function timerRing(timer, now = Date.now(), opts = {}) {
     .join(' ');
   const offset = (RING_C * (1 - frac)).toFixed(1);
   return h`<div class="${cls}" style="--ring-size:${+(Number(size) / 16 || 7.75).toFixed(4)}rem" role="timer" aria-label="${secs} seconds left" data-timer-ring>
-  <svg viewBox="0 0 124 124" aria-hidden="true" focusable="false"><circle class="timer-ring__track" cx="62" cy="62" r="54" fill="none" stroke-width="10"/><circle class="timer-ring__arc" cx="62" cy="62" r="54" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${offset}" transform="rotate(-90 62 62)"/></svg>
+  <svg viewBox="0 0 124 124" aria-hidden="true" focusable="false"><circle class="timer-ring__track" cx="62" cy="62" r="54" fill="none" stroke-width="10"/><circle class="timer-ring__arc" cx="62" cy="62" r="54" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="${RING_C.toFixed(1)}" stroke-dashoffset="${offset}" transform="rotate(-90 62 62)"/><g class="timer-ring__head" style="${headStyle(frac)}"><circle cx="62" cy="8" r="8.5"/><circle cx="62" cy="8" r="4"/></g></svg>
   <div class="timer-ring__center"><span class="timer-ring__num">${secs}</span><span class="timer-ring__unit">${paused ? 'PAUSED' : unit}</span></div>
 </div>`;
+}
+
+/** The glowing bulb rides the end of the arc (clockwise from 12 o'clock). */
+function headStyle(frac) {
+  return `transform-box:view-box;transform-origin:62px 62px;transform:rotate(${(360 * frac).toFixed(1)}deg)`;
 }
 
 /**
@@ -195,6 +201,8 @@ export function updateTimerRing(el, timer, now = Date.now(), { unit = 'SECONDS' 
   ring.classList.toggle('is-warn', warn);
   ring.classList.toggle('is-paused', paused);
   ring.querySelector('.timer-ring__arc')?.setAttribute('stroke-dashoffset', (RING_C * (1 - frac)).toFixed(1));
+  const head = ring.querySelector('.timer-ring__head');
+  if (head) head.style.transform = `rotate(${(360 * frac).toFixed(1)}deg)`;
   const num = ring.querySelector('.timer-ring__num');
   if (num && num.textContent !== text) num.textContent = text;
   const u = ring.querySelector('.timer-ring__unit');
@@ -218,17 +226,55 @@ export function disc(team, opts) {
 
 const CHIP_SIZES = { lg: { icon: 26 }, md: { icon: 22 }, sm: { icon: 18 } };
 
+/** Relative luminance + hue of a #RRGGBB colour (null for anything else). */
+function colorInfo(hex) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(hex ?? '').trim());
+  if (!m) return null;
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16) / 255);
+  const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const L = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let hue = 0;
+  if (max !== min) {
+    const d = max - min;
+    hue = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    hue = (hue * 60 + 360) % 360;
+  }
+  return { L, hue };
+}
+
 /**
- * Category chip for a wheel segment: icon + caps label on the slot colour.
- * @param {{label:string,color:string,ink:string,icon:string}} seg
- * @param {{size?:'lg'|'md'|'sm', text?:string}} [opts] lg = TV 22px, md = 18px, sm = phone 14px
+ * True for slot colours that would sink into the navy page (velvet, royal, violet, teal), so chips and
+ * cards in that colour get a 2 px tinsel rim (brief A9). Bright reds pop on navy and stay rimless.
+ */
+export function isDarkSlot(color) {
+  const c = colorInfo(color);
+  if (!c || c.L >= 0.2) return false;
+  const red = c.hue <= 20 || c.hue >= 340;
+  return !red || c.L < 0.06;
+}
+
+/**
+ * Eyebrow chip for a wheel segment: icon + Big Shoulders caps label on the slot colour.
+ * Dark slots get a tinsel rim, Christmas Movies (trim) gets velvet folds, Double Down (pattern 'candy') is an
+ * ivory pill with a candy-cane rim.
+ * @param {{label:string,color:string,ink:string,icon:string,trim?:string,pattern?:string}} seg
+ * @param {{size?:'lg'|'md'|'sm', text?:string}} [opts] lg = TV 28px, md = 22px, sm = phone 16px
  */
 export function slotChip(seg, { size = 'lg', text } = {}) {
   const s = CHIP_SIZES[size] || CHIP_SIZES.lg;
-  const bg = safeColor(seg?.color, '#1B4636');
-  const ink = safeColor(seg?.ink, '#FFF6E5');
-  const sizeCls = size === 'lg' ? '' : ` chip--${size}`;
-  return h`<span class="chip${raw(sizeCls)}" style="--chip-bg:${bg};--chip-ink:${ink}">${ic(seg?.icon || 'sparkles', { size: s.icon, color: ink })}${text ?? seg?.label ?? ''}</span>`;
+  const candy = seg?.pattern === 'candy';
+  const bg = safeColor(seg?.color, '#1F2C5E');
+  const ink = safeColor(seg?.ink, '#FFF7EA');
+  const mods = [
+    size !== 'lg' && CHIP_SIZES[size] && `chip--${size}`,
+    candy && 'chip--candy',
+    !candy && (seg?.trim || isDarkSlot(bg)) && 'chip--rimmed',
+    !candy && seg?.trim && 'chip--velvet',
+  ].filter(Boolean);
+  const cls = mods.length ? ' ' + mods.join(' ') : '';
+  return h`<span class="chip${raw(cls)}" style="--chip-bg:${bg};--chip-ink:${ink}">${ic(seg?.icon || 'sparkles', { size: s.icon, color: ink })}${text ?? seg?.label ?? ''}</span>`;
 }
 
 /** Turn dots for the header: done (gold), current (ring), upcoming (dim). */
@@ -386,7 +432,7 @@ export function secretCard({ label = 'Your secret', value = '', rule = '', tag =
   <span class="secret__face secret__face--shown" aria-hidden="true">
     <span class="secret__label">${ic('eye', { size: 20, color: 'currentColor' })}${label}</span>
     <span class="secret__value" style="--secret-fs:${fs}">${value}</span>
-    ${rule ? h`<span class="secret__rule"><span class="secret__rule-icon">${ic('volume-x', { size: 22, color: '#FFFFFF' })}</span><span>${rule}</span></span>` : ''}
+    ${rule ? h`<span class="secret__rule"><span class="secret__rule-icon">${ic('volume-x', { size: 22, color: '#FFF7EA' })}</span><span>${rule}</span></span>` : ''}
     <span class="secret__release">${ic('hand', { size: 16, color: 'currentColor' })}Let go to hide it</span>
   </span>
 </button>`;

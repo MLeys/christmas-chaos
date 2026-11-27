@@ -2,9 +2,9 @@
 // Lucide line icons (lucide-static@0.460.0, ISC licence) as inner-SVG strings, plus the 8 team mascots.
 // Pure ES module: no DOM access at import time, safe to import from node tests.
 //
-//   icon('tree-pine', { size: 34, stroke: 2.4, color: '#0B1F17' })  -> '<svg ...>...</svg>'
+//   icon('tree-pine', { size: 34, stroke: 2.4, color: '#0B1430' })  -> '<svg ...>...</svg>'
 //   icon('crown', { label: 'Leader' })                                -> role="img" aria-label="Leader"
-//   teamDisc({ color: '#FF5A4E', mascot: 'star', name: 'Team Rudolph' }, { size: 64 })
+//   teamDisc({ color: '#FF5F6D', mascot: 'candy-cane', name: 'Team Rudolph' }, { size: 64, ornament: true, leader: true })
 //
 // Numeric sizes are design px at a 16 px root and are emitted in rem, so the TV (which scales
 // html font-size with the viewport) scales icons and discs with everything else.
@@ -125,18 +125,27 @@ export const ICONS = Object.freeze({
   "volume-1": "<path d=\"M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z\"/><path d=\"M16 9a5 5 0 0 1 0 6\"/>",
   "square": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/>",
   "circle-pause": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"10\" x2=\"10\" y1=\"15\" y2=\"9\"/><line x1=\"14\" x2=\"14\" y1=\"15\" y2=\"9\"/>",
-  "circle-play": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><polygon points=\"10 8 16 12 10 16 10 8\"/>",});
+  "circle-play": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><polygon points=\"10 8 16 12 10 16 10 8\"/>",
+  "popcorn": "<path d=\"M18 8a2 2 0 0 0 0-4 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0-4 0 2 2 0 0 0 0 4\"/><path d=\"M10 22 9 8\"/><path d=\"m14 22 1-14\"/><path d=\"M20 8c.5 0 .9.4.8 1l-2.6 12c-.1.5-.7 1-1.2 1H7c-.6 0-1.1-.4-1.2-1L3.2 9c-.1-.6.3-1 .8-1Z\"/>",
+  "projector": "<path d=\"M5 7 3 5\"/><path d=\"M9 6V3\"/><path d=\"m13 7 2-2\"/><circle cx=\"9\" cy=\"13\" r=\"3\"/><path d=\"M11.83 12H20a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2.17\"/><path d=\"M16 16h2\"/>",
+  "ticket": "<path d=\"M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z\"/><path d=\"M13 5v2\"/><path d=\"M13 17v2\"/><path d=\"M13 11v2\"/>",
+  "tickets": "<path d=\"m4.5 8 10.58-5.06a1 1 0 0 1 1.342.488L18.5 8\"/><path d=\"M6 10V8\"/><path d=\"M6 14v1\"/><path d=\"M6 19v2\"/><rect x=\"2\" y=\"8\" width=\"20\" height=\"13\" rx=\"2\"/>",
+  "train-front": "<path d=\"M8 3.1V7a4 4 0 0 0 8 0V3.1\"/><path d=\"m9 15-1-1\"/><path d=\"m15 15 1-1\"/><path d=\"M9 19c-2.8 0-5-2.2-5-5v-4a8 8 0 0 1 16 0v4c0 2.8-2.2 5-5 5Z\"/><path d=\"m8 19-2 3\"/><path d=\"m16 19 2 3\"/>",
+  "lamp": "<path d=\"M8 2h8l4 10H4L8 2Z\"/><path d=\"M12 12v6\"/><path d=\"M8 22v-2c0-1.1.9-2 2-2h4a2 2 0 0 1 2 2v2H8Z\"/>",
+  "armchair": "<path d=\"M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3\"/><path d=\"M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z\"/><path d=\"M5 18v2\"/><path d=\"M19 18v2\"/>",
+});
 
-/** The 8 team mascots, in palette order (SPEC §5). `id` is the value the server stores in team.mascot. */
+/** The 8 team mascots, in palette offer order (Midnight Premiere, brief A7). `id` is the value the server
+ *  stores in team.mascot. Teams 7 (orange) and 8 (violet) each have a colour-blind lookalike, so they come last. */
 export const MASCOTS = Object.freeze([
-  { id: 'star', icon: 'star', color: '#FF5A4E', colorName: 'Red', noun: 'a star' },
-  { id: 'bell', icon: 'bell', color: '#FFC93C', colorName: 'Gold', noun: 'a bell' },
-  { id: 'candy-cane', icon: 'candy-cane', color: '#5AC8FA', colorName: 'Sky', noun: 'a candy cane' },
-  { id: 'tree-pine', icon: 'tree-pine', color: '#7EE081', colorName: 'Lime', noun: 'a Christmas tree' },
-  { id: 'gift', icon: 'gift', color: '#B794FF', colorName: 'Violet', noun: 'a gift' },
-  { id: 'cookie', icon: 'cookie', color: '#FF9F43', colorName: 'Orange', noun: 'a cookie' },
-  { id: 'moon', icon: 'moon', color: '#FF7AB6', colorName: 'Pink', noun: 'a moon' },
-  { id: 'snowflake', icon: 'snowflake', color: '#3DDBC4', colorName: 'Teal', noun: 'a snowflake' },
+  { id: 'candy-cane', icon: 'candy-cane', color: '#FF5F6D', colorName: 'Red', noun: 'a candy cane' },
+  { id: 'star', icon: 'star', color: '#F6C453', colorName: 'Gold', noun: 'a star' },
+  { id: 'snowflake', icon: 'snowflake', color: '#6CB8FF', colorName: 'Sky', noun: 'a snowflake' },
+  { id: 'tree-pine', icon: 'tree-pine', color: '#5FE0C1', colorName: 'Mint', noun: 'a Christmas tree' },
+  { id: 'gift', icon: 'gift', color: '#FF8AD0', colorName: 'Pink', noun: 'a gift' },
+  { id: 'moon', icon: 'moon', color: '#DCE3F2', colorName: 'Silver', noun: 'a moon' },
+  { id: 'cookie', icon: 'cookie', color: '#FF9A3C', colorName: 'Orange', noun: 'a cookie' },
+  { id: 'bell', icon: 'bell', color: '#B794FF', colorName: 'Violet', noun: 'a bell' },
 ].map((m) => Object.freeze(m)));
 
 /** Find a mascot by id, icon name, colour name, hex colour or index. Falls back to the first mascot. */
@@ -215,18 +224,21 @@ export function icon(name, opts = {}) {
   );
 }
 
-/** Named disc sizes in design px (SPEC: 36 phone header, 64 score tile, 84 hero, 104 podium, 240 turn intro). */
+/** Named disc sizes in design px (SPEC: 36 phone header, 56 score tile, 84 hero, 104 podium, 240 turn intro). */
 export const DISC_SIZES = Object.freeze({ xs: 26, sm: 36, md: 64, lg: 84, xl: 104, hero: 240 });
 
 /**
- * Team disc: colour circle + mascot glyph in --night (glyph ~53% of the disc, stroke 2.4).
+ * Team disc — the Midnight Premiere ornament: colour ball + navy mascot glyph (~53%, stroke 2.4).
  * @param {{color?:string, mascot?:string, name?:string}} team
- * @param {{size?:number|'xs'|'sm'|'md'|'lg'|'xl'|'hero', label?:string|boolean, halo?:boolean, className?:string}} [opts]
+ * @param {{size?:number|'xs'|'sm'|'md'|'lg'|'xl'|'hero', label?:string|boolean, halo?:boolean, className?:string,
+ *          ornament?:boolean, leader?:boolean, beacon?:boolean}} [opts]
  *   label: true -> "<name> mascot: a star"; string -> that; omitted -> decorative (aria-hidden).
+ *   ornament: brass cap + loop on top (the disc grows ~30% taller visually; leave room above it).
+ *   leader: gold star topper instead of the loop (implies ornament). beacon: pulsing red-nose dot (active team).
  *   halo: tinsel ring for the winner / active team.
  */
 export function teamDisc(team = {}, opts = {}) {
-  const { size = 64, label = false, halo = false, className = '' } = opts || {};
+  const { size = 64, label = false, halo = false, className = '', ornament = false, leader = false, beacon = false } = opts || {};
   const m = mascotFor(team?.mascot);
   const color = safeColor(team?.color, m.color);
   const px = DISC_SIZES[size] ?? size;
@@ -236,6 +248,7 @@ export function teamDisc(team = {}, opts = {}) {
   const text =
     label === true ? `${team?.name ? team.name + ' mascot: ' : 'Mascot: '}${m.noun}` : typeof label === 'string' ? label : '';
   const a11y = text ? ` role="img" aria-label="${escAttr(text)}"` : ' aria-hidden="true"';
-  const cls = `disc${halo ? ' disc--halo' : ''}${className ? ' ' + escAttr(className) : ''}`;
+  const mods = [halo && 'disc--halo', (ornament || leader) && 'disc--ornament', leader && 'disc--leader', beacon && 'disc--beacon'].filter(Boolean);
+  const cls = `disc${mods.length ? ' ' + mods.join(' ') : ''}${className ? ' ' + escAttr(className) : ''}`;
   return trust(`<span class="${cls}" style="--team-color:${color};--disc-size:${len}"${a11y}>${glyph}</span>`);
 }

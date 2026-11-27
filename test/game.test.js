@@ -438,13 +438,13 @@ test('team creation rules: unique names, mascot/colour pairing, max 8, escaping-
   const r1 = T.okHost('createTeam', { name: '  <b>Elves</b>  ' });
   const t1 = T.g.state.teams[0];
   assert.equal(t1.name, '<b>Elves</b>', 'stored as plain text (clients escape)');
-  assert.equal(t1.mascot, 'star');
-  assert.equal(t1.color, '#FF5A4E');
+  assert.equal(t1.mascot, 'candy-cane');
+  assert.equal(t1.color, '#FF5F6D');
   assert.equal(T.host('createTeam', { name: '<B>ELVES</B>' }).error, 'name-taken');
-  assert.equal(T.host('createTeam', { name: 'Other', mascot: 'star' }).error, 'mascot-taken');
+  assert.equal(T.host('createTeam', { name: 'Other', mascot: 'candy-cane' }).error, 'mascot-taken');
   assert.equal(T.host('createTeam', { name: 'Other', mascot: 'unicorn' }).error, 'bad-mascot');
   assert.equal(T.host('createTeam', { name: '' }).error, 'name-required');
-  assert.equal(T.okHost('createTeam', { name: 'Gifts', mascot: 'gift' }) && T.g.state.teams[1].color, '#B794FF');
+  assert.equal(T.okHost('createTeam', { name: 'Gifts', mascot: 'gift' }) && T.g.state.teams[1].color, '#FF8AD0');
   for (let i = 0; i < 6; i++) T.okHost('createTeam', { name: 'T' + i });
   assert.equal(T.host('createTeam', { name: 'Ninth' }).error, 'too-many-teams');
   assert.equal(new Set(T.g.state.teams.map((t) => t.mascot)).size, 8);
@@ -1148,8 +1148,11 @@ test('views: can flags, segments, spin info, players never carry clientId', () =
   const pv0 = publicView(T.g);
   assert.equal(pv0.segments.length, 12);
   assert.deepEqual(pv0.segments.map((s) => s.type), ['trivia', 'dare', 'trivia', 'hotseat', 'trivia', 'sounditout', 'grinch', 'showdown', 'dare', 'rapidlist', 'allplay', 'doubledown']);
-  assert.equal(pv0.segments[6].color, '#FFF6E5');
-  assert.equal(pv0.segments[6].ink, '#0B1F17');
+  assert.equal(pv0.segments[6].color, '#9BD13B');
+  assert.equal(pv0.segments[6].ink, '#0B1430');
+  assert.equal(pv0.segments[4].trim, '#F6C453', 'Christmas Movies has the gold curtain-fringe trim');
+  assert.equal(pv0.segments[11].pattern, 'candy', 'Double Down is candy-cane striped');
+  assert.deepEqual([pv0.segments[11].color, pv0.segments[11].ink], ['#FFF7EA', '#0B1430']);
   assert.ok(pv0.segments.every((s) => s.icon && s.rule && s.lines.length));
   assert.ok(!JSON.stringify(pv0).includes('client-0-0'));
   T.okHost('start');
@@ -1251,7 +1254,7 @@ for (const n of [2, 4, 6, 8]) {
 test('Christmas Movies: slot 4, movie sub-chip once the question is shown, fallback to Christmas movie questions', () => {
   assert.equal(SEGMENTS[4].label, 'Christmas Movies');
   assert.equal(SEGMENTS[4].category, 'movies');
-  assert.equal(SEGMENTS[4].color, '#8E1B3A');
+  assert.equal(SEGMENTS[4].color, '#7E0B22');
   assert.equal(SEGMENTS[4].icon, 'popcorn');
   assert.ok(CONTENT.trivia.some((q) => q.category === 'movies' && q.movie), 'movies file loaded');
   const T = setup({ teams: 2, perTeam: 1 });
