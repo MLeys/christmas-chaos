@@ -20,9 +20,10 @@ if ($Port -le 0) {
 $ruleName = "Christmas Chaos (TCP $Port)"
 
 function Test-IsAdmin {
-  $id = [Security.Principal.WindowsIdentity]::GetCurrent()
-  $principal = New-Object Security.Principal.WindowsPrincipal($id)
-  return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+  # Works in PowerShell Constrained Language Mode (managed/work PCs): no .NET calls.
+  # 'whoami /groups' lists the High Mandatory Level SID only in an elevated (admin) session.
+  $groups = & whoami /groups 2>$null
+  return [bool]($groups | Select-String -SimpleMatch 'S-1-16-12288')
 }
 
 if (-not (Test-IsAdmin)) {
@@ -34,7 +35,9 @@ if (-not (Test-IsAdmin)) {
   try {
     Start-Process -FilePath 'powershell.exe' -Verb RunAs -ArgumentList $argList -ErrorAction Stop | Out-Null
   } catch {
-    Write-Host "Cancelled - the firewall was not changed." -ForegroundColor Yellow
+    Write-Host "The firewall was not changed: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "If Windows asked for an admin password you don't have, this PC is locked down by IT -"
+    Write-Host "run the game on a personal laptop instead (see README, Troubleshooting)."
     exit 1
   }
   exit 0
