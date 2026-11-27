@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#F6F9FD">
 <title>Christmas Chaos · Big Screen</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F6C453' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M2 12h20M12 2v20m8-6-4-4 4-4M4 8l4 4-4 4m12-12-4 4-4-4M8 20l4-4 4 4'/%3E%3C/svg%3E">
-<link rel="preload" href="/fonts/fraunces/fraunces-latin-full-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="/assets/art/tree.png">
+<link rel="preload" href="/fonts/bagel-fat-one/bagel-fat-one-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/figtree/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/big-shoulders-display/big-shoulders-display-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/tokens.css">
 <link rel="stylesheet" href="/assets/tv.css">
 <script type="module" src="/assets/tv.js"></script>
@@ -16,19 +16,20 @@
 <body class="tv">
   <!-- The whole show is laid out on a 1920×1080 design grid (120rem × 67.5rem); tokens.css scales the root
        font-size with the viewport so 720p, 1080p and 4K all look identical. -->
-  <div class="tv-app" id="app" data-screen="boot" data-header="off" data-strip="off" data-surface="night">
+  <div class="tv-app snow-page" id="app" data-screen="boot" data-header="off" data-strip="off" data-surface="snow">
     <div class="tv-backdrop" id="backdrop" aria-hidden="true"></div>
-    <header class="tv-top" id="top"></header>
     <main class="tv-stage" id="stage">
       <section class="scr scr--boot">
         <div class="boot">
           <span class="boot__mark" id="bootMark"></span>
           <p class="boot__title">Christmas Chaos</p>
-          <p class="boot__text">Connecting to the game<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
+          <p class="boot__text">Warming up the workshop<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></p>
         </div>
       </section>
     </main>
-    <footer class="tv-strip" id="strip" aria-label="Scoreboard"></footer>
+    <footer class="tv-strip" id="strip" aria-label="Scoreboard"><div class="score-tags tv-tags" id="stripTags"></div></footer>
+    <header class="tv-top" id="top"></header>
+    <div class="tv-garland garland--top" id="garland" aria-hidden="true"></div>
     <div class="tv-fly-layer" id="fly" aria-hidden="true"></div>
   </div>
 
@@ -38,13 +39,13 @@
   </div>
 
   <div class="tv-start" id="start" role="dialog" aria-modal="true" aria-labelledby="startTitle" aria-describedby="startText">
-    <div class="tv-start__card">
+    <div class="gift-tag gift-tag--twine tv-start__card">
       <span class="tv-start__mark" id="startMark"></span>
       <h1 class="tv-start__title" id="startTitle">Christmas Chaos</h1>
-      <button class="btn btn--gold btn--xl tv-start__btn" id="startBtn" type="button">
-        <span class="tv-start__btn-icon" id="startIcon"></span><span class="tv-start__label-full">Click to start the show</span><span class="tv-start__label-compact">Click anywhere to turn the sound on</span>
+      <button class="btn btn--primary btn--xl tv-start__btn" id="startBtn" type="button">
+        <span class="tv-start__label-full">Click to start the show</span><span class="tv-start__label-compact">Click anywhere to turn the sound on</span>
       </button>
-      <p class="tv-start__text" id="startText">Turns on the sound and goes full screen. Press M any time to mute.</p>
+      <p class="tv-start__text" id="startText">Turns on the sleigh bells and goes full screen. Press M any time to mute.</p>
     </div>
   </div>
 
