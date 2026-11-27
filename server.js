@@ -90,7 +90,9 @@ function startServer(o = {}) {
   // ------------------------------------------------------------- LAN address
   const lan = pickLanAddress(undefined, env);
   let joinIp = lan.address;
-  const joinUrlFor = (ip) => `http://${ip}:${port}/`;
+  // Online hosting (e.g. Render sets RENDER_EXTERNAL_URL): phones use the public https address instead of a LAN IP.
+  const publicUrl = String(env.PUBLIC_URL || env.RENDER_EXTERNAL_URL || '').trim().replace(/\/*$/, '/');
+  const joinUrlFor = (ip) => (publicUrl.length > 1 ? publicUrl : `http://${ip}:${port}/`);
 
   // ------------------------------------------------------------- game
   const fxQueue = [];

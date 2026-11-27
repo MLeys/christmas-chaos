@@ -1,0 +1,12 @@
+# One-click free online hosting on Render (https://render.com) — see README "Play online".
+services:
+  - type: web
+    name: christmas-chaos
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/info
+    envVars:
+      - key: HOST_PIN
+        sync: false   # Render asks you for it: the 4-digit PIN you'll type on the host screen

@@ -60,6 +60,21 @@ Then:
 
 Leave the PowerShell window open during the party — closing it stops the game. (Progress is auto-saved; if the laptop restarts, `npm start` again and the host screen offers to resume.)
 
+## 3b. Play online instead (no firewall, works on any phone)
+
+If phones can't reach the laptop (work/school laptops often block this, and some Wi-Fi networks isolate devices), host the
+game online for free. Everyone — TV, host and every phone — just opens one web link, on any Wi-Fi or mobile data.
+
+1. Go to <https://render.com> and **sign up with your GitHub account** (free, no card needed).
+2. Click **New → Blueprint**, pick the **christmas-chaos** repository, and click **Apply**. When asked for `HOST_PIN`,
+   type any 4 digits (e.g. `2512`) — that's your host password.
+3. Wait 2–3 minutes until it says **Live**. Your game address looks like `https://christmas-chaos-xxxx.onrender.com`.
+4. On the laptop connected to the TV open `https://<your-address>/tv` and click **"Click to start the show"**.
+   Host: open `https://<your-address>/host` (on the laptop or your phone) and type your PIN.
+   Players: scan the QR code on the TV.
+
+The free plan goes to sleep after 15 minutes without visitors — open the TV page a minute before the party to wake it up.
+
 ## 4. Party-day checklist
 
 - [ ] Laptop **plugged in**, sleep turned off, connected to the TV.
