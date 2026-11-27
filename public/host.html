@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0B1430">
+<meta name="theme-color" content="#EAF2FB">
+<meta name="color-scheme" content="light">
 <title>Host · Christmas Chaos</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F6C453' stroke-width='2.4' stroke-linecap='round'%3E%3Cpath d='M2 12h20M12 2v20m8-6-4-4 4-4M4 8l4 4-4 4m12-12-4 4-4-4M8 20l4-4 4 4'/%3E%3C/svg%3E">
-<link rel="preload" href="/fonts/fraunces/fraunces-latin-full-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" type="image/png" href="/assets/art/tree.png">
+<link rel="preload" href="/fonts/bagel-fat-one/bagel-fat-one-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/figtree/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/assets/tokens.css">
 <link rel="stylesheet" href="/assets/host.css">
@@ -15,13 +16,13 @@
   <a class="skip-link" href="#coach">Skip to live directions</a>
   <div id="app" class="host-app" aria-busy="true">
     <div class="host-boot" role="status">
-      <span class="host-boot__mark" aria-hidden="true"></span>
-      <span>Connecting to the game…</span>
+      <img class="host-boot__art" src="/assets/art/sled.png" alt="" width="96" height="96">
+      <span class="host-boot__text">Warming up the workshop…</span>
     </div>
   </div>
   <div id="modal-root"></div>
   <div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-  <noscript><p class="host-noscript">The host screen needs JavaScript. Please enable it and reload.</p></noscript>
+  <noscript><p class="host-noscript">The host screen needs JavaScript. Please turn it on and reload.</p></noscript>
   <script type="module" src="/assets/host.js"></script>
 </body>
 </html>
