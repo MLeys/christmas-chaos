@@ -1,8 +1,8 @@
 [
   {
     "id": "show-001",
-    "title": "Reindeer Freeze",
-    "instructions": "Shoes or bare feet, no socks. Stand by a chair, lift one foot, antler hands on head, FREEZE! The room may heckle (no touching). Grab the chair, foot down or antlers drop: you're out!",
+    "title": "Reindeer Freeze-Off",
+    "instructions": "Shoes or bare feet, no socks. Stand by a chair, lift one foot, antler hands on head and FREEZE like a lawn reindeer! The room may heckle (no touching). Grab the chair, foot down or antlers drop: you're out!",
     "time": 30,
     "props": ["a sturdy chair each (grab it if you wobble, no shame!)"],
     "winner": "First to grab the chair, put their foot down or drop their antlers loses; both still frozen at the buzzer = Tie. Heckling only, never touching.",
@@ -10,8 +10,8 @@
   },
   {
     "id": "show-002",
-    "title": "Name That Elf",
-    "instructions": "Take turns naming Christmas movies or TV specials, one each, back and forth. Challenged player starts. No repeats! Blank for 5 seconds or repeat a title and you're out.",
+    "title": "Movie Marathon Face-Off",
+    "instructions": "Take turns naming Christmas movies or TV specials, back and forth. Challenged player starts. No repeats! Blank for 5 seconds or repeat a title and you're out. Die Hard debates welcome.",
     "time": 45,
     "props": [],
     "winner": "First to repeat a title, name something that isn't a Christmas movie or special, or go 5 seconds without answering loses; the host is final judge of what counts (Die Hard debates welcome); both still going at the buzzer = Tie.",
@@ -19,8 +19,8 @@
   },
   {
     "id": "show-003",
-    "title": "Over-the-Shoulder Snowballs",
-    "instructions": "Stand behind the line with your back to your mug. Toss 5 paper snowballs over your shoulder, one at a time. No fetching! Most in your mug wins.",
+    "title": "No-Look Snowball Toss",
+    "instructions": "Stand behind the line with your back to your mug. Toss 5 paper snowballs over your shoulder, one at a time. No fetching! Most in your mug wins. Trust the Force.",
     "time": 30,
     "props": ["a mug each (on the floor, about 1 m / 3 ft behind the line, away from candles)", "10 pre-scrunched paper snowballs (5 each)", "a throw line (rug edge or a shoe)"],
     "winner": "At the buzzer, count the snowballs inside each mug (bounce-ins count, fetched ones don't); most wins; same number = Tie.",
@@ -29,7 +29,7 @@
   {
     "id": "show-004",
     "title": "Toothless Turkey",
-    "instructions": "Fold your lips over your teeth. Take turns telling each other your Christmas wish list. Challenged player starts. Try to make your rival laugh! Flash a single tooth and you're out.",
+    "instructions": "Fold your lips over your teeth. Take turns telling each other your Christmas wish list. Challenged player starts. Make your rival crack up! Flash a single tooth and you're out.",
     "time": 30,
     "props": [],
     "winner": "First to flash a tooth loses; the host decides (the room may point); no teeth seen by the buzzer = Tie. Dentures or missing teeth? The player may ask the host to re-roll.",
@@ -38,7 +38,7 @@
   {
     "id": "show-005",
     "title": "Find the Pudding Coin",
-    "instructions": "The host hides a coin under one of 3 upside-down mugs and shuffles. On 'Point!', both point at once. Right = 1 point. Both right? Faster shuffle! First to 3 wins.",
+    "instructions": "The host hides a coin under one of 3 upside-down mugs and shuffles like a sneaky elf. On 'Point!', both point at once. Right = 1 point. Both right? Faster shuffle! First to 3 wins.",
     "time": 45,
     "props": ["3 matching mugs", "a coin"],
     "winner": "The host (or a player from a team not in the Showdown) shuffles, calls 'Point!' and lifts the right mug; each player pointing at it on the call scores 1 (late points don't count); first to 3 wins; both reach 3 together, or level at the buzzer = Tie.",
@@ -46,8 +46,8 @@
   },
   {
     "id": "show-006",
-    "title": "Cushion Crown",
-    "instructions": "Sit or stand. Balance a cushion on your head, hands by your sides, and sing 'Jingle Bells' on a loop, nodding on every 'jingle'. Drop it, touch it or stop singing and you're out!",
+    "title": "Cushion Crown Royale",
+    "instructions": "Sit or stand. Balance a cushion on your head, hands by your sides, and sing 'Jingle Bells' on a loop, nodding on every 'jingle'. Drop it, touch it or stop singing: you're out! Very regal.",
     "time": 45,
     "props": ["2 matching small cushions (or 2 folded tea towels or 2 paperbacks)"],
     "winner": "First to drop or touch their cushion, or stop singing, loses; both crowns still on at the buzzer = Tie.",
@@ -65,7 +65,7 @@
   {
     "id": "show-008",
     "title": "Carol Ping-Pong",
-    "instructions": "Take turns SINGING a line from a different Christmas song. Any tune counts, however wobbly! Challenged player starts. Repeat a song or stall 5 seconds and you're out.",
+    "instructions": "Take turns SINGING a line from a different Christmas song. Any tune counts, however wobbly! Challenged player starts. Repeat a song or stall 5 seconds: you're out. Mariah is watching.",
     "time": 45,
     "props": [],
     "winner": "First to repeat a song or stall 5 seconds loses; the host decides what counts as a Christmas song (winter songs like 'Let It Snow' are allowed); both still singing at the buzzer = Tie.",
@@ -74,7 +74,7 @@
   {
     "id": "show-009",
     "title": "Magnificent Moustache",
-    "instructions": "Tuck a pen (cap on) between your top lip and nose: a festive moustache! No hands. Every time the host claps, both say 'Bring us some figgy pudding!' First pen down loses.",
+    "instructions": "Tuck a pen (cap on) between your top lip and nose: instant festive moustache! No hands. Every time the host claps, both say 'Bring us some figgy pudding!' First pen down loses.",
     "time": 30,
     "props": ["your own pen, cap on"],
     "winner": "The host claps about every 3 seconds; first whose pen drops (or who touches it) loses; both moustaches still on at the buzzer = Tie.",
@@ -82,7 +82,7 @@
   },
   {
     "id": "show-010",
-    "title": "No Yes, No No",
+    "title": "No Yes, No No, No Way",
     "instructions": "Fire quick questions at each other: answer, then ask one back. Challenged player asks first. NEVER say 'yes' or 'no'; nods and head-shakes count too! Slip or stall 3 seconds: out!",
     "time": 45,
     "props": [],
@@ -92,7 +92,7 @@
   {
     "id": "show-011",
     "title": "Snowball Blow-Off",
-    "instructions": "Sit opposite each other across a table, hands behind your back. Host drops the paper snowball in the middle: blow it off your rival's edge. Stay seated! First to 2 goals wins.",
+    "instructions": "Sit across a table from each other, hands behind your backs. The host drops a paper snowball in the middle: huff and puff it off your rival's edge. Stay seated! First to 2 goals wins.",
     "time": 30,
     "props": ["a cleared table or coffee table", "2 chairs", "a scrunched-paper snowball"],
     "winner": "Ball off a player's edge = a goal to the other player; after a goal, or if it goes off the side, the host puts it back in the middle; first to 2 goals, or most at the buzzer, wins; level = Tie.",
@@ -100,8 +100,8 @@
   },
   {
     "id": "show-012",
-    "title": "Duet Disaster",
-    "instructions": "Sing 'Rudolph the Red-Nosed Reindeer' ONE word each, back and forth, one word per clap as the room claps a steady beat. Challenged player starts. Miss the beat, sing two or slip a lyric: out!",
+    "title": "Duet Disaster: Rudolph Edition",
+    "instructions": "Sing 'Rudolph the Red-Nosed Reindeer' ONE word each, back and forth, one word per clap while the room claps a steady beat. Challenged player starts. Miss the beat, sing two or fumble a lyric: out!",
     "time": 30,
     "props": [],
     "winner": "Whoever's word misses the clap, or who sings two words or a wrong lyric, loses; the host is the judge; both on the beat at the buzzer = Tie.",
@@ -110,7 +110,7 @@
   {
     "id": "show-013",
     "title": "Frosty Stare-Down",
-    "instructions": "Face each other and lock eyes. The room may heckle and pull faces from behind your rival (no touching!). First to blink or look away loses.",
+    "instructions": "Face each other and lock eyes like two snowmen in a standoff. The room may heckle and pull faces from behind your rival (no touching!). First to blink or look away loses.",
     "time": 45,
     "props": [],
     "winner": "A spotter from a team not in the Showdown watches each player's eyes (the host does it if there are only two teams); first blink or look-away loses; the host has the final say; both unblinking at the buzzer = Tie. Contact lenses or dry eyes? Re-roll the player.",
@@ -118,8 +118,8 @@
   },
   {
     "id": "show-014",
-    "title": "Jingle Buzz",
-    "instructions": "On the room's steady clap, count from 1, one number each, challenged player first. Say 'Jingle' for 3, 6, 9…, 'Bells' for 5, 10…, 'Jingle Bells' for 15, 30… Miss a beat or slip: out!",
+    "title": "Jingle Bells Buzz",
+    "instructions": "On the room's steady clap, count up from 1, one number each, challenged player first. Say 'Jingle' for 3, 6, 9..., 'Bells' for 5, 10..., 'Jingle Bells' for 15, 30... Miss a beat or slip: out!",
     "time": 45,
     "props": [],
     "winner": "First to miss the beat or say the wrong word or number loses (multiples of 3 = Jingle, of 5 = Bells, of both = Jingle Bells); both perfect at the buzzer = Tie.",
@@ -127,8 +127,8 @@
   },
   {
     "id": "show-015",
-    "title": "Snowball Spoon",
-    "instructions": "Shoes or bare feet, no socks. Hold a spoon by the very end of its handle, paper snowball in the bowl. Follow the host's calls: 'Turn!' 'Sit!' 'Stand!' 'Bow!' Snowball drops: you're out!",
+    "title": "Snowball Spoon Boot Camp",
+    "instructions": "Shoes or bare feet, no socks. Hold a spoon by the very end of its handle, paper snowball in the bowl. Obey the drill sergeant: 'Turn!' 'Sit!' 'Stand!' 'Bow!' Snowball drops: you're out!",
     "time": 45,
     "props": ["a spoon each", "a scrunched-paper snowball each", "a chair each, backed against a wall"],
     "winner": "The host calls a move every 3-4 seconds at a steady, never frantic pace until the buzzer; first snowball to fall (or be steadied with the other hand) loses; both still balanced at the buzzer = Tie.",
@@ -136,8 +136,8 @@
   },
   {
     "id": "show-016",
-    "title": "Santa's Body Clock",
-    "instructions": "Backs to the TV, eyes closed. When the host says GO, count silently and raise a hand when you think exactly 15 seconds have passed. Room: not a peep!",
+    "title": "Countdown to Christmas (in Your Head)",
+    "instructions": "Backs to the TV, eyes closed. When the host says GO, count silently and raise a hand when you think exactly 15 seconds have passed. Room: not a peep, not a jingle!",
     "time": 30,
     "props": [],
     "winner": "The host says GO as the timer starts and reads the timer at each raised hand (15 s gone = 15 left on the 30 s timer); closest to 15 wins; equally close = Tie.",
@@ -146,7 +146,7 @@
   {
     "id": "show-017",
     "title": "Copycat Elf",
-    "instructions": "Take turns, challenged player first: copy every move so far in order, then add one new festive move (antler hands, sleigh-bell shake, jolly belly laugh…). Forget or muddle one: out! No jumping or spinning.",
+    "instructions": "Take turns, challenged player first: copy every move so far in order, then add one new festive move (antler hands, sleigh-bell shake, jolly belly laugh...). Forget or muddle one: out! No jumping or spinning.",
     "time": 45,
     "props": [],
     "winner": "First to miss a move, get the order wrong or stall 5 seconds loses; the host is the final judge; both perfect at the buzzer = Tie.",
@@ -154,8 +154,8 @@
   },
   {
     "id": "show-018",
-    "title": "Cup Flip",
-    "instructions": "Stand a paper or plastic cup mouth-up, hanging half over the table edge. Flick it up so it flips and lands upside down. Land it, reset, go again. First to 3 wins!",
+    "title": "Cocoa Cup Flip",
+    "instructions": "Stand a paper or plastic cup mouth-up, hanging half over the table edge. Flick it so it flips and lands upside down. Land it, reset, go again. First to 3 wins! Pretend it's full of cocoa.",
     "time": 30,
     "props": ["a paper or plastic cup each (not glass)", "a table or worktop edge"],
     "winner": "The room counts clean landings aloud (the host has the final say); first to 3 wins, otherwise most at the buzzer; level = Tie.",
@@ -164,7 +164,7 @@
   {
     "id": "show-019",
     "title": "Santa Pat-and-Rub",
-    "instructions": "Sit or stand. Pat your head with one hand and rub your belly in circles with the other. Every time the host claps, swap hands! Both patting or both rubbing? You're out!",
+    "instructions": "Sit or stand. Pat your head with one hand and rub your belly in circles with the other, like a very confused Santa. Every time the host claps, swap hands! Both patting or both rubbing? Out!",
     "time": 30,
     "props": [],
     "winner": "The host claps every 3-4 seconds, faster near the end; first to pat or rub with both hands, or freeze for 2 seconds, loses; both clean at the buzzer = Tie.",
@@ -173,10 +173,46 @@
   {
     "id": "show-020",
     "title": "Sleigh Test Flight",
-    "instructions": "Fold a paper sleigh (any paper plane, must have wings) before the buzzer. Then both launch together from the same line on the host's count. Everyone else stays behind you! Farthest flight wins.",
+    "instructions": "Fold a paper sleigh (any paper plane, must have wings) before the buzzer. Then both launch together from the same line on the host's count. Everyone else stays behind you! Farthest flight wins. Dasher approves.",
     "time": 30,
     "props": ["a sheet of paper each", "a launch line facing a clear wall or hallway (away from candles, the tree and drinks)"],
     "winner": "At the buzzer, the host counts '3, 2, 1, fly!' and both launch from the line; the plane that ends up farthest from the line wins (a crumpled ball or wingless entry can't win); too close to call = Tie.",
     "tags": ["steady-hands"]
+  },
+  {
+    "id": "show-021",
+    "title": "Santa Laugh-Off",
+    "instructions": "Take turns: 10 seconds each of your biggest, jolliest, belly-shakingest Santa laugh. Challenged player goes first. Then the whole room cheers for each laugh. Louder cheer wins!",
+    "time": 30,
+    "props": [],
+    "winner": "After both laughs, the host asks the room to cheer for each player in turn (everyone may cheer, own teams included); louder cheer wins, the host's ear decides; too close to call = Tie.",
+    "tags": ["voice", "silly-face", "no-props"]
+  },
+  {
+    "id": "show-022",
+    "title": "Randy's Snowsuit Scramble",
+    "instructions": "A Christmas Story race! Pull on a coat, hat, scarf and mittens, zip or button the coat, then flap your arms and wail 'I can't put my arms down!' First to finish wins.",
+    "time": 45,
+    "props": ["a coat or jacket each", "a hat each", "a scarf each", "mittens or gloves each (all piled on a chair, not worn)"],
+    "winner": "First to have the coat on and fastened (at least one button or the zip), hat on, scarf around the neck and both mittens on, and then wail 'I can't put my arms down!', wins; neither finished at the buzzer = whoever has more items on wins; level = Tie.",
+    "tags": ["physical", "silly-face"]
+  },
+  {
+    "id": "show-023",
+    "title": "Naughty List Appeal",
+    "instructions": "Santa says you're BOTH on the naughty list! Take turns giving him a different excuse ('The dog did it!'). Challenged player starts. Repeat an excuse or stall 5 seconds: you're out!",
+    "time": 45,
+    "props": [],
+    "winner": "First to repeat an excuse (host's call), stall 5 seconds or give something that isn't an excuse loses; keep it family-friendly and never blame a real person in the room; both still talking at the buzzer = Tie.",
+    "tags": ["wit", "voice", "no-props"]
+  },
+  {
+    "id": "show-024",
+    "title": "Snowflake Keepy-Uppy",
+    "instructions": "Hold a tissue 'snowflake' above your head, let go on the host's GO, then keep it in the air by BLOWING only. No hands, no fanning! Last snowflake still flying wins.",
+    "time": 30,
+    "props": ["a single-ply tissue square each (split a regular tissue in two)"],
+    "winner": "A snowflake that touches the floor or furniture, or is touched or fanned by its player, is out; the other player wins; both still flying at the buzzer = Tie.",
+    "tags": ["silly-face", "balance"]
   }
 ]

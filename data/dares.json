@@ -1,9 +1,9 @@
 [
   {
     "id": "dare-001",
-    "title": "Silent Movie Star",
+    "title": "Silent Movie Superstar",
     "who": "one",
-    "instructions": "Act out the Christmas movie or TV special on your phone for your team. No words, no sounds, no mouthing, no pointing at things in the room. Your team shouts guesses.",
+    "instructions": "Act out the Christmas movie on your phone like a silent-film legend. No words, no sounds, no mouthing, no pointing at stuff in the room. Your team shouts guesses!",
     "secret": {
       "label": "Act out this Christmas movie or TV special, silently",
       "options": [
@@ -26,7 +26,9 @@
         "Christmas with the Kranks",
         "Jack Frost",
         "Rudolph the Red-Nosed Reindeer",
-        "Santa Claus Is Comin' to Town"
+        "Santa Claus Is Comin' to Town",
+        "Frosty the Snowman",
+        "The Muppet Christmas Carol"
       ]
     },
     "time": 60,
@@ -36,9 +38,9 @@
   },
   {
     "id": "dare-002",
-    "title": "Santa Belly Jumping Jacks",
+    "title": "Bowl Full of Jelly Jacks",
     "who": "one",
-    "instructions": "Stuff a pillow up your untucked shirt for a Santa belly. No hands on the pillow! Do 10 jumping jacks (or 10 squats, hands on your head). If it drops, start over!",
+    "instructions": "Stuff a pillow up your untucked shirt: congratulations, you're Santa. No hands on the belly! Do 10 jumping jacks (or 10 squats, hands on head). Belly escapes? Start over!",
     "secret": null,
     "time": 60,
     "props": ["A pillow or sofa cushion"],
@@ -49,7 +51,7 @@
     "id": "dare-003",
     "title": "Two-Headed Santa",
     "who": "pair",
-    "instructions": "PAIR: link arms. You are now ONE Santa. The host picks 3 people from other teams to ask Santa a question. Answer each in a full sentence, one word each, taking turns.",
+    "instructions": "PAIR: link arms. You are now ONE very confused Santa. The host picks 3 people from other teams to ask Santa anything. Answer in full sentences, ONE word each, taking turns.",
     "secret": null,
     "time": 60,
     "props": [],
@@ -58,9 +60,9 @@
   },
   {
     "id": "dare-004",
-    "title": "Banned Words",
+    "title": "Forbidden Words of the North Pole",
     "who": "one",
-    "instructions": "Get your team to say the word on your phone. Don't say any part of it or any of the banned words shown with it. No gestures, no 'sounds like'.",
+    "instructions": "Get your team to say the word on your phone. Don't say any part of it or its banned words. No gestures, no 'sounds like'. Talk fast, think faster!",
     "secret": {
       "label": "Get your team to say this word. Never say the banned words!",
       "options": [
@@ -77,7 +79,13 @@
         "WRAPPING PAPER (banned: present, gift, tape)",
         "SLEIGH (banned: Santa, reindeer, ride)",
         "HOT CHOCOLATE (banned: cocoa, marshmallow, mug)",
-        "STOCKING (banned: sock, hang, stuffer)"
+        "STOCKING (banned: sock, hang, stuffer)",
+        "MISTLETOE (banned: kiss, plant, hang)",
+        "GINGERBREAD MAN (banned: cookie, run, house)",
+        "SNOWMAN (banned: Frosty, carrot, melt)",
+        "CANDY CANE (banned: stripes, peppermint, hook)",
+        "LUMP OF COAL (banned: naughty, black, stocking)",
+        "REINDEER (banned: Rudolph, antlers, sleigh)"
       ]
     },
     "time": 30,
@@ -89,7 +97,7 @@
     "id": "dare-005",
     "title": "Reindeer Poker Face",
     "who": "team",
-    "instructions": "WHOLE TEAM: hands on heads like antlers, straight faces, for 30 seconds. Other teams may pull faces and make noises from an arm's length away. No touching!",
+    "instructions": "WHOLE TEAM: antler hands on heads, straight faces, 30 seconds. Other teams: make them crack with silly faces and noises from an arm's length away. No touching!",
     "secret": null,
     "time": 30,
     "props": [],
@@ -98,9 +106,9 @@
   },
   {
     "id": "dare-006",
-    "title": "Cookie Face-Off",
+    "title": "Cookie Face Race",
     "who": "one",
-    "instructions": "FACE-OFF against a challenger the host picks from another team. Cookie on your forehead: get it into your mouth using only your face. No hands! Dropped it? Put it back and keep going.",
+    "instructions": "FACE-OFF vs. a challenger the host picks from another team. Cookie on your forehead: wiggle it into your mouth using only your face. No hands! Dropped it? Put it back and keep wiggling.",
     "secret": null,
     "time": 60,
     "props": ["2 small, firm cookies (a cracker works for anyone avoiding cookies)"],
@@ -109,9 +117,9 @@
   },
   {
     "id": "dare-007",
-    "title": "Who Am I?",
+    "title": "Guess Who's Coming to Christmas",
     "who": "one",
-    "instructions": "Become the character on your phone: talk, move and act like them in the situation shown. Never say their name. Your team guesses who you are.",
+    "instructions": "Become the character on your phone, in the silly situation shown: talk, move and act like them. Never say their name! Your team guesses who you are.",
     "secret": {
       "label": "Become this character. Never say their name!",
       "options": [
@@ -130,7 +138,16 @@
         "A snowflake, falling for the very first time",
         "A shopping-mall Santa, on his last nerve",
         "The angel on top of the tree, scared of heights",
-        "A cat in a Santa hat, very unimpressed"
+        "A cat in a Santa hat, very unimpressed",
+        "Rudolph, with a terrible head cold",
+        "Clark Griswold, plugging in the lights... and nothing happens",
+        "Buddy the Elf, meeting Santa for the very first time",
+        "Kevin McCallister, trying aftershave for the first time",
+        "The Grinch, trying to stuff a whole tree up a chimney",
+        "Frosty the Snowman, on a very hot day",
+        "A snowman who just lost his carrot nose",
+        "Cindy Lou Who, catching the Grinch red-handed",
+        "Ebenezer Scrooge, waking up on Christmas morning, totally reformed"
       ]
     },
     "time": 45,
@@ -142,7 +159,7 @@
     "id": "dare-008",
     "title": "Slow-Mo Snowball Fight",
     "who": "team",
-    "instructions": "WHOLE TEAM: stage an epic snowball fight in SLOW MOTION. Slow-motion voices, slow-motion faces, and at least one dramatic slow-motion hit. Nobody speeds up!",
+    "instructions": "WHOLE TEAM: stage an EPIC snowball fight in slooow motion. Slow-mo voices, slow-mo faces, and at least one dramatic slow-mo 'NOOOOO!' as someone gets hit. Nobody speeds up!",
     "secret": null,
     "time": 30,
     "props": [],
@@ -151,9 +168,9 @@
   },
   {
     "id": "dare-009",
-    "title": "Stand-Up Santa",
+    "title": "Stand-Up Santa: Tough Crowd",
     "who": "one",
-    "instructions": "Tell the terrible Christmas joke on your phone like a stand-up superstar. Other teams: keep a straight face! Make at least 2 of them laugh out loud. Smiles and groans don't count!",
+    "instructions": "Deliver the terrible Christmas joke on your phone like a stand-up superstar. Other teams: stay stone-faced! Make at least 2 of them laugh out loud. Smiles and groans don't count!",
     "secret": {
       "label": "Deliver this joke like a stand-up superstar",
       "options": [
@@ -162,7 +179,7 @@
         "What does Santa do in his garden? Hoe, hoe, hoe!",
         "What do you call a cat on the beach at Christmas? Sandy Claws.",
         "What do you get if you cross a snowman with a vampire? Frostbite.",
-        "What do you call a deer with no eyes? No idea!",
+        "What do you call a reindeer with bad manners? Rude-olph.",
         "How do sheep say Merry Christmas? Fleece Navidad!",
         "What do elves learn at school? The elf-abet.",
         "What kind of motorbike does Santa ride? A Holly Davidson.",
@@ -170,7 +187,13 @@
         "What kind of music do elves like best? Wrap music!",
         "Why did Santa's helper go to the doctor? Low elf-esteem.",
         "Why was the Christmas tree bad at knitting? It kept dropping its needles.",
-        "What do you call an old snowman? Water."
+        "What do you call an old snowman? Water.",
+        "What do snowmen eat for breakfast? Frosted Flakes.",
+        "Why does Santa go down the chimney? Because it soots him.",
+        "What did the gingerbread man put on his bed? A cookie sheet.",
+        "What do you call a broke Santa? Saint Nickel-less.",
+        "What did one snowman say to the other? Do you smell carrots?",
+        "What do you call Santa's helpers? Subordinate Clauses."
       ]
     },
     "time": 30,
@@ -180,9 +203,9 @@
   },
   {
     "id": "dare-010",
-    "title": "Candy Cane Fishing",
+    "title": "Gone Fishin' for Candy Canes",
     "who": "one",
-    "instructions": "Stand 3 candy canes hook-up in a mug. Hold a 4th in your mouth, hook out, and use it to move them one at a time into a second mug. No hands!",
+    "instructions": "Stand 3 candy canes hook-up in a mug. Hold a 4th in your mouth, hook out, and fish them one at a time into a second mug. No hands! Steady as a snowman.",
     "secret": null,
     "time": 60,
     "props": ["4 wrapped candy canes", "2 mugs"],
@@ -191,9 +214,9 @@
   },
   {
     "id": "dare-011",
-    "title": "Mime Telephone",
+    "title": "Silent Night Telephone",
     "who": "team",
-    "instructions": "WHOLE TEAM: line up, backs turned, except Player 1, who has the phone. Player 1 taps the next player and silently mimes the activity; they mime it to the next, and so on. Last player guesses! No sounds!",
+    "instructions": "WHOLE TEAM: line up, backs turned, except Player 1, who has the phone. Player 1 taps the next player and silently mimes the activity; they mime it to the next, and so on. Last player guesses. No sounds!",
     "secret": {
       "label": "Silently mime this to the next teammate",
       "options": [
@@ -211,7 +234,14 @@
         "Hanging ornaments on the tree",
         "Wrapping a present that won't stay closed",
         "Making a snow angel",
-        "Roasting marshmallows over a fire"
+        "Roasting marshmallows over a fire",
+        "Clark Griswold plugging in the lights... and nothing happens",
+        "Wrestling a Christmas tree into its stand",
+        "Building a gingerbread house that keeps collapsing",
+        "Kevin McCallister setting a booby trap",
+        "Feeding carrots to Santa's reindeer",
+        "Squeezing down a chimney with a sack of presents",
+        "Licking a frozen flagpole and getting stuck"
       ]
     },
     "time": 90,
@@ -223,7 +253,7 @@
     "id": "dare-012",
     "title": "Santa Says",
     "who": "everyone",
-    "instructions": "Lead the WHOLE ROOM (seated or standing) in 'Santa Says'. Anyone who obeys a command that doesn't start with 'Santa says' is out. Catch 3 players from other teams. Gentle moves only!",
+    "instructions": "Lead the WHOLE ROOM (seated or standing) in 'Santa Says'. Anyone who obeys a command without 'Santa says' first is OUT. Catch 3 players from other teams. Be sneaky, keep moves gentle!",
     "secret": null,
     "time": 45,
     "props": [],
@@ -232,9 +262,9 @@
   },
   {
     "id": "dare-013",
-    "title": "Soap Opera Moment",
+    "title": "As the Fruitcake Turns",
     "who": "one",
-    "instructions": "Read the line on your phone aloud like the star of a dramatic soap opera: gasps, long pauses, a stare into the distance. No giggling!",
+    "instructions": "Read the line on your phone like the star of a dramatic soap opera: gasps, long pauses, a slow stare into the distance. Giggling is NOT in the script!",
     "secret": {
       "label": "Read this aloud like a soap-opera star",
       "options": [
@@ -250,7 +280,12 @@
         "The Brussels sprouts. Nobody eats them. And yet, every year... there they are.",
         "The TV remote is gone. Someone sat on that couch... and now it's gone forever.",
         "You opened my present before Christmas morning? I don't even know who you are anymore.",
-        "The cookies are gone. The crumbs lead to this room. And one of you... has a milk mustache."
+        "The cookies are gone. The crumbs lead to this room. And one of you... has a milk mustache.",
+        "You used the GOOD wrapping paper... for HIM?",
+        "The fruitcake. It came back. Nobody knows who brings it. Nobody knows... where it goes.",
+        "Who... unplugged... the inflatable snowman?",
+        "I found the presents. In the closet. Behind the vacuum. I'll never be the same.",
+        "You took the last pig in a blanket. I saw you. The blanket saw you."
       ]
     },
     "time": 30,
@@ -260,9 +295,9 @@
   },
   {
     "id": "dare-014",
-    "title": "Snowman Wrap",
+    "title": "Do You Want to Build a Snowman?",
     "who": "team",
-    "instructions": "WHOLE TEAM: wrap one teammate in toilet paper to turn them into a snowman, from shoulders to knees. Keep the face clear! Finish with a snowman pose.",
+    "instructions": "WHOLE TEAM: wrap one teammate in toilet paper and turn them into a SNOWMAN, shoulders to knees. Keep the face clear! Finish with your frostiest snowman pose.",
     "secret": null,
     "time": 60,
     "props": ["2 rolls of toilet paper"],
@@ -271,9 +306,9 @@
   },
   {
     "id": "dare-015",
-    "title": "Sound Effects Only",
+    "title": "Sound Effects Department",
     "who": "one",
-    "instructions": "Make the sounds of the scene on your phone. Noises only: no words, no singing, and keep your hands behind your back. Your team guesses the scene.",
+    "instructions": "Make the sounds of the scene on your phone. Noises only: no words, no singing, hands behind your back. Go full cartoon! Your team guesses the scene.",
     "secret": {
       "label": "Make the sounds of this scene. No words, no hands!",
       "options": [
@@ -290,7 +325,14 @@
         "Popping a whole sheet of bubble wrap",
         "A sleigh crash-landing in the snow",
         "Frying bacon on Christmas morning",
-        "Santa snoring in his armchair"
+        "Santa snoring in his armchair",
+        "Rudolph with a terrible head cold",
+        "Clark Griswold plugging in the lights... and blowing a fuse",
+        "Santa stuck in the chimney",
+        "The Grinch's heart growing three sizes",
+        "A dog unwrapping all the presents at 3 a.m.",
+        "Sliding a can of cranberry sauce out of the can",
+        "Kevin McCallister's aftershave scream"
       ]
     },
     "time": 45,
@@ -300,9 +342,9 @@
   },
   {
     "id": "dare-016",
-    "title": "Christmas Rap Battle",
+    "title": "MC Santa's Rap Battle",
     "who": "one",
-    "instructions": "FACE-OFF: the host picks a rapper from another team. You go first. 20 seconds each, rapping about Christmas, using the words 'turkey' and 'chimney'. The room claps a beat. Louder cheer wins!",
+    "instructions": "FACE-OFF: the host picks a rapper from another team. You go first. 20 seconds each, rapping about Christmas, and you MUST use 'turkey' and 'chimney'. The room claps the beat. Louder cheer wins!",
     "secret": null,
     "time": 60,
     "props": [],
@@ -311,9 +353,9 @@
   },
   {
     "id": "dare-017",
-    "title": "Living Christmas Card",
+    "title": "Say Cheese! Living Christmas Card",
     "who": "team",
-    "instructions": "Show the scene on your phone to your team only. Take 15 seconds to pose as that Christmas card, then FREEZE. The other teams shout guesses. First to guess right wins 50 too!",
+    "instructions": "Show the scene on your phone to your team only. 15 seconds to pose as that Christmas card, then FREEZE. Other teams shout guesses; first right guess wins 50 too! Smile for the fridge!",
     "secret": {
       "label": "Show only your team, then freeze as this Christmas card",
       "options": [
@@ -329,7 +371,13 @@
         "A New Year's Eve countdown",
         "A Christmas tree falling over",
         "Shoppers grabbing the last toy on the shelf",
-        "Waiting in line to see Santa"
+        "Waiting in line to see Santa",
+        "The Griswold house lights finally coming on",
+        "A kid's tongue stuck to a frozen flagpole",
+        "The dog stealing the Christmas turkey",
+        "Santa stuck in the chimney",
+        "Untangling a giant knot of Christmas lights",
+        "The Grinch sneaking off with the presents"
       ]
     },
     "time": 45,
@@ -339,9 +387,9 @@
   },
   {
     "id": "dare-018",
-    "title": "Spoon on the Nose",
+    "title": "Spoon-derful Nose Trick",
     "who": "one",
-    "instructions": "Hang a spoon from the tip of your nose, no hands, for 10 full seconds while the room counts. Tip: breathe on the spoon and tilt your head back first.",
+    "instructions": "Hang a spoon from the tip of your nose, no hands, for 10 full seconds while the room counts. Pro tip: breathe on the spoon, tilt your head back, believe in yourself.",
     "secret": null,
     "time": 45,
     "props": ["A metal teaspoon"],
@@ -350,9 +398,9 @@
   },
   {
     "id": "dare-019",
-    "title": "Secret Voice",
+    "title": "Mystery Voice Theater",
     "who": "one",
-    "instructions": "Read this line in the secret voice on your phone: 'Dinner is in five minutes, the turkey is enormous, and nobody touches the last cookie!' Repeat it as often as needed. Team guesses the voice.",
+    "instructions": "Read this line in the secret voice on your phone: 'Dinner is in five minutes, the turkey is enormous, and nobody touches the last cookie!' Repeat it as often as needed. Your team guesses the voice.",
     "secret": {
       "label": "Read the line on the TV in this voice",
       "options": [
@@ -371,7 +419,14 @@
         "A fitness instructor",
         "An airline pilot making an announcement",
         "A drill sergeant",
-        "A surfer dude"
+        "A surfer dude",
+        "Santa with a terrible head cold",
+        "A game-show host",
+        "A GPS giving directions",
+        "Someone riding a roller coaster",
+        "A Shakespearean actor",
+        "A grumpy elf at the end of a double shift",
+        "A very fancy butler"
       ]
     },
     "time": 45,
@@ -383,7 +438,7 @@
     "id": "dare-020",
     "title": "Boy Band Debut",
     "who": "team",
-    "instructions": "WHOLE TEAM: sing the first verse of 'Deck the Halls' as a boy band, with one synchronized dance move, one dramatic solo line, and a big final pose.",
+    "instructions": "WHOLE TEAM: you're a boy band now. Sing the first verse of 'Deck the Halls' with one synchronized dance move, one dramatic solo line (hand on heart!) and a big final pose.",
     "secret": null,
     "time": 45,
     "props": [],
@@ -392,9 +447,9 @@
   },
   {
     "id": "dare-021",
-    "title": "The Worst Gift Ever",
+    "title": "The Worst Gift Ever (I LOVE It!)",
     "who": "one",
-    "instructions": "You just unwrapped the terrible gift on your phone. Be wildly OVERJOYED: gush, hug it, explain how you'll use it, but never say what it is. Your team guesses the gift.",
+    "instructions": "You just unwrapped the terrible gift on your phone. Be wildly, tearfully OVERJOYED: gush, hug it, explain how you'll use it, but never say what it is. Your team guesses the gift.",
     "secret": {
       "label": "React with pure joy to this gift. Never say what it is!",
       "options": [
@@ -412,7 +467,13 @@
         "A sweater for a dog (you don't have a dog)",
         "A singing fish on a plaque",
         "A lump of coal",
-        "A half-eaten sandwich"
+        "A half-eaten sandwich",
+        "A Jelly of the Month Club membership",
+        "A gift card with 12 cents on it",
+        "A pet rock wearing a tiny sweater",
+        "A coupon for one free hug (expired)",
+        "A snow globe of a gas station",
+        "Socks with someone else's name on them"
       ]
     },
     "time": 45,
@@ -422,9 +483,9 @@
   },
   {
     "id": "dare-022",
-    "title": "Wildlife Documentary",
+    "title": "Planet Living Room",
     "who": "pair",
-    "instructions": "PAIR: one whispers like a nature-documentary narrator; the other is the 'camera crew', tiptoeing up to each 'wild animal'. Narrate the room in its natural habitat. Feature at least 3 people. Keep it kind!",
+    "instructions": "PAIR: one is a hushed nature-documentary narrator, the other the camera crew, tiptoeing up to each 'wild creature' in its natural habitat (the couch). Feature at least 3 people. Kind words only!",
     "secret": null,
     "time": 30,
     "props": [],
@@ -433,9 +494,9 @@
   },
   {
     "id": "dare-023",
-    "title": "Nose the Present",
+    "title": "Rudolph's Nose Delivery",
     "who": "one",
-    "instructions": "Push a small box from one end of a cleared table to the other and back, using only your nose. No hands! Falls off? Put it back where it fell.",
+    "instructions": "Push a small box from one end of a cleared table to the other and back, using only your nose. No hands! Falls off? Put it back where it fell. Rudolph would be proud.",
     "secret": null,
     "time": 60,
     "props": ["A small box (wrapped or not)", "A cleared table"],
@@ -444,9 +505,9 @@
   },
   {
     "id": "dare-024",
-    "title": "Genre Swap",
+    "title": "Jingle Bells: The Remix",
     "who": "one",
-    "instructions": "Sing the chorus of 'Jingle Bells' in the music style on your phone. Commit fully, but never say the style! Your team guesses it.",
+    "instructions": "Sing the chorus of 'Jingle Bells' in the music style on your phone. Commit FULLY, but never say the style! Your team guesses it.",
     "secret": {
       "label": "Sing the 'Jingle Bells' chorus in this style",
       "options": [
@@ -463,7 +524,12 @@
         "Yodeling",
         "Cheerleader chant",
         "Sea shanty",
-        "Jazz crooner"
+        "Jazz crooner",
+        "Barbershop quartet (all four parts, by yourself)",
+        "Elvis impersonator",
+        "Whispery bedtime story",
+        "Marching band (do all the instruments)",
+        "Punk rock"
       ]
     },
     "time": 45,
@@ -473,9 +539,9 @@
   },
   {
     "id": "dare-025",
-    "title": "Helping Hands",
+    "title": "Santa's Helping Hands",
     "who": "pair",
-    "instructions": "PAIR: Player 1 puts their hands behind their back; Player 2 stands behind and becomes their arms. Host a cooking show: 'How to bake perfect Christmas cookies.' Mime everything. End with a taste test.",
+    "instructions": "PAIR: Player 1 puts their hands behind their back; Player 2 stands behind and becomes their arms. Host a cooking show: 'How to Bake Perfect Christmas Cookies.' Mime it all. End with a taste test!",
     "secret": null,
     "time": 45,
     "props": [],
@@ -486,7 +552,7 @@
     "id": "dare-026",
     "title": "One-Breath Ho Ho Ho",
     "who": "one",
-    "instructions": "Take ONE deep breath, then say 'Ho ho ho, Merry Christmas!' as many times as you can before you breathe again. The whole room counts out loud.",
+    "instructions": "Take ONE deep breath, then say 'Ho ho ho, Merry Christmas!' as many times as you can before you breathe again. The whole room counts out loud. Channel your inner Santa!",
     "secret": null,
     "time": 30,
     "props": [],
@@ -497,7 +563,7 @@
     "id": "dare-027",
     "title": "Plate-Head Picasso",
     "who": "one",
-    "instructions": "Put a paper plate on your head and draw the thing on your phone on it, without looking. No talking, no gestures, no letters or numbers. Your team guesses.",
+    "instructions": "Put a paper plate on your head and draw the thing on your phone on it, without looking. No talking, no gestures, no letters or numbers. Masterpiece guaranteed. Your team guesses!",
     "secret": {
       "label": "Draw this on the plate on your head",
       "options": [
@@ -516,7 +582,13 @@
         "Candle",
         "Snowflake",
         "Penguin",
-        "Holly"
+        "Holly",
+        "Reindeer",
+        "Gingerbread man",
+        "Sleigh",
+        "Elf",
+        "Chimney",
+        "Snow globe"
       ]
     },
     "time": 45,
@@ -526,9 +598,9 @@
   },
   {
     "id": "dare-028",
-    "title": "The Maestro",
+    "title": "The Maestro of Merry",
     "who": "everyone",
-    "instructions": "Give each team a Christmas sound (jingle, ho-ho-ho, reindeer stomp, howling wind, or invent more). Then CONDUCT the room: cue each team, go loud, go soft, then cut everyone off with one fist.",
+    "instructions": "Give each team a Christmas sound (jingle, ho-ho-ho, reindeer stomp, howling wind, or invent more). Then CONDUCT the room: cue each team, go loud, go soft, then cut everyone off with one dramatic fist.",
     "secret": null,
     "time": 60,
     "props": [],
@@ -539,7 +611,7 @@
     "id": "dare-029",
     "title": "Jingle Jiggle",
     "who": "one",
-    "instructions": "Tie an empty tissue box to your lower back with a belt or scarf, with 5 small items inside. Wiggle, jiggle and jump until every item is out. No hands!",
+    "instructions": "Tie an empty tissue box to your lower back with a belt or scarf, with 5 small items inside. Wiggle, jiggle and jump until every item is out. No hands! Shake it like a snow globe!",
     "secret": null,
     "time": 60,
     "props": ["An empty tissue box", "A belt or scarf", "5 ping-pong balls, wrapped candies or balled-up socks"],
@@ -548,9 +620,9 @@
   },
   {
     "id": "dare-030",
-    "title": "Late-Night Infomercial",
+    "title": "As Seen on TV: North Pole Edition",
     "who": "pair",
-    "instructions": "PAIR: make a 30-second TV ad for the secret product shown on your phone. One is the over-the-top host, one the amazed customer. Say its name, invent a slogan, give a price, and shout 'But wait, there's more!'",
+    "instructions": "PAIR: make a 30-second TV ad for the secret product on your phone. One is the over-the-top host, one the amazed customer. Say its name, invent a slogan, give a price, and shout 'But wait, there's more!'",
     "secret": {
       "label": "Sell this product together. Say its name loud and proud!",
       "options": [
@@ -567,7 +639,13 @@
         "A cookie jar with a lie detector",
         "Inflatable guests to fill empty chairs at dinner",
         "A doorbell that only rings for Santa",
-        "Glow-in-the-dark wrapping paper"
+        "Glow-in-the-dark wrapping paper",
+        "Christmas lights that untangle themselves",
+        "Grinch repellent spray",
+        "An ugly sweater with a built-in heater and cup holder",
+        "A fake fireplace for homes with no chimney",
+        "An alarm that catches anyone peeking at presents",
+        "Fruitcake-flavored chewing gum"
       ]
     },
     "time": 30,
@@ -579,7 +657,7 @@
     "id": "dare-031",
     "title": "Christmas A to Z",
     "who": "team",
-    "instructions": "WHOLE TEAM: take turns in order, each saying a Christmas word that starts with the next letter: A, B, C... Stuck for 3 seconds? The next teammate takes that letter. Reach M!",
+    "instructions": "WHOLE TEAM: take turns in order, each saying a Christmas word for the next letter: A, B, C... Stuck for 3 seconds? The next teammate takes that letter. Reach M before the timer melts!",
     "secret": null,
     "time": 60,
     "props": [],
@@ -588,9 +666,9 @@
   },
   {
     "id": "dare-032",
-    "title": "Tongue Twister",
+    "title": "Santa's Short Suit Shrunk",
     "who": "one",
-    "instructions": "Say 'Santa's short suit shrunk' five times fast, out loud and clear, without a single slip. You get two tries.",
+    "instructions": "Say 'Santa's short suit shrunk' five times fast, out loud and clear, without a single slip. You get two tries. Your tongue has been warned.",
     "secret": null,
     "time": 30,
     "props": [],
@@ -599,9 +677,9 @@
   },
   {
     "id": "dare-033",
-    "title": "Oven-Mitt Wrap",
+    "title": "Oven-Mitt Gift Wrap",
     "who": "one",
-    "instructions": "Wearing oven mitts, wrap the box in paper using the pre-torn tape strips. The mitts stay on the whole time! No cardboard showing at the buzzer.",
+    "instructions": "Wearing oven mitts, wrap the box using the pre-torn tape strips. The mitts stay on the whole time! No cardboard showing at the buzzer. (This is how Santa's interns train.)",
     "secret": null,
     "time": 90,
     "props": ["Oven mitts (or thick winter gloves)", "A small box", "Wrapping paper, cut to size", "6 strips of tape, pre-torn and stuck to the table edge"],
@@ -610,7 +688,7 @@
   },
   {
     "id": "dare-034",
-    "title": "Christmas Catwalk",
+    "title": "Sleigh the Runway",
     "who": "pair",
     "instructions": "PAIR: the model struts a runway across the room in the secret walk style on their phone: 3 poses, there and back. The partner commentates like a fashion-show host. Your team guesses the style!",
     "secret": {
@@ -629,7 +707,12 @@
         "A ballerina",
         "Someone carrying way too many shopping bags",
         "Someone walking into a freezing blizzard",
-        "A chicken"
+        "A chicken",
+        "The Grinch tiptoeing out with all the presents",
+        "An elf who is very late for work",
+        "Frosty the Snowman, slowly melting",
+        "Someone in giant, clompy snow boots",
+        "Clark Griswold on an icy driveway"
       ]
     },
     "time": 45,
@@ -639,9 +722,9 @@
   },
   {
     "id": "dare-035",
-    "title": "Interpretive Dance",
+    "title": "The Life of a Christmas Tree: A Dance",
     "who": "one",
-    "instructions": "Perform an interpretive dance called 'The Life of a Christmas Tree': grow from a tiny seedling, get chopped down, decorated, admired, then dragged to the curb in January. Topple gently: no hitting the floor!",
+    "instructions": "Perform an interpretive dance called 'The Life of a Christmas Tree': sprout from a tiny seedling, get chopped down, decorated, admired, then dragged to the curb in January. Topple gently: no hitting the floor!",
     "secret": null,
     "time": 45,
     "props": [],
@@ -650,9 +733,9 @@
   },
   {
     "id": "dare-036",
-    "title": "Whole-Room Freeze Dance",
+    "title": "Freeze! Elf on the Dance Floor",
     "who": "everyone",
-    "instructions": "EVERYONE dances to Christmas music, seated or standing. When the host pauses it, FREEZE. Anyone still moving, or the last to freeze, is out. Three rounds.",
+    "instructions": "EVERYONE dances to Christmas music, seated or standing. When the host pauses it, FREEZE like an elf on a shelf. Still moving, or last to freeze? You're out. Three rounds.",
     "secret": null,
     "time": 90,
     "props": ["A phone or speaker playing Christmas music"],
@@ -661,9 +744,9 @@
   },
   {
     "id": "dare-037",
-    "title": "Classic Special Rehearsal",
+    "title": "Classic Christmas Special, Live!",
     "who": "one",
-    "instructions": "Act out the famous moment from a classic Christmas TV special on your phone. Sound effects are fine (honks, growls, ho-ho-hos), but no real words. Your team must name the special AND the moment.",
+    "instructions": "Act out the famous moment from a classic Christmas TV special on your phone. Sound effects are fine (honks, growls, ho-ho-hos), but no real words. Your team names the special AND the moment.",
     "secret": {
       "label": "Act out this moment. Sound effects only, no words!",
       "options": [
@@ -689,5 +772,105 @@
     "props": [],
     "judge": "Team names the special and the moment (close enough, host's call) within 60 s; naming only the special = partial; any real word from the performer = fail.",
     "tags": ["performance", "no-props"]
+  },
+  {
+    "id": "dare-038",
+    "title": "Elf on the Shelf: Caught Moving!",
+    "who": "one",
+    "instructions": "You're the Elf on the Shelf. Sneak across the room while the host's back is turned. When the host spins around, FREEZE in a new silly elf pose. Get caught moving? Busted!",
+    "secret": null,
+    "time": 45,
+    "props": [],
+    "judge": "The host turns away and spins back at least 4 times; the elf reaches the far side of the room within 45 s, frozen in a new pose every time and never caught moving. Caught once = partial; caught twice = not this time.",
+    "tags": ["physical", "performance", "whole-room", "no-props"]
+  },
+  {
+    "id": "dare-039",
+    "title": "Clark Griswold's Light Show",
+    "who": "pair",
+    "instructions": "PAIR: one is Clark Griswold, one is the 25,000 twinkle lights. Clark gives a grand speech, the room drumrolls, Clark plugs in... nothing. Twice! Third try: the lights go full jazz-hands dazzle!",
+    "secret": null,
+    "time": 45,
+    "props": [],
+    "judge": "Grand speech, a room drumroll, two dramatic failures with big reactions, then one dazzling jazz-hands success, both players in character; missing a beat or breaking character = partial.",
+    "tags": ["performance", "whole-room", "no-props"]
+  },
+  {
+    "id": "dare-040",
+    "title": "Coming Soon to a Living Room Near You",
+    "who": "one",
+    "instructions": "In your deepest movie-trailer voice, narrate the trailer for the Christmas blockbuster on your phone, starring people in this room. Start with 'In a world...' and end with the title. Keep it kind!",
+    "secret": {
+      "label": "Narrate the trailer for this movie. Cast people in the room!",
+      "options": [
+        "The Turkey That Would Not Thaw",
+        "Home Alone 7: The Wi-Fi Is Down",
+        "Fast & Festive: Sleigh Drift",
+        "Mission: Impossible: Wrap It Before Midnight",
+        "Night of the Living Gingerbread",
+        "Jurassic Pork: The Christmas Ham Escapes",
+        "Toy Story 5: Batteries Not Included",
+        "The Fruitcake That Ate the Neighborhood",
+        "Die Hard With a Candy Cane",
+        "Attack of the 50-Foot Snowman",
+        "The Lord of the Rings: Return of the Regift",
+        "Finding Rudolph",
+        "The Great Cookie Heist",
+        "Gone With the Wind Chill"
+      ]
+    },
+    "time": 40,
+    "props": [],
+    "judge": "A trailer of about 30 s that opens with 'In a world...', casts at least two people in the room, builds to a dramatic moment and ends with the title; missing one of those, or giggling through it = partial.",
+    "tags": ["performance", "whole-room", "no-props"]
+  },
+  {
+    "id": "dare-041",
+    "title": "Tangled Lights",
+    "who": "team",
+    "instructions": "WHOLE TEAM: you're a box of Christmas lights straight from the attic. Stand in a circle, reach across, and grab two different hands. Now untangle into one big circle WITHOUT letting go!",
+    "secret": null,
+    "time": 90,
+    "props": [],
+    "judge": "The team ends in one untangled circle (some may face outward) within 90 s without letting go; a circle reached with one quick re-grip = partial. Teams of 2: link both hands, then turn back-to-back and face-to-face again without letting go. Gentle twists only!",
+    "tags": ["physical", "no-props"]
+  },
+  {
+    "id": "dare-042",
+    "title": "Elf Job Interview",
+    "who": "pair",
+    "instructions": "PAIR: one is Santa interviewing for a new elf; the other is the applicant with the secret quirk on their phone. Santa asks questions, the elf answers fully in character. Santa: guess the quirk!",
+    "secret": {
+      "label": "You're the elf applicant. Play this quirk, but never say it!",
+      "options": [
+        "Can only speak in rhymes",
+        "Is terrified of reindeer",
+        "Thinks it is Halloween",
+        "Is secretly the Grinch",
+        "Has never seen snow before",
+        "Is wildly overexcited about everything",
+        "Falls asleep mid-sentence",
+        "Thinks Santa is the Easter Bunny",
+        "Is a spy from the South Pole",
+        "Has an extremely dramatic fear of wrapping paper",
+        "Can only answer with song lyrics",
+        "Is way too competitive"
+      ]
+    },
+    "time": 60,
+    "props": [],
+    "judge": "Santa (the other player) names the quirk (close enough, host's call) within 60 s while the elf stays in character; the elf saying the quirk = not this time; Santa needing a hint from the host = partial.",
+    "tags": ["performance", "word", "no-props"]
+  },
+  {
+    "id": "dare-043",
+    "title": "Human Christmas Tree",
+    "who": "team",
+    "instructions": "WHOLE TEAM: turn one teammate into a Christmas tree! Hang 10 safe 'ornaments' on them (socks, scarves, spoons, sticky notes...). Then the tree sings 'O Christmas Tree' without dropping a thing!",
+    "secret": null,
+    "time": 60,
+    "props": ["a pile of safe, soft household \"ornaments\": socks, scarves, sticky notes, ribbons, oven mitts, wooden spoons"],
+    "judge": "At the buzzer at least 10 'ornaments' are on the tree (nothing on the face), and the tree sings the first line of 'O Christmas Tree' without anything falling off; 5 to 9 ornaments, or one drops while singing = partial.",
+    "tags": ["physical", "performance", "minute-to-win-it"]
   }
 ]
